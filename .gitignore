@@ -7,3 +7,5 @@ dist/
 .DS_Store
 mutation-report.json
 .mutation-tmp/
+.env.*
+!.env.example
