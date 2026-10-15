@@ -79,6 +79,13 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
           for (const code of ["204", "304"]) if (op.responses?.[code]) delete op.responses[code].content;
         }
       }
+      const exp = (spec.paths?.["/documents/{id}/export.docx"] as { get?: { responses?: Record<string, unknown> } } | undefined)?.get;
+      if (exp?.responses) {
+        exp.responses["200"] = {
+          description: "A .docx whose differences are native Word tracked changes.",
+          content: { "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { schema: { type: "string", format: "binary" } } },
+        };
+      }
       return spec as never;
     },
   });

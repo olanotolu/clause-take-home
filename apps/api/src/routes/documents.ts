@@ -1,10 +1,11 @@
 import type { App } from "../types.ts";
 import { sha256 } from "@clause/core";
+import { MAX_EXPORT_CHARS, redlineDocx } from "../docx.ts";
 import { createPatch } from "diff";
 import { z } from "zod";
 import * as docs from "../documents.ts";
 import * as repo from "../repo.ts";
-import { ChangesBody, CreateBody, DocumentOut, DocumentSummaryOut, IdParams, PageQuery, PreviewOut, RevertBody, VersionParam, ReceiptOut, RevisionInfoOut, errors } from "../schemas.ts";
+import { ChangesBody, CreateBody, DocumentOut, DocumentSummaryOut, ExportQuery, IdParams, PageQuery, PreviewOut, RevertBody, VersionParam, ReceiptOut, RevisionInfoOut, errors } from "../schemas.ts";
 
 
 const present = (d: repo.DocumentRecord) => ({
@@ -75,6 +76,28 @@ export function registerDocumentRoutes(app: App): void {
     if (!r.ok) return reply.problem(r.error);
     if (r.value.changed) reply.header("ETag", docs.etagOf(repo.getDocument(app.db, req.params.id)!));
     return r.value;
+  });
+
+  // Word redline: native tracked changes (<w:ins>/<w:del>) between two versions. Read-only.
+  app.get("/documents/:id/export.docx", { schema: { params: IdParams, querystring: ExportQuery, response: errors(400, 404, 413, 422, 500) } }, async (req, reply) => {
+    const doc = repo.getDocument(app.db, req.params.id);
+    if (!doc) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    const toV = req.query.to ?? doc.version;
+    const fromV = req.query.from ?? 1;
+    if (fromV >= toV) return reply.problem({ type: "INVALID_VERSION_RANGE", from: fromV, to: toV });
+    const from = repo.getRevision(app.db, doc.id, fromV);
+    if (!from) return reply.problem({ type: "REVISION_NOT_FOUND", id: doc.id, version: fromV });
+    const to = repo.getRevision(app.db, doc.id, toV);
+    if (!to) return reply.problem({ type: "REVISION_NOT_FOUND", id: doc.id, version: toV });
+    const chars = Math.max(from.content.length, to.content.length);
+    if (chars > MAX_EXPORT_CHARS) return reply.problem({ type: "TOO_LARGE_TO_EXPORT", chars, max: MAX_EXPORT_CHARS });
+
+    const buffer = await redlineDocx({ title: doc.title, from, to });
+    const slug = doc.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "document";
+    return reply
+      .header("content-type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+      .header("content-disposition", `attachment; filename="${slug}-v${fromV}-to-v${toV}-redline.docx"`)
+      .send(buffer as never);
   });
 
   app.get("/documents/:id/revisions", { schema: { params: IdParams, response: { 200: z.object({ items: z.array(RevisionInfoOut) }), ...errors(400, 404, 500) } } }, async (req, reply) => {

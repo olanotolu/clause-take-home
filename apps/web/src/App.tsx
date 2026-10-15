@@ -4,10 +4,11 @@ import { ChangePanel, type PreviewState, type Staged } from "./components/Change
 import { DocPane } from "./components/DocPane.tsx";
 import { HistoryPanel } from "./components/HistoryPanel.tsx";
 import { SearchPanel } from "./components/SearchPanel.tsx";
+import { SuggestPanel } from "./components/SuggestPanel.tsx";
 import { api, type Doc, type DocResult, type DocSummary, type Hit, type SearchPage } from "./lib/api.ts";
 import type { Range } from "./lib/segments.ts";
 
-type Tab = "search" | "change" | "history";
+type Tab = "search" | "change" | "ai" | "history";
 
 export default function App() {
   const [docs, setDocs] = useState<DocSummary[]>([]);
@@ -122,6 +123,11 @@ export default function App() {
     void refreshDocs();
   };
 
+  const stageSuggested = (items: Omit<Staged, "id">[]) => {
+    setStaged((s) => [...s, ...items.map((i) => ({ ...i, id: nextId.current++ }))]);
+    setTab("change");
+  };
+
   // Undo: restore an old version's text as a NEW version (history is only ever appended to).
   const restore = async (toVersion: number) => {
     if (!doc) return;
@@ -223,7 +229,7 @@ export default function App() {
 
       <aside className="flex min-h-0 flex-col border-l border-line bg-canvas max-[1100px]:col-span-2 max-[1100px]:border-l-0 max-[1100px]:border-t max-[640px]:col-span-1" aria-label="Inspector">
         <div role="tablist" className="flex border-b border-line bg-paper px-2 text-sm">
-          {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["history", "History"]] as const).map(([k, label]) => (
+          {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["ai", "AI"], ["history", "History"]] as const).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`border-b-2 px-3 py-2.5 font-medium ${tab === k ? "border-accent text-accent" : "border-transparent text-muted"}`}>
               {label}
             </button>
@@ -249,6 +255,7 @@ export default function App() {
               onClear={() => setStaged([])}
             />
           )}
+          {tab === "ai" && doc && <SuggestPanel key={doc.id} docId={doc.id} docVersion={doc.version} onStage={stageSuggested} />}
           {tab === "history" && doc && <HistoryPanel docId={doc.id} version={doc.version} onRestore={(v) => void restore(v)} />}
         </div>
       </aside>

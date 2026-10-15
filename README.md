@@ -11,7 +11,7 @@ pnpm seed                 # loads 5 fictional contracts from fixtures/ into data
 pnpm dev                  # API on http://127.0.0.1:3000   (docs: /docs, spec: /openapi.json)
 pnpm dev:web              # optional UI on http://127.0.0.1:5173 (proxies /api to :3000)
 ./http/demo.sh            # end-to-end curl walkthrough (needs jq)
-pnpm test                 # 141 tests
+pnpm test                 # 150 tests
 ```
 
 No native build step: storage is Node's built-in `node:sqlite`, and TypeScript runs directly under Node's type stripping (`pnpm typecheck` runs `tsc`).
@@ -40,6 +40,7 @@ No native build step: storage is Node's built-in `node:sqlite`, and TypeScript r
 | `PATCH /documents/:id` | **apply changes** → full updated text, new version, receipt |
 | `POST /documents/:id/changes/preview` | same body as PATCH; dry run through the *same engine call*; returns proposed text, unified diff, receipt. Persists nothing. |
 | `GET /documents/:id/revisions[/:version]` | immutable history with full snapshots |
+| `GET /documents/:id/export.docx?from&to` | **Word redline**: the differences between two versions (default: v1 → current) as native Word tracked changes. See below. |
 | `POST /documents/:id/revert` | **undo**: `{toVersion, expectedVersion?}` restores an old version's text as a *new* version. History is never rewritten. Same preconditions, ETag and no-op rule as PATCH. |
 | `GET /documents/search?q&mode&ids&limit&offset` | search across documents |
 | `GET /documents/:id/search?q&mode&limit` | search inside one document (all hits) |
@@ -91,9 +92,19 @@ curl -s "localhost:3000/documents/$ID/search?q=shall%20not%20disclose&mode=exact
 
 `POST /documents/:id/suggest {"instruction": "..."}` asks a model (AI SDK 7 through the AI Gateway) for a structured proposal, converts it to ordinary quote changes, and validates it with **the same engine as a human edit**. The response says `applied:false`, carries the version it was validated against, and the client commits it through normal `PATCH`. The model can propose; only the deterministic engine decides what is modified. Policy: ≤5 changes, each target ≤2,000 chars, documents >200k chars refused (no silently truncated contract).
 
-**Configuration:** set `OPENROUTER_API_KEY` (default model `anthropic/claude-sonnet-5.5`) or AI Gateway credentials; `CLAUSE_SUGGEST_MODEL` overrides the model. With neither set the route answers 503 and nothing else is affected. Never commit a key: `.env*` is git-ignored.
+**Configuration:** copy `.env.example` to `.env.local` (git-ignored; `pnpm dev` and `pnpm suggest:smoke` load it automatically) and set `OPENROUTER_API_KEY` (default model `anthropic/claude-sonnet-5.5`, override with `CLAUSE_SUGGEST_MODEL`). AI Gateway credentials also work. With no key the route answers 503 and the UI's **AI** tab says how to enable it; nothing else is affected.
 
-> **Status, honestly:** the route's safety logic is covered by tests with a stub provider (`provider:"fixture"`), and CI runs those. **It has not yet been run against a live model.** `OPENROUTER_API_KEY=… pnpm suggest:smoke` runs three live checks (a normal edit is accepted and not applied, an instruction hidden inside a contract is not obeyed, an impossible request invents nothing) and exits non-zero on failure. There is no UI for it.
+**In the UI:** the **AI** tab sends your instruction, shows the model's rationale and the exact before → after, labels the source (`live model` vs `FIXTURE`), and lets you *stage* the change into the normal review → Apply flow.
+
+> **Status, honestly:** the safety logic is covered by tests with a stub provider, and the whole UI flow (suggest → stage → validate → apply) was driven in a browser against a stub labelled `FIXTURE`. **It has not been run against a live model.** `pnpm suggest:smoke` runs three live checks (a normal edit is accepted and not applied, an instruction hidden inside a contract is not obeyed, an impossible request invents nothing) and exits non-zero on failure.
+
+### Word redline export
+
+`GET /documents/:id/export.docx?from=1&to=7` returns a `.docx` whose differences are **native Word tracked changes** (`<w:ins>`/`<w:del>`, author `CLAUSE`, dated by the newer revision), so Word's Review pane lists them and Accept/Reject work. A ready-made example is in [`samples/mutual-nda-redline.docx`](samples/mutual-nda-redline.docx). The History tab links to it.
+
+- Word-level diff (`jsdiff`); every line break ends a paragraph, and an inserted or deleted line break is tracked on the paragraph mark, so *Reject all* really restores the old paragraph structure.
+- **Verified** by reading the generated XML back independently: *Accept all* reproduces the new text and *Reject all* reproduces the old text exactly, over a set of tricky pairs (empty paragraphs, emoji, `<`/`&`, repeated blank lines), and the sample opens in an unrelated library (`python-docx`). **I have not opened it in Microsoft Word itself**; please do that once with the sample.
+- Plain text only: there is no original Word formatting, numbering or tables to preserve, so none is produced. Versions larger than 1,000,000 characters return `413` instead of attempting a super-linear diff.
 
 ## Performance
 
@@ -122,7 +133,7 @@ Measured by `pnpm bench` on a deterministic synthetic 10 MiB contract (10,306,99
 ## Testing
 
 ```bash
-pnpm test         # 141 tests: engine unit + property tests, API, search, concurrency, suggestions
+pnpm test         # 150 tests: engine unit + property tests, API, search, concurrency, suggestions
 pnpm typecheck    # strict TS across API, core and web
 pnpm bench        # the table above (separate from `test`; takes well under a minute)
 pnpm mutate       # bounded mutation run on the engine (~30 s)
@@ -147,12 +158,12 @@ pnpm mutate       # bounded mutation run on the engine (~30 s)
 
 - **CLAUSE guarantees the mechanics of an edit, not its legal meaning.** In testing, changing "two million dollars" left "($2,000,000)" in the same sentence; nothing here would notice.
 - No authentication, tenancy, rate limiting or audit log (design in `INFRA.md`). Not SOC 2 / GDPR compliant, and nothing here claims to be.
-- Documents are plain text only: no DOCX/PDF import, no formatting, no tracked-changes export.
+- Documents are plain text only: no DOCX/PDF import and no formatting. The Word export is a plain-text redline.
 - Words-mode highlights on documents >256 KiB mark the *first* occurrence of the query's words, not FTS5's "best window". Diacritic-insensitive matching (`café`/`cafe`) works in the index but not in that locator.
 - Exact search is case-sensitive only; case-insensitive and regex search are not offered.
 - Search results can be stale between a result and a later edit; each result carries its `version` and the UI only highlights hits whose version matches.
 - Revisions are never pruned (undo adds a revision rather than removing one). `DELETE` removes a document and its history permanently.
-- The AI route has not been exercised against a live model (above). The UI has no automated tests; it was exercised manually in a browser (search, selection, staging, redline, conflict banner, reload, apply).
+- The AI route has not been exercised against a live model (above). The UI has no automated tests; it was exercised manually in a browser (search, selection, staging, redline, conflict banner, reload, apply, restore, AI suggest against a stub, Word download).
 
 ## Repository
 
@@ -160,6 +171,7 @@ pnpm mutate       # bounded mutation run on the engine (~30 s)
 packages/core/   pure edit engine: resolve → order/validate → rebuild (no I/O, no dependencies)
 apps/api/        Fastify 5 + Zod 4; routes are thin, services coordinate, repo is SQL only
 apps/web/        React 19 + Vite 8 + Tailwind 4 workspace (search → select → preview → apply)
+samples/         an example Word redline
 fixtures/        fictional contracts (NDA, SaaS, MSA, DPA, employee confidentiality)
 bench/           deterministic 10 MiB generator + benchmark
 scripts/         mutation harness, Schemathesis runner + hook

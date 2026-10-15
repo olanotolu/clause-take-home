@@ -62,6 +62,11 @@ const withDefault = <T extends z.ZodType>(schema: T, def: z.output<T>) => schema
 
 export const VersionParam = strictInt(1, 1_000_000_000);
 
+export const ExportQuery = z.object({
+  from: strictInt(1, 1_000_000_000).optional().meta({ description: "Older version to compare against. Default 1 (the original)." }),
+  to: strictInt(1, 1_000_000_000).optional().meta({ description: "Newer version. Default: the current version." }),
+});
+
 export const IdParams = z.strictObject({ id: z.string().min(1).max(64) });
 
 export const PageQuery = z.object({

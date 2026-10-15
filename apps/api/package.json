@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/server.ts",
-    "start": "node src/server.ts"
+    "dev": "node --watch --env-file-if-exists=../../.env.local src/server.ts",
+    "start": "node --env-file-if-exists=../../.env.local src/server.ts"
   },
   "dependencies": {
     "@clause/core": "workspace:*",
@@ -14,7 +14,11 @@
     "@scalar/fastify-api-reference": "^1.74.0",
     "ai": "^7.0.142",
     "diff": "^9.0.0",
+    "docx": "^9.11.0",
     "fastify": "^5.12.7",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "jszip": "^3.10.2"
   }
 }

@@ -126,3 +126,19 @@ version number (v3 can equal v1). 11 tests, including search following the resto
 Verified in the browser: restoring v5 from v6 produced v7 whose hash equals v5's, v6 still listed. Fuzz over the new
 endpoint: 1,500 cases, 0 failures. Side finding: the Restore button's accessible name was its long tooltip, not its visible
 label ("label in name" mismatch); fixed with an explicit aria-label.
+
+## 2026-10-15 — Word export: two bugs the accept/reject property caught
+The export test reads the generated XML back and applies what Word does (Accept-all / Reject-all), then compares to the
+two source texts. It failed twice, usefully:
+1. **Test-reader bug**: the library writes an empty paragraph as self-closing `<w:p/>`; my regex treated it as an opening tag
+   and swallowed the next paragraph. Fixed the reader, not the exporter.
+2. **Real exporter bug**: an inserted line break created a new paragraph, but the break itself wasn't tracked, so "Reject all"
+   in Word would leave an extra empty paragraph behind. The break that ends a paragraph is a *paragraph mark*; Word tracks it
+   as a change on the paragraph. Fixed with `Paragraph({ run: { insertion | deletion } })` and taught the reader the merge rule.
+Verified separately: the sample opens in python-docx (9 tracked insertions, 4 deletions, one author). Not verified: opening in
+Microsoft Word itself (installed on the dev machine, but I can't drive it) — left as a manual check.
+
+## 2026-10-15 — AI tab verified against a stub, not a model
+Drove suggest -> stage -> validate -> apply in a browser against a throwaway server with a stub provider (labelled FIXTURE in the
+UI), and against the real server with no key (the tab explains how to enable it). The live-model checks still need
+`OPENROUTER_API_KEY=... pnpm suggest:smoke`. (Aside: port 3001 on the dev machine is taken by an unrelated app; the harness used 3399.)

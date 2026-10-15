@@ -12,6 +12,16 @@ export interface ApiError { error: string; code: number; type: string; details?:
 export interface Preview { version: number; wouldChange: boolean; proposedContent: string; applied: Applied[]; diff: string }
 export interface Receipt { revertedTo?: number; id: string; content: string; previousVersion: number; version: number; changed: boolean; beforeHash: string; afterHash: string; applied: Applied[] }
 export interface Revision { version: number; contentHash: string; createdAt: string; summary: { before?: string; after?: string; created?: boolean; revertedTo?: number }[] }
+export interface SuggestResponse {
+  status: "proposal";
+  applied: false;
+  provider: "live" | "fixture";
+  model: string;
+  documentVersion: number;
+  rationale: string;
+  changes: Change[];
+  validation: { valid: true; applied: Applied[]; diff: string } | { valid: false; error: { type: string; error: string; details?: ApiError["details"] } };
+}
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -40,5 +50,6 @@ export const api = {
   preview: (id: string, expectedVersion: number, changes: Change[]) =>
     call<Preview>("POST", `/documents/${id}/changes/preview`, { expectedVersion, changes }),
   revert: (id: string, expectedVersion: number, toVersion: number) => call<Receipt>("POST", `/documents/${id}/revert`, { toVersion, expectedVersion }),
+  suggest: (id: string, instruction: string) => call<SuggestResponse>("POST", `/documents/${id}/suggest`, { instruction }),
   apply: (id: string, expectedVersion: number, changes: Change[]) => call<Receipt>("PATCH", `/documents/${id}`, { expectedVersion, changes }),
 };
