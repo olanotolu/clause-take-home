@@ -5,3 +5,5 @@ data/
 dist/
 .env
 .DS_Store
+mutation-report.json
+.mutation-tmp/

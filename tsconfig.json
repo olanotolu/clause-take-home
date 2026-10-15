@@ -11,7 +11,16 @@
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["packages/*/src", "packages/*/test", "apps/*/src", "apps/*/test", "bench"]
+  "include": [
+    "packages/*/src",
+    "packages/*/test",
+    "apps/api/src",
+    "apps/api/test",
+    "bench",
+    "scripts"
+  ]
 }

@@ -2,13 +2,17 @@
   "name": "clause",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "pnpm --filter @clause/api dev",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "bench": "node bench/run.ts",
-    "seed": "node apps/api/src/seed.ts"
+    "seed": "node apps/api/src/seed.ts",
+    "dev:web": "pnpm --filter @clause/web dev",
+    "mutate": "node scripts/mutate.ts"
   },
   "devDependencies": {
     "@types/node": "^24",

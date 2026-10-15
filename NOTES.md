@@ -38,3 +38,23 @@ product. Why tests missed it: they asserted the *highlighted word*, which was th
 every document. Fix: filter on the joined `d.seq`, and verify the returned row's seq (defence in depth).
 Regression test: "every result's snippet comes from ITS OWN document" (verified to fail on the old query).
 Lesson: assert provenance (this text is in THIS document), not just plausibility.
+
+## 2026-10-15 — mutation testing: StrykerJS 10 didn't work here; wrote a bounded harness instead
+Tried StrykerJS 10.0.0 + vitest-runner on Vitest 5 / TypeScript 7. Findings, in order: (1) Stryker's tsconfig
+preprocessor calls `ts.parseConfigFileTextToJson`, which doesn't exist in TS 7's native API ("TS7 experimental"
+in its release notes) — bypassed with a nonexistent `tsconfigFile`; (2) pnpm's strict layout hid the runner
+plugin — fixed with `plugins`; (3) the run then reported a **1.56% score, "0.07 tests per mutant"**, i.e. mutants
+were never activated in the Vitest 5 runner (its init also crashed in debug logging). I did NOT report that number.
+Removed Stryker and wrote `scripts/mutate.ts`: flips one operator at a time (<, <=, ===, &&, +, true, ...) in
+`packages/core/src`, reruns the core tests, reports survivors. Honest limits: 70 mutants (lines containing string
+literals are skipped), no equivalent-mutant detection, different operator set than Stryker.
+Harness bugs I hit and fixed: (a) a mutant (`start - exact.length`) created an infinite synchronous loop that
+Vitest cannot time out -> hard 20 s per-mutant kill, counted as detected; (b) my first version mutated the real
+source tree, and a killed run left `resolve.ts` mutated (caught via `git status`, restored with `git checkout`)
+-> it now mutates only throwaway copies in `.mutation-tmp/`.
+Result: first run 52/70 killed (74.3%), 18 survivors. Triage: 10 were real test gaps (surrogate boundary code units,
+`changed:true` never asserted at engine level, candidate context bounds, candidate cap of 10, prefix starting at
+offset 0, suffix-only anchoring), now covered. Final: **65/70 killed (92.9%)**. The 5 survivors are equivalent:
+`anchor.ts:17` (empty exact falls back to position either way), `resolve.ts:14` x3 (`charCodeAt` out of range is
+NaN -> false either way), `apply.ts:11` (index tie-break is redundant given a stable sort over index-ordered input;
+kept so `orderSpans` is deterministic for any input order).

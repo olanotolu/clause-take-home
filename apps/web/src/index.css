@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-rail: #15171c;
+  --color-rail-hi: #20232b;
+  --color-canvas: #f7f5f0;
+  --color-paper: #fffefb;
+  --color-ink: #1d2025;
+  --color-muted: #6b7280;
+  --color-line: #e4e0d6;
+  --color-accent: #2457d6;
+  --color-del: #b42318;
+  --color-del-bg: #fde8e6;
+  --color-ins: #0a6b3a;
+  --color-ins-bg: #daf5e4;
+  --color-hit: #fff1a8;
+  --font-doc: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--color-canvas); color: var(--color-ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.doc { font-family: var(--font-doc); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; font-size: 16px; }
+.del { background: var(--color-del-bg); color: var(--color-del); text-decoration: line-through; text-decoration-thickness: 1.5px; border-radius: 2px; }
+.ins { background: var(--color-ins-bg); color: var(--color-ins); border-radius: 2px; }
+.hit { background: var(--color-hit); border-radius: 2px; }
+.sel { background: #cfe0ff; outline: 1.5px solid var(--color-accent); border-radius: 2px; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }

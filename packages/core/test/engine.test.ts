@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyChanges } from "../src/index.ts";
+import { applyChanges, splitsSurrogate } from "../src/index.ts";
 import { err, ok, pos, q } from "./helpers.ts";
 
 const NDA = "A shall not disclose X. B shall not disclose Y. C shall not disclose Z.";
@@ -226,5 +226,62 @@ describe("content fidelity", () => {
       { index: 1, start: 4, end: 5, before: "e", after: "E", newStart: 9, newEnd: 10 },
     ]);
     for (const a of r.applied) expect(r.content.slice(a.newStart, a.newEnd)).toBe(a.after);
+  });
+});
+
+// ---- added after the first mutation run (see NOTES.md): each test kills a surviving mutant
+
+describe("surrogate-pair boundaries", () => {
+  it("detects a split between the extreme code units of valid pairs", () => {
+    expect(splitsSurrogate("𐀀", 1)).toBe(true); // U+10000: lowest pair
+    expect(splitsSurrogate("􏿿", 1)).toBe(true); // U+10FFFF: highest pair
+  });
+  it("does not treat lone surrogates as split pairs", () => {
+    expect(splitsSurrogate("a\udc00", 1)).toBe(false); // lone low after a normal char
+    expect(splitsSurrogate("\ud800a", 1)).toBe(false); // lone high before a normal char
+    expect(splitsSurrogate("퟿a\udc00", 1)).toBe(false);
+  });
+  it("is false at the edges of the text", () => {
+    expect(splitsSurrogate("🎉", 0)).toBe(false);
+    expect(splitsSurrogate("🎉", 2)).toBe(false);
+  });
+});
+
+describe("result flags and error details", () => {
+  it("changed is true when anything really changes, even if another change is a no-op", () => {
+    expect(ok("abc", [q("b", "X")]).changed).toBe(true);
+    expect(ok("abc def", [q("abc", "abc"), q("def", "DEF")]).changed).toBe(true);
+    expect(ok("abc def", [q("abc", "abc"), q("def", "def")]).changed).toBe(false);
+  });
+
+  it("names the changes in request order when the same target is given twice", () => {
+    expect(err("abc", [q("b", "1"), q("b", "2")])).toEqual({ type: "OVERLAPPING_CHANGES", indices: [0, 1] });
+  });
+
+  it("with three identical targets, reports the first two in request order", () => {
+    expect(err("abc", [q("b", "1"), q("b", "2"), q("b", "3")])).toEqual({ type: "OVERLAPPING_CHANGES", indices: [0, 1] });
+    expect(err("abc", [q("b", "3"), q("b", "2"), q("b", "1"), q("b", "0")])).toEqual({ type: "OVERLAPPING_CHANGES", indices: [0, 1] });
+  });
+
+  it("gives each ambiguity candidate bounded surrounding context", () => {
+    const text = `${"x".repeat(40)}TARGET${"y".repeat(40)} and TARGET again`;
+    const e = err(text, [q("TARGET", "z")]);
+    if (e.type !== "AMBIGUOUS_TARGET") throw new Error("expected ambiguity");
+    const c = e.candidates[0]!;
+    expect(c.context).toBe(text.slice(Math.max(0, c.start - 24), c.end + 24));
+    expect(c.context.startsWith("x".repeat(24))).toBe(true);
+    expect(c.context.length).toBe(24 + 6 + 24);
+    expect(e.candidates[1]!.context.endsWith(" again")).toBe(true);
+  });
+
+  it("caps the candidates it lists at 10 but reports the true match count", () => {
+    const e = err("ab ".repeat(12), [q("ab", "x")]);
+    expect(e).toMatchObject({ type: "AMBIGUOUS_TARGET", matchCount: 12 });
+    if (e.type === "AMBIGUOUS_TARGET") expect(e.candidates).toHaveLength(10);
+  });
+
+  it("accepts a prefix that begins exactly at the start of the document", () => {
+    expect(ok("abcX abcY", [q("X", "!", { prefix: "abc" })]).content).toBe("abc! abcY");
+    expect(err("abcX", [q("X", "!", { prefix: "zabc" })]).type).toBe("TARGET_NOT_FOUND"); // longer than the text before it
   });
 });

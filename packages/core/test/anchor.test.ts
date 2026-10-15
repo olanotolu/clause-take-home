@@ -17,6 +17,13 @@ describe("selectorFor", () => {
     expect(resolveTarget(text, target)).toMatchObject({ ok: true, value: [{ start: 26, end: 44 }] });
   });
 
+  it("uses a suffix when the prefix alone cannot disambiguate", () => {
+    // first "run" has no text before it, so only its suffix can tell it apart
+    const target = selectorFor("run now. run later.", 0, 3);
+    expect("quote" in target && target.quote.suffix).toBe(" now. run later.");
+    expect(resolveTarget("run now. run later.", target)).toMatchObject({ ok: true, value: [{ start: 0, end: 3 }] });
+  });
+
   it("falls back to a position selector when no quote can reach the span", () => {
     expect(selectorFor("aaaa", 1, 3)).toEqual({ position: { start: 1, end: 3, expectedText: "aa" } });
   });
