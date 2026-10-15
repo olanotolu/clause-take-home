@@ -104,3 +104,10 @@ They were infinite-loop mutants from my first mutation-harness run, left behind 
 but not its children. Killed them, reran: back to the original range. Takeaways: (1) the harness now prints the
 load average, because a benchmark number without machine state isn't reproducible; (2) the mutation harness now
 kills its whole process group on timeout (`detached` + `process.kill(-pid)`).
+
+## 2026-10-15 — "Redline doesn't do anything" (user report)
+Reproduced: Redline *did* render, but in place and without scrolling, so when the changed clause was off-screen (or
+the window was short, as in the small browser pane) clicking it appeared to do nothing. Fix: entering redline mode
+scrolls to the first change, and a banner says "Redline preview of N staged changes ... Nothing is saved until you
+click Apply". Verified: with the change scrolled out of view (scrollTop 0), clicking Redline moved the view to the
+change (scrollTop 338) and showed the banner. Lesson: a mode switch with no visible feedback reads as a broken button.

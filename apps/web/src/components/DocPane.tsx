@@ -39,7 +39,7 @@ export function DocPane({ content, hits, selection, redline, onSelect }: Props) 
   // Bring the focused highlight (selection first, else first search hit) into view.
   useEffect(() => {
     ref.current?.querySelector("[data-focus]")?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [selection, hits]);
+  }, [selection, hits, redline]);
 
   const handleMouseUp = () => {
     if (redline || !ref.current) return;
@@ -63,7 +63,8 @@ export function DocPane({ content, hits, selection, redline, onSelect }: Props) 
       data-testid="doc-text"
     >
       {pieces.map((p, i) => {
-        const focus = !focused && (p.kind === "sel" || (p.kind === "hit" && !selection));
+        // In redline mode, jump to the first change; otherwise to the selection, else the first search hit.
+        const focus = !focused && (redline ? p.kind === "del" || p.kind === "ins" : p.kind === "sel" || (p.kind === "hit" && !selection));
         if (focus) focused = true;
         return (
           <span key={i} className={CLASS[p.kind]} data-start={p.start} data-focus={focus ? "" : undefined} data-kind={p.kind}>

@@ -185,6 +185,11 @@ export default function App() {
                 </button>
               </div>
             </header>
+            {redlineSpans && (
+              <p role="status" className="border-b border-line bg-ins-bg/60 px-6 py-2 text-sm text-ink/80">
+                Redline preview of {redlineSpans.length} staged change{redlineSpans.length === 1 ? "" : "s"} — <span className="del px-0.5">removed</span> <span className="ins px-0.5">added</span>. Nothing is saved until you click Apply.
+              </p>
+            )}
             {notice && <p role="status" className="border-b border-ins/20 bg-ins-bg px-6 py-2 text-sm text-ins">{notice}</p>}
             <div className="relative min-h-0 flex-1 overflow-y-auto bg-canvas">
               <DocPane content={doc.content} hits={hits} selection={selection} redline={redlineSpans} onSelect={(r) => { setSelection(r); setTab("change"); }} />
