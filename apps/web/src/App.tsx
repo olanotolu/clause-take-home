@@ -122,6 +122,29 @@ export default function App() {
     void refreshDocs();
   };
 
+  // Undo: restore an old version's text as a NEW version (history is only ever appended to).
+  const restore = async (toVersion: number) => {
+    if (!doc) return;
+    const r = await api.revert(doc.id, doc.version, toVersion);
+    if (r.ok) {
+      if (r.data.changed) {
+        setDoc({ ...doc, content: r.data.content, version: r.data.version, contentHash: r.data.afterHash });
+        setSelection(null);
+        setRedline(false);
+        setNotice(`Restored the text of v${toVersion} as v${r.data.version}. Nothing was deleted.`);
+        setRefreshKey((k) => k + 1);
+        void refreshDocs();
+      } else {
+        setNotice(`The document already has the text of v${toVersion}; no new version was created.`);
+      }
+    } else if (r.error.type === "VERSION_CONFLICT" || r.error.type === "PRECONDITION_FAILED") {
+      setConflict({ currentVersion: r.error.details?.currentVersion });
+      setTab("change");
+    } else {
+      setNotice(r.error.error);
+    }
+  };
+
   const create = async (title: string, content: string) => {
     const r = await api.create(title, content);
     if (!r.ok) return setNotice(r.error.error);
@@ -226,7 +249,7 @@ export default function App() {
               onClear={() => setStaged([])}
             />
           )}
-          {tab === "history" && doc && <HistoryPanel docId={doc.id} version={doc.version} />}
+          {tab === "history" && doc && <HistoryPanel docId={doc.id} version={doc.version} onRestore={(v) => void restore(v)} />}
         </div>
       </aside>
     </div>

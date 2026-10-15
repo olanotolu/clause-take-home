@@ -117,3 +117,12 @@ While the "Document changed underneath you" banner was showing, the validation b
 "Valid · v3 -> v4 / version 3 is still current": true when computed, false now. Apply was correctly refused, so it was
 a trust bug, not a correctness bug. Fix: while a conflict is showing, the box says "Validation is out of date".
 Verified in the browser (green tick absent, Apply disabled). Lesson: UI that reports a past check as the present one.
+
+## 2026-10-15 — undo (POST /documents/:id/revert)
+Design: undo is a NEW revision whose text equals an old one; history is only appended to, and the new revision's summary
+records `{revertedTo: n}` so the audit trail says why it exists. It reuses the edit path's pieces (preconditions,
+compare-and-swap commit, no-op rule), so a revert can't clobber someone else's newer edit. No-op is decided by TEXT, not
+version number (v3 can equal v1). 11 tests, including search following the restored text and a two-connection race.
+Verified in the browser: restoring v5 from v6 produced v7 whose hash equals v5's, v6 still listed. Fuzz over the new
+endpoint: 1,500 cases, 0 failures. Side finding: the Restore button's accessible name was its long tooltip, not its visible
+label ("label in name" mismatch); fixed with an explicit aria-label.

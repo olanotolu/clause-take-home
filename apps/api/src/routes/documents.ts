@@ -4,7 +4,7 @@ import { createPatch } from "diff";
 import { z } from "zod";
 import * as docs from "../documents.ts";
 import * as repo from "../repo.ts";
-import { ChangesBody, CreateBody, DocumentOut, DocumentSummaryOut, IdParams, PageQuery, PreviewOut, VersionParam, ReceiptOut, RevisionInfoOut, errors } from "../schemas.ts";
+import { ChangesBody, CreateBody, DocumentOut, DocumentSummaryOut, IdParams, PageQuery, PreviewOut, RevertBody, VersionParam, ReceiptOut, RevisionInfoOut, errors } from "../schemas.ts";
 
 
 const present = (d: repo.DocumentRecord) => ({
@@ -67,6 +67,14 @@ export function registerDocumentRoutes(app: App): void {
       afterHash: sha256(result.content),
       diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }),
     };
+  });
+
+  // Undo: restore an old version's text as a new version. Same preconditions and response as PATCH.
+  app.post("/documents/:id/revert", { schema: { params: IdParams, body: RevertBody, response: { 200: ReceiptOut, ...errors(400, 404, 409, 412, 500) } } }, async (req, reply) => {
+    const r = docs.revert(app.db, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
+    if (!r.ok) return reply.problem(r.error);
+    if (r.value.changed) reply.header("ETag", docs.etagOf(repo.getDocument(app.db, req.params.id)!));
+    return r.value;
   });
 
   app.get("/documents/:id/revisions", { schema: { params: IdParams, response: { 200: z.object({ items: z.array(RevisionInfoOut) }), ...errors(400, 404, 500) } } }, async (req, reply) => {

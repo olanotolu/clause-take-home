@@ -23,6 +23,8 @@ export interface Receipt {
   beforeHash: string;
   afterHash: string;
   applied: AppliedChange[];
+  /** Set when this receipt came from a revert: the old version whose text was restored. */
+  revertedTo?: number;
 }
 
 export const etagOf = (d: Pick<DocumentRecord, "version" | "contentHash">) => `"v${d.version}-${d.contentHash.slice(0, 12)}"`;
@@ -34,7 +36,7 @@ const IF_MATCH = /^"v(\d+)-([0-9a-f]+)"$/;
  * `expectedVersion` (body) and `If-Match` (header) may both be given, but must
  * agree. A stale one is a 409 / 412 respectively; we never auto-merge.
  */
-function checkPreconditions(doc: DocumentRecord, req: ChangeRequest): DomainError | undefined {
+function checkPreconditions(doc: DocumentRecord, req: Pick<ChangeRequest, "expectedVersion" | "ifMatch">): DomainError | undefined {
   let ifMatchVersion: number | undefined;
   if (req.ifMatch !== undefined) {
     const m = IF_MATCH.exec(req.ifMatch.trim());
@@ -110,4 +112,42 @@ export function apply(db: Db, id: string, req: ChangeRequest): Result<Receipt, D
       applied: result.applied,
     },
   };
+}
+
+export interface RevertRequest {
+  /** The old version whose text should become current again. */
+  toVersion: number;
+  expectedVersion?: number | undefined;
+  ifMatch?: string | undefined;
+}
+
+/**
+ * Undo = restore an old version's text as a NEW version. History is never rewritten or deleted: after reverting
+ * v5 back to v2 you have v1..v6, where v6 has the same text as v2. It uses the same preconditions and the same
+ * compare-and-swap commit as an ordinary edit, so a revert can't overwrite someone else's newer change either.
+ */
+export function revert(db: Db, id: string, req: RevertRequest): Result<Receipt, DomainError> {
+  const doc = repo.getDocument(db, id);
+  if (!doc) return fail({ type: "DOCUMENT_NOT_FOUND", id });
+  const pre = checkPreconditions(doc, req);
+  if (pre) return fail(pre);
+  const target = repo.getRevision(db, id, req.toVersion);
+  if (!target) return fail({ type: "REVISION_NOT_FOUND", id, version: req.toVersion });
+
+  // Same no-op policy as edits: restoring the text that is already current creates no new version.
+  if (target.content === doc.content) {
+    return { ok: true, value: { id, title: doc.title, content: doc.content, previousVersion: doc.version, version: doc.version, changed: false, beforeHash: doc.contentHash, afterHash: doc.contentHash, applied: [], revertedTo: req.toVersion } };
+  }
+
+  const committed = repo.commitRevision(db, { id, expectedVersion: doc.version, content: target.content, summary: JSON.stringify([{ revertedTo: req.toVersion }]) });
+  if (committed === "conflict") {
+    const current = repo.getDocument(db, id);
+    if (!current) return fail({ type: "DOCUMENT_NOT_FOUND", id });
+    return fail(
+      req.ifMatch !== undefined
+        ? { type: "PRECONDITION_FAILED", expected: req.ifMatch, current: etagOf(current) }
+        : { type: "VERSION_CONFLICT", expectedVersion: doc.version, currentVersion: current.version },
+    );
+  }
+  return { ok: true, value: { id, title: committed.title, content: committed.content, previousVersion: doc.version, version: committed.version, changed: true, beforeHash: doc.contentHash, afterHash: committed.contentHash, applied: [], revertedTo: req.toVersion } };
 }

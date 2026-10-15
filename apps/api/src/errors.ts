@@ -4,6 +4,7 @@ import type { EditError } from "@clause/core";
 export type DomainError =
   | EditError
   | { type: "DOCUMENT_NOT_FOUND"; id: string }
+  | { type: "REVISION_NOT_FOUND"; id: string; version: number }
   | { type: "VERSION_CONFLICT"; expectedVersion: number; currentVersion: number }
   | { type: "PRECONDITION_FAILED"; expected: string; current: string }
   | { type: "CONTRADICTORY_PRECONDITIONS"; ifMatchVersion: number; expectedVersion: number }
@@ -26,6 +27,8 @@ export function toHttp(e: DomainError): HttpError {
   switch (e.type) {
     case "DOCUMENT_NOT_FOUND":
       return { status: 404, type: e.type, error: `Document ${e.id} not found` };
+    case "REVISION_NOT_FOUND":
+      return { status: 404, type: e.type, error: `Document ${e.id} has no version ${e.version}`, details: { version: e.version } };
     case "VERSION_CONFLICT":
       return {
         status: 409,

@@ -10,8 +10,8 @@ export interface SearchPage { query: string; mode: "words" | "exact"; total: num
 export interface Candidate { start: number; end: number; context: string }
 export interface ApiError { error: string; code: number; type: string; details?: { candidates?: Candidate[]; currentVersion?: number; matchCount?: number; index?: number } }
 export interface Preview { version: number; wouldChange: boolean; proposedContent: string; applied: Applied[]; diff: string }
-export interface Receipt { id: string; content: string; previousVersion: number; version: number; changed: boolean; beforeHash: string; afterHash: string; applied: Applied[] }
-export interface Revision { version: number; contentHash: string; createdAt: string; summary: { before?: string; after?: string; created?: boolean }[] }
+export interface Receipt { revertedTo?: number; id: string; content: string; previousVersion: number; version: number; changed: boolean; beforeHash: string; afterHash: string; applied: Applied[] }
+export interface Revision { version: number; contentHash: string; createdAt: string; summary: { before?: string; after?: string; created?: boolean; revertedTo?: number }[] }
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -39,5 +39,6 @@ export const api = {
   search: (q: string, mode: string) => call<SearchPage>("GET", `/documents/search?q=${encodeURIComponent(q)}&mode=${mode}&limit=20`),
   preview: (id: string, expectedVersion: number, changes: Change[]) =>
     call<Preview>("POST", `/documents/${id}/changes/preview`, { expectedVersion, changes }),
+  revert: (id: string, expectedVersion: number, toVersion: number) => call<Receipt>("POST", `/documents/${id}/revert`, { toVersion, expectedVersion }),
   apply: (id: string, expectedVersion: number, changes: Change[]) => call<Receipt>("PATCH", `/documents/${id}`, { expectedVersion, changes }),
 };

@@ -37,6 +37,11 @@ export const ChangesBody = z.strictObject({
   changes: z.array(ChangeSchema).min(1).max(5000),
 });
 
+export const RevertBody = z.strictObject({
+  toVersion: z.number().int().min(1).meta({ description: "The old version whose text becomes current again, as a NEW version." }),
+  expectedVersion: z.number().int().min(1).optional().meta({ description: "Reject with 409 unless the document is exactly at this version." }),
+});
+
 export const CreateBody = z.strictObject({
   title: text().pipe(z.string().min(1).max(300)),
   content: text(),
@@ -125,6 +130,7 @@ export const ReceiptOut = z.object({
   beforeHash: z.string(),
   afterHash: z.string(),
   applied: z.array(AppliedOut),
+  revertedTo: z.number().int().optional().meta({ description: "Present on a revert: the old version whose text was restored." }),
 });
 
 export const PreviewOut = z.object({

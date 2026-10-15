@@ -11,7 +11,7 @@ pnpm seed                 # loads 5 fictional contracts from fixtures/ into data
 pnpm dev                  # API on http://127.0.0.1:3000   (docs: /docs, spec: /openapi.json)
 pnpm dev:web              # optional UI on http://127.0.0.1:5173 (proxies /api to :3000)
 ./http/demo.sh            # end-to-end curl walkthrough (needs jq)
-pnpm test                 # 130 tests
+pnpm test                 # 141 tests
 ```
 
 No native build step: storage is Node's built-in `node:sqlite`, and TypeScript runs directly under Node's type stripping (`pnpm typecheck` runs `tsc`).
@@ -40,6 +40,7 @@ No native build step: storage is Node's built-in `node:sqlite`, and TypeScript r
 | `PATCH /documents/:id` | **apply changes** → full updated text, new version, receipt |
 | `POST /documents/:id/changes/preview` | same body as PATCH; dry run through the *same engine call*; returns proposed text, unified diff, receipt. Persists nothing. |
 | `GET /documents/:id/revisions[/:version]` | immutable history with full snapshots |
+| `POST /documents/:id/revert` | **undo**: `{toVersion, expectedVersion?}` restores an old version's text as a *new* version. History is never rewritten. Same preconditions, ETag and no-op rule as PATCH. |
 | `GET /documents/search?q&mode&ids&limit&offset` | search across documents |
 | `GET /documents/:id/search?q&mode&limit` | search inside one document (all hits) |
 | `POST /documents/:id/suggest` | optional AI *proposal*; never applies (see below) |
@@ -121,7 +122,7 @@ Measured by `pnpm bench` on a deterministic synthetic 10 MiB contract (10,306,99
 ## Testing
 
 ```bash
-pnpm test         # 130 tests: engine unit + property tests, API, search, concurrency, suggestions
+pnpm test         # 141 tests: engine unit + property tests, API, search, concurrency, suggestions
 pnpm typecheck    # strict TS across API, core and web
 pnpm bench        # the table above (separate from `test`; takes well under a minute)
 pnpm mutate       # bounded mutation run on the engine (~30 s)
@@ -131,7 +132,7 @@ pnpm mutate       # bounded mutation run on the engine (~30 s)
 - **Engine** (`packages/core`): the full edge-case list (ambiguity, occurrence N, bounds, expected-text mismatch, overlaps, adjacency, empty target/replacement, CRLF, surrogate pairs, no-op) plus **property tests** (fast-check, fixed seed `20261015`, override with `FC_SEED`): rejected batches never mutate input; output equals a naive right-to-left reference implementation on every accepted batch; bytes outside the changed spans are preserved; reported new offsets locate the replacement; `selectorFor()` always resolves back to its span.
 - **Concurrency** uses two independent SQLite connections to one file, interleaved so both read v1, A commits, and B's compare-and-swap fails with history still contiguous. (A single connection running sequentially would not prove this.)
 - **Mutation testing:** StrykerJS 10 did not work with Vitest 5 / TypeScript 7 here (details in `NOTES.md`), so `scripts/mutate.ts` is a small first-order harness (70 mutants; skips lines containing string literals; no equivalent-mutant detection). First run killed 52/70; new tests killed 13 of the 18 survivors (surrogate-pair boundaries, `changed:true`, candidate context/cap, prefix at offset 0, suffix-only anchoring). **Final: 65/70 killed (92.9%)**; the 5 survivors are equivalent mutants, each explained in `NOTES.md`.
-- **API fuzzing:** Schemathesis 4.4.4, seed `20261015`, 1,350 generated cases, **0 failures**. It found five real bugs that 100+ hand-written tests missed (a 500 on NUL bytes in queries, over-lenient integer coercion, an incomplete OpenAPI contract…). `DELETE` and `/suggest` are excluded and stateful sequences aren't covered; reasons in `NOTES.md`.
+- **API fuzzing:** Schemathesis 4.4.4, seed `20261015`, 1,500 generated cases over 10 operations (incl. `/revert`), **0 failures**. It found five real bugs that 100+ hand-written tests missed (a 500 on NUL bytes in queries, over-lenient integer coercion, an incomplete OpenAPI contract…). `DELETE` and `/suggest` are excluded and stateful sequences aren't covered; reasons in `NOTES.md`.
 
 ## Design notes and trade-offs
 
@@ -150,7 +151,7 @@ pnpm mutate       # bounded mutation run on the engine (~30 s)
 - Words-mode highlights on documents >256 KiB mark the *first* occurrence of the query's words, not FTS5's "best window". Diacritic-insensitive matching (`café`/`cafe`) works in the index but not in that locator.
 - Exact search is case-sensitive only; case-insensitive and regex search are not offered.
 - Search results can be stale between a result and a later edit; each result carries its `version` and the UI only highlights hits whose version matches.
-- Revisions are never pruned. `DELETE` removes a document and its history permanently.
+- Revisions are never pruned (undo adds a revision rather than removing one). `DELETE` removes a document and its history permanently.
 - The AI route has not been exercised against a live model (above). The UI has no automated tests; it was exercised manually in a browser (search, selection, staging, redline, conflict banner, reload, apply).
 
 ## Repository
