@@ -12,7 +12,8 @@
     "bench": "node bench/run.ts",
     "seed": "node apps/api/src/seed.ts",
     "dev:web": "pnpm --filter @clause/web dev",
-    "mutate": "node scripts/mutate.ts"
+    "mutate": "node scripts/mutate.ts",
+    "suggest:smoke": "node scripts/suggest-smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^24",

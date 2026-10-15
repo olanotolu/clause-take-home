@@ -1,4 +1,5 @@
-import { generateText, Output } from "ai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { generateText, Output, type LanguageModel } from "ai";
 import { z } from "zod";
 import type { Change } from "@clause/core";
 
@@ -54,11 +55,11 @@ export function buildPrompt({ document, instruction }: SuggestionInput): string 
   return `<instruction>\n${instruction}\n</instruction>\n\n<document>\n${document}\n</document>`;
 }
 
-/** AI SDK 7 via the AI Gateway: `model` is a plain "provider/model" string. */
-export function aiSdkProvider(model: string): EditSuggestionProvider {
+/** The one place a model call happens. `model` may be a gateway "provider/model" string or a provider-built model. */
+function liveProvider(model: LanguageModel, label: string): EditSuggestionProvider {
   return {
     kind: "live",
-    model,
+    model: label,
     async suggest(input) {
       const { output } = await generateText({
         model,
@@ -70,6 +71,25 @@ export function aiSdkProvider(model: string): EditSuggestionProvider {
       return output;
     },
   };
+}
+
+/** AI SDK 7 through the Vercel AI Gateway: `model` is a plain "provider/model" string. */
+export const gatewayProvider = (model: string) => liveProvider(model, model);
+
+/** AI SDK 7 through OpenRouter. */
+export const openRouterProvider = (apiKey: string, model: string) => liveProvider(createOpenRouter({ apiKey })(model), model);
+
+export const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-5.5";
+export const DEFAULT_GATEWAY_MODEL = "anthropic/claude-sonnet-5-5";
+
+/**
+ * Chooses a provider from the environment. OpenRouter wins if both are configured. Returns undefined when no
+ * credentials exist, which turns /suggest off (503) without affecting anything else.
+ */
+export function providerFromEnv(env: Record<string, string | undefined>): EditSuggestionProvider | undefined {
+  if (env.OPENROUTER_API_KEY) return openRouterProvider(env.OPENROUTER_API_KEY, env.CLAUSE_SUGGEST_MODEL ?? DEFAULT_OPENROUTER_MODEL);
+  if (env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN) return gatewayProvider(env.CLAUSE_SUGGEST_MODEL ?? DEFAULT_GATEWAY_MODEL);
+  return undefined;
 }
 
 /** Converts a validated proposal into engine changes. Pure. */

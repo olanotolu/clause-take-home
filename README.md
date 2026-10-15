@@ -11,7 +11,7 @@ pnpm seed                 # loads 5 fictional contracts from fixtures/ into data
 pnpm dev                  # API on http://127.0.0.1:3000   (docs: /docs, spec: /openapi.json)
 pnpm dev:web              # optional UI on http://127.0.0.1:5173 (proxies /api to :3000)
 ./http/demo.sh            # end-to-end curl walkthrough (needs jq)
-pnpm test                 # 127 tests
+pnpm test                 # 130 tests
 ```
 
 No native build step: storage is Node's built-in `node:sqlite`, and TypeScript runs directly under Node's type stripping (`pnpm typecheck` runs `tsc`).
@@ -90,7 +90,9 @@ curl -s "localhost:3000/documents/$ID/search?q=shall%20not%20disclose&mode=exact
 
 `POST /documents/:id/suggest {"instruction": "..."}` asks a model (AI SDK 7 through the AI Gateway) for a structured proposal, converts it to ordinary quote changes, and validates it with **the same engine as a human edit**. The response says `applied:false`, carries the version it was validated against, and the client commits it through normal `PATCH`. The model can propose; only the deterministic engine decides what is modified. Policy: ≤5 changes, each target ≤2,000 chars, documents >200k chars refused (no silently truncated contract).
 
-> **Status, honestly:** the route's safety logic is tested with a stub provider (`provider:"fixture"`), but **it has not been run against a live model** — no AI credentials were available while building. It is off (503) unless `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is set. There is no UI for it.
+**Configuration:** set `OPENROUTER_API_KEY` (default model `anthropic/claude-sonnet-5.5`) or AI Gateway credentials; `CLAUSE_SUGGEST_MODEL` overrides the model. With neither set the route answers 503 and nothing else is affected. Never commit a key: `.env*` is git-ignored.
+
+> **Status, honestly:** the route's safety logic is covered by tests with a stub provider (`provider:"fixture"`), and CI runs those. **It has not yet been run against a live model.** `OPENROUTER_API_KEY=… pnpm suggest:smoke` runs three live checks (a normal edit is accepted and not applied, an instruction hidden inside a contract is not obeyed, an impossible request invents nothing) and exits non-zero on failure. There is no UI for it.
 
 ## Performance
 
@@ -119,7 +121,7 @@ Measured by `pnpm bench` on a deterministic synthetic 10 MiB contract (10,306,99
 ## Testing
 
 ```bash
-pnpm test         # 127 tests: engine unit + property tests, API, search, concurrency, suggestions
+pnpm test         # 130 tests: engine unit + property tests, API, search, concurrency, suggestions
 pnpm typecheck    # strict TS across API, core and web
 pnpm bench        # the table above (separate from `test`; takes well under a minute)
 pnpm mutate       # bounded mutation run on the engine (~30 s)

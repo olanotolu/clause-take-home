@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../src/app.ts";
-import { buildPrompt, MAX_DOCUMENT_CHARS_FOR_SUGGESTION, type EditSuggestionProvider, type Proposal, type SuggestionInput } from "../src/suggest.ts";
+import { buildPrompt, DEFAULT_GATEWAY_MODEL, DEFAULT_OPENROUTER_MODEL, MAX_DOCUMENT_CHARS_FOR_SUGGESTION, providerFromEnv, type EditSuggestionProvider, type Proposal, type SuggestionInput } from "../src/suggest.ts";
 import { createDoc, NDA, patch } from "./helpers.ts";
 
 let app: FastifyInstance;
@@ -130,5 +130,20 @@ describe("buildPrompt", () => {
     expect(beforeDoc).not.toContain(injected);
     expect(afterOpen).toContain(injected);
     expect(afterOpen!.trimEnd().endsWith("</document>")).toBe(true);
+  });
+});
+
+describe("providerFromEnv", () => {
+  it("is off without credentials", () => {
+    expect(providerFromEnv({})).toBeUndefined();
+    expect(providerFromEnv({ CLAUSE_SUGGEST_MODEL: "x/y" })).toBeUndefined();
+  });
+  it("uses OpenRouter when OPENROUTER_API_KEY is set, with a default and an override for the model", () => {
+    expect(providerFromEnv({ OPENROUTER_API_KEY: "test-key" })).toMatchObject({ kind: "live", model: DEFAULT_OPENROUTER_MODEL });
+    expect(providerFromEnv({ OPENROUTER_API_KEY: "test-key", CLAUSE_SUGGEST_MODEL: "anthropic/claude-sonnet-4.6" })?.model).toBe("anthropic/claude-sonnet-4.6");
+  });
+  it("falls back to the AI Gateway, and OpenRouter wins when both exist", () => {
+    expect(providerFromEnv({ AI_GATEWAY_API_KEY: "test-key" })).toMatchObject({ kind: "live", model: DEFAULT_GATEWAY_MODEL });
+    expect(providerFromEnv({ AI_GATEWAY_API_KEY: "g", OPENROUTER_API_KEY: "o" })?.model).toBe(DEFAULT_OPENROUTER_MODEL);
   });
 });
