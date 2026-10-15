@@ -217,3 +217,42 @@ describe("API surface", () => {
     expect(nf.json()).toMatchObject({ code: 404 });
   });
 });
+
+describe("NUL characters are refused (SQLite FTS/length() would silently stop at them)", () => {
+  it("rejects NUL in title, content and replacement text with 400", async () => {
+    for (const payload of [{ title: "a\u0000b", content: "x" }, { title: "ok", content: "before\u0000after" }]) {
+      const res = await app.inject({ method: "POST", url: "/documents", payload });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().type).toBe("VALIDATION_ERROR");
+    }
+    const doc = await createDoc(app, "NDA", NDA);
+    const res = await patch(app, doc.id, { changes: [quote("Trade Secrets", "TS\u0000")] });
+    expect(res.statusCode).toBe(400);
+    expect((await app.inject({ method: "GET", url: `/documents/${doc.id}` })).json().content).toBe(NDA);
+  });
+});
+
+describe("OpenAPI contract", () => {
+  it("documents error responses and declares no body for 204/304", async () => {
+    const spec = (await app.inject({ method: "GET", url: "/openapi.json" })).json();
+    const patchOp = spec.paths["/documents/{id}"].patch.responses;
+    for (const code of ["200", "404", "409", "412", "422"]) expect(Object.keys(patchOp), code).toContain(code);
+    expect(spec.paths["/documents/{id}"].delete.responses["204"].content).toBeUndefined();
+    expect(spec.paths["/documents/{id}"].get.responses["304"].content).toBeUndefined();
+    expect(spec.paths["/documents/search"].get.parameters.find((p: { name: string }) => p.name === "q").schema).toMatchObject({ minLength: 1, maxLength: 200 });
+  });
+});
+
+describe("strict integer parameters (found by Schemathesis negative testing: z.coerce accepted '' and ' 1')", () => {
+  it("rejects non-integer limit/offset/version instead of coercing them", async () => {
+    const doc = await createDoc(app, "t", "x");
+    for (const url of ["/documents?offset=", "/documents?limit=", "/documents?limit=abc", "/documents?limit=1e1", "/documents?offset=%201", "/documents?limit=0", "/documents?limit=101", "/documents?offset=-1", `/documents/${doc.id}/revisions/%201`, `/documents/${doc.id}/revisions/0x1`, `/documents/${doc.id}/revisions/1.5`, `/documents/${doc.id}/revisions/`]) {
+      const res = await app.inject({ method: "GET", url });
+      expect([400, 404], url).toContain(res.statusCode);
+      if (res.statusCode === 400) expect(res.json().type).toBe("VALIDATION_ERROR");
+    }
+    expect((await app.inject({ method: "GET", url: "/documents?limit=5&offset=0" })).statusCode).toBe(200);
+    expect((await app.inject({ method: "GET", url: `/documents/${doc.id}/revisions/1` })).statusCode).toBe(200);
+    expect((await app.inject({ method: "GET", url: "/documents?offset=" })).statusCode).toBe(400);
+  });
+});

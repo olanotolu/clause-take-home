@@ -8,6 +8,8 @@ import { openDb } from "./db.ts";
 import { toHttp, type DomainError } from "./errors.ts";
 import { registerDocumentRoutes } from "./routes/documents.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
+import { registerSuggestRoutes } from "./routes/suggest.ts";
+import type { EditSuggestionProvider } from "./suggest.ts";
 
 /** Large enough for the 10 MB+ documents the service is designed for. Oversized bodies get a 413. */
 export const BODY_LIMIT = 50 * 1024 * 1024;
@@ -18,6 +20,8 @@ export interface AppOptions {
   db?: Db;
   logger?: boolean;
   bodyLimit?: number;
+  /** Source of AI edit proposals. Omit to disable /suggest (503). The rest of the API never depends on it. */
+  suggestionProvider?: EditSuggestionProvider;
 }
 
 declare module "fastify" {
@@ -67,6 +71,16 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   await app.register(swagger, {
     openapi: { info: { title: "CLAUSE API", version: "0.1.0", description: "Versioned document editing and search. Offsets are UTF-16 code units." } },
     transform: jsonSchemaTransform,
+    // 204/304 have no body on the wire; z.null() would otherwise make the spec claim a JSON `null` body.
+    transformObject: (doc) => {
+      const spec = ("openapiObject" in doc ? doc.openapiObject : doc) as { paths?: Record<string, Record<string, { responses?: Record<string, { content?: unknown }> }>> };
+      for (const methods of Object.values(spec.paths ?? {})) {
+        for (const op of Object.values(methods)) {
+          for (const code of ["204", "304"]) if (op.responses?.[code]) delete op.responses[code].content;
+        }
+      }
+      return spec as never;
+    },
   });
   await app.register(scalar, { routePrefix: "/docs" });
   app.get("/openapi.json", { schema: { hide: true } }, async () => app.swagger());
@@ -75,5 +89,6 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   const typed = app.withTypeProvider<ZodTypeProvider>() as unknown as App;
   registerDocumentRoutes(typed);
   registerSearchRoutes(typed);
+  registerSuggestRoutes(typed, opts.suggestionProvider);
   return app;
 }

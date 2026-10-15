@@ -89,11 +89,11 @@ describe("words search (FTS5 + BM25)", () => {
     expect((await get("/documents")).json().total).toBe(1); // table still there
   });
 
-  it("rejects empty and over-long queries with 400", async () => {
-    expect((await get("/documents/search?q=")).json()).toMatchObject({ code: 400, type: "INVALID_QUERY" });
-    expect((await get("/documents/search?q=%20%20")).statusCode).toBe(400);
-    expect((await get(`/documents/search?q=${"a".repeat(201)}`)).statusCode).toBe(400);
-    expect((await get("/documents/search")).statusCode).toBe(400); // q missing: validation error
+  it("rejects empty, whitespace-only and over-long queries with 400 (schema first, then handler)", async () => {
+    expect((await get("/documents/search?q=")).json()).toMatchObject({ code: 400, type: "VALIDATION_ERROR" }); // contract: min length 1
+    expect((await get("/documents/search?q=%20%20")).json()).toMatchObject({ code: 400, type: "INVALID_QUERY" }); // passes the schema, empty after trim
+    expect((await get(`/documents/search?q=${"a".repeat(201)}`)).json()).toMatchObject({ code: 400, type: "VALIDATION_ERROR" });
+    expect((await get("/documents/search")).statusCode).toBe(400); // q missing
   });
 
   it("highlights with verified offsets into the current document", async () => {
@@ -247,5 +247,31 @@ describe("locateTerms", () => {
     expect(locateTerms("a5x00", "5.00")).toBeUndefined(); // ...so "." is not a wildcard
     expect(locateTerms("anything", ".*")).toBeUndefined();
     expect(locateTerms("nothing here", "zebra")).toBeUndefined();
+  });
+});
+
+describe("control characters (found by Schemathesis: NUL in a query caused a 500)", () => {
+  it("rejects NUL in a query with 400 INVALID_QUERY in every search mode, never a 500", async () => {
+    const d = await createDoc(app, "NDA", NDA);
+    for (const url of [
+      `/documents/search?q=${encodeURIComponent("abc\u0000def")}`,
+      `/documents/search?q=${encodeURIComponent("abc\u0000def")}&mode=exact`,
+      `/documents/${d.id}/search?q=${encodeURIComponent("\u0000!¸")}&mode=words`,
+      `/documents/${d.id}/search?q=${encodeURIComponent("x\u0000")}&mode=exact`,
+    ]) {
+      const res = await get(url);
+      expect(res.statusCode, url).toBe(400);
+      expect(res.json().type).toBe("INVALID_QUERY");
+    }
+  });
+
+  it("handles other control and non-BMP characters without erroring", async () => {
+    await createDoc(app, "NDA", NDA);
+    for (const q of ["\u0001\u0002", "\u000b\f", "\u001f", "\u{1f4a5}", "a\u0085b", " "]) {
+      for (const mode of ["words", "exact"]) {
+        const res = await get(`/documents/search?q=${encodeURIComponent(q)}&mode=${mode}`);
+        expect([200, 400], `${JSON.stringify(q)} ${mode}`).toContain(res.statusCode);
+      }
+    }
   });
 });

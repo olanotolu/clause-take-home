@@ -78,6 +78,8 @@ const placeholders = (n: number) => Array.from({ length: n }, () => "?").join(",
 function validate(q: string): string {
   const trimmed = q.trim();
   if (trimmed.length === 0) throw new InvalidQueryError("Query is empty");
+  // SQLite treats NUL as end-of-string, which truncates the FTS query mid-quote ("unterminated string").
+  if (trimmed.includes("\u0000")) throw new InvalidQueryError("Query must not contain NUL characters");
   if (trimmed.length > MAX_QUERY_LENGTH) throw new InvalidQueryError(`Query longer than ${MAX_QUERY_LENGTH} characters`);
   return trimmed;
 }
@@ -120,7 +122,7 @@ function searchWords(db: Db, query: string, opts: SearchOptions): { total: numbe
       )
       .all(match, ...ids) as unknown as typeof ranked;
   } catch (e) {
-    if (e instanceof Error && /fts5/i.test(e.message)) throw new InvalidQueryError(`Unsupported query: ${e.message}`);
+    if (e instanceof Error && /fts5|unterminated|syntax|malformed/i.test(e.message)) throw new InvalidQueryError(`Unsupported query: ${e.message}`);
     throw e;
   }
 

@@ -73,3 +73,26 @@ edit re-validates (context anchor still unique) -> applied as v4; the identical 
 **What this does NOT protect against** (said honestly): in that demo another writer changed "two million dollars"
 to "three million dollars" but left "($2,000,000)" — a semantic inconsistency CLAUSE can't see. It guarantees the
 *mechanics* of an edit, not its legal meaning.
+
+## 2026-10-15 — Schemathesis 4.4.4 (bounded, seeded) found five real problems
+Setup: `scripts/fuzz/run.sh` (disposable DB, fixed seed 20261015, 150 examples/operation). Excluded on purpose:
+`/suggest` (503 without AI credentials is correct but reported as "server error"), `DELETE` (the fuzzer deleted all
+seeded docs in its first requests and starved every other operation), and the `positive_data_acceptance` check
+(random-but-schema-valid edits are legitimately refused: stale version, text not found).
+Runs, in order:
+1. First run passed 660 cases but warned "8 operations repeatedly returned 404": random ids meant it **never reached
+   the editing logic**. A pass with that warning is weak evidence. Added a hook that substitutes real ids — and made
+   it substitute only values that were already valid, because overwriting a deliberately invalid value with a valid one
+   (my first version did, for `version`) hides the very bugs negative testing looks for.
+2. With real ids it found: (a) **500 "unterminated string"** for any search query containing NUL — SQLite treats NUL as
+   end-of-string, truncating the FTS query mid-quote; my error mapping only recognised messages containing "fts5".
+   Fixed (reject NUL with 400 INVALID_QUERY; broadened the SQLite-error mapping). (b) Related: documents/replacements
+   with NUL would be silently *under-indexed* (FTS, length(), instr() stop at NUL) -> now refused with 400 at the door.
+3. The OpenAPI document declared only 2xx responses, so every real 4xx was "undocumented", and 204/304 claimed a JSON
+   `null` body. Declared response + error schemas on every route; stripped bodies from 204/304 in the spec.
+4. Negative testing: `z.coerce.number()` turned `?offset=` into 0 and accepted `" 1"`, `"1e1"`, `"0x1"` as ids/limits.
+   Replaced with strict base-10 integer parsing. `q` now has min/max length in the contract (empty `q` was valid per
+   schema but rejected by the handler).
+Final: 9 operations, 1350 generated cases, 0 failures. Not covered by this run: DELETE, /suggest, and stateful
+sequences (no OpenAPI links defined).
+Every one of these was missed by 100+ hand-written tests and found by a tool in under a minute — which is the argument for it.
