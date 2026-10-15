@@ -42,7 +42,8 @@ export function ChangePanel(p: Props) {
   const valid = p.preview.status === "valid" && p.preview.data.wouldChange;
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto">
+    <div className="flex h-full flex-col gap-3">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       {p.conflict && (
         <div role="alert" className="rounded-lg border border-del/30 bg-del-bg p-3 text-sm text-del">
           <p className="font-semibold">Document changed underneath you</p>
@@ -144,10 +145,11 @@ export function ChangePanel(p: Props) {
         </section>
       )}
 
+      </div>
       <button
         disabled={!valid || p.applying || !!p.conflict}
         onClick={p.onApply}
-        className="sticky bottom-0 rounded-md bg-accent px-3 py-2.5 text-sm font-semibold text-white shadow disabled:opacity-30"
+        className="shrink-0 rounded-md bg-accent px-3 py-2.5 text-sm font-semibold text-white shadow disabled:opacity-30"
       >
         {p.applying ? "Applying…" : `Apply ${p.staged.length || ""} change${p.staged.length === 1 ? "" : "s"}`}
       </button>

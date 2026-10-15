@@ -119,6 +119,7 @@ export default function App() {
     setDoc(r.data); // staged changes are kept; the effect above re-validates them
     setConflict(null);
     setRefreshKey((k) => k + 1);
+    void refreshDocs();
   };
 
   const create = async (title: string, content: string) => {
@@ -137,8 +138,8 @@ export default function App() {
   const redlineSpans = redline && preview.status === "valid" ? preview.data.applied : null;
 
   return (
-    <div className="grid h-full grid-cols-[250px_minmax(0,1fr)_380px] max-[1100px]:grid-cols-[210px_minmax(0,1fr)] ">
-      <aside className="flex min-h-0 flex-col bg-rail text-white/90" aria-label="Documents">
+    <div className="relative grid h-full overflow-hidden grid-cols-[250px_minmax(0,1fr)_380px] max-[1100px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-rows-[minmax(0,1fr)_minmax(0,46vh)] max-[640px]:grid-cols-1 max-[640px]:grid-rows-[auto_minmax(0,1fr)_minmax(0,46vh)]">
+      <aside className="flex min-h-0 flex-col bg-rail text-white/90 max-[640px]:max-h-40" aria-label="Documents">
         <div className="flex items-center gap-2 px-4 py-4 text-[15px] font-bold tracking-wide">
           <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden><rect width="32" height="32" rx="8" fill="#2a2f3a" /><path d="M9 22V10h9a4 4 0 010 8h-5" fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" /></svg>
           CLAUSE
@@ -185,14 +186,14 @@ export default function App() {
               </div>
             </header>
             {notice && <p role="status" className="border-b border-ins/20 bg-ins-bg px-6 py-2 text-sm text-ins">{notice}</p>}
-            <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
+            <div className="relative min-h-0 flex-1 overflow-y-auto bg-canvas">
               <DocPane content={doc.content} hits={hits} selection={selection} redline={redlineSpans} onSelect={(r) => { setSelection(r); setTab("change"); }} />
             </div>
           </>
         )}
       </main>
 
-      <aside className="flex min-h-0 flex-col border-l border-line bg-canvas max-[1100px]:hidden" aria-label="Inspector">
+      <aside className="flex min-h-0 flex-col border-l border-line bg-canvas max-[1100px]:col-span-2 max-[1100px]:border-l-0 max-[1100px]:border-t max-[640px]:col-span-1" aria-label="Inspector">
         <div role="tablist" className="flex border-b border-line bg-paper px-2 text-sm">
           {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["history", "History"]] as const).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`border-b-2 px-3 py-2.5 font-medium ${tab === k ? "border-accent text-accent" : "border-transparent text-muted"}`}>
@@ -200,7 +201,7 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div className="min-h-0 flex-1 p-4">
+        <div className="relative min-h-0 flex-1 overflow-y-auto p-4">
           <div className={tab === "search" ? "h-full" : "hidden"}>
             <SearchPanel refreshKey={refreshKey} onResults={setSearchPage} onOpen={(r) => void openDoc(r.documentId)} onPick={pick} />
           </div>

@@ -12,9 +12,10 @@ export interface Piece {
 
 export interface Range { start: number; end: number; kind: "hit" | "sel" }
 
-/** Plain text with non-overlapping highlight ranges (later ranges win on overlap). */
+/** Plain text with non-overlapping highlight ranges. On a tie the selection beats a search hit. */
 export function highlightPieces(text: string, ranges: Range[]): Piece[] {
-  const sorted = [...ranges].sort((a, b) => a.start - b.start || b.end - a.end);
+  const rank = (r: Range) => (r.kind === "sel" ? 0 : 1);
+  const sorted = [...ranges].sort((a, b) => a.start - b.start || rank(a) - rank(b) || b.end - a.end);
   const pieces: Piece[] = [];
   let cursor = 0;
   for (const r of sorted) {

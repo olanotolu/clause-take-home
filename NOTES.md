@@ -58,3 +58,18 @@ offset 0, suffix-only anchoring), now covered. Final: **65/70 killed (92.9%)**. 
 `anchor.ts:17` (empty exact falls back to position either way), `resolve.ts:14` x3 (`charCodeAt` out of range is
 NaN -> false either way), `apply.ts:11` (index tie-break is redundant given a stable sort over index-ordered input;
 kept so `orderSpans` is deterministic for any input order).
+
+## 2026-10-15 — UI findings from driving it in a real browser
+1. **sr-only labels stretched the page**: `sr-only` is `position:absolute`; with no positioned ancestor, labels
+   inside scroll containers extended the document height (docScroll 981 vs viewport 768), so the whole page
+   scrolled. Fix: `relative` on scroll containers, `overflow-hidden` on the app root. Found by measuring, not guessing.
+2. **Inspector vanished below 1100 px** (I had `hidden`). Now it stacks under the document.
+3. **Selection highlight lost to the search-hit highlight** when they covered the same span (first range won).
+   Selection now wins ties.
+4. Sidebar showed a stale version after "Reload latest" (didn't refresh the list).
+Verified end to end in the browser: search -> pick the second of two identical phrases -> stage -> redline shows only
+that clause -> another writer commits -> Apply is refused with a conflict banner (staged edit kept) -> reload ->
+edit re-validates (context anchor still unique) -> applied as v4; the identical phrase in 2.1 untouched.
+**What this does NOT protect against** (said honestly): in that demo another writer changed "two million dollars"
+to "three million dollars" but left "($2,000,000)" — a semantic inconsistency CLAUSE can't see. It guarantees the
+*mechanics* of an edit, not its legal meaning.

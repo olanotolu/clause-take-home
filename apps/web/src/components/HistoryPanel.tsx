@@ -18,7 +18,7 @@ export function HistoryPanel({ docId, version }: { docId: string; version: numbe
     };
   }, [docId, version]);
   return (
-    <ol className="space-y-2 overflow-y-auto">
+    <ol className="relative space-y-2 overflow-y-auto">
       {items.map((r) => (
         <li key={r.version} className="rounded-lg border border-line bg-paper p-3 text-sm">
           <div className="flex justify-between"><span className="font-semibold">v{r.version}</span><span className="text-xs text-muted">{new Date(r.createdAt).toLocaleTimeString()}</span></div>
