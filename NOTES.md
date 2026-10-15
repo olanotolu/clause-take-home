@@ -52,9 +52,9 @@ Harness bugs I hit and fixed: (a) a mutant (`start - exact.length`) created an i
 Vitest cannot time out -> hard 20 s per-mutant kill, counted as detected; (b) my first version mutated the real
 source tree, and a killed run left `resolve.ts` mutated (caught via `git status`, restored with `git checkout`)
 -> it now mutates only throwaway copies in `.mutation-tmp/`.
-Result: first run 52/70 killed (74.3%), 18 survivors. Triage: 10 were real test gaps (surrogate boundary code units,
+Result: first run 52/70 killed (74.3%), 18 survivors. Triage: 13 of the 18 were killable by new tests (surrogate boundary code units,
 `changed:true` never asserted at engine level, candidate context bounds, candidate cap of 10, prefix starting at
-offset 0, suffix-only anchoring), now covered. Final: **65/70 killed (92.9%)**. The 5 survivors are equivalent:
+offset 0, suffix-only anchoring), added. Final: **65/70 killed (92.9%)**. The 5 survivors are equivalent:
 `anchor.ts:17` (empty exact falls back to position either way), `resolve.ts:14` x3 (`charCodeAt` out of range is
 NaN -> false either way), `apply.ts:11` (index tie-break is redundant given a stable sort over index-ordered input;
 kept so `orderSpans` is deterministic for any input order).
@@ -96,3 +96,11 @@ Runs, in order:
 Final: 9 operations, 1350 generated cases, 0 failures. Not covered by this run: DELETE, /suggest, and stateful
 sequences (no OpenAPI links defined).
 Every one of these was missed by 100+ hand-written tests and found by a tool in under a minute — which is the argument for it.
+
+## 2026-10-15 — a benchmark that silently doubled: orphaned workers
+The "final" benchmark came out ~2x slower than the first (engine 3 ms -> 7 ms, 10 MB PATCH 815 -> 1569 ms) with no
+code change. `uptime` showed load ~11: four orphaned Vitest workers (PPID 1, 31 min old) were each pinning a core.
+They were infinite-loop mutants from my first mutation-harness run, left behind when the tool killed the harness
+but not its children. Killed them, reran: back to the original range. Takeaways: (1) the harness now prints the
+load average, because a benchmark number without machine state isn't reproducible; (2) the mutation harness now
+kills its whole process group on timeout (`detached` + `process.kill(-pid)`).

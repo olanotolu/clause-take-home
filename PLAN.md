@@ -160,3 +160,17 @@ Cut order if time runs short: P4 → P3 → UI polish. P0 and P1 are never cut.
 - Keep a short `NOTES.md` of real bugs found during the build. Those are the best interview stories, and none will be invented.
 
 Sources: [Vercel × Sandstone](https://vercel.com/blog/how-sandstone-grew-40x-in-147-days-on-vercel) · [RedlineBench](https://github.com/crosbylegal/redline-bench) · [W3C Annotation Model](https://www.w3.org/TR/annotation-model/) · [SQLite FTS5](https://sqlite.org/fts5.html) · [Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) · [Promptfoo / OpenAI](https://gigazine.net/gsc_news/en/20260310-openai-to-acquire-promptfoo) · [Stryker 10](https://nevercodealone.de/de/frontend-development/strykerjs-mutation-testing-javascript-typescript-2026) · [docx tracked changes](https://github.com/dolanmiu/docx)
+
+---
+
+## Outcome vs plan (added after the build)
+
+Built as planned: workspace, pure engine, version CAS, two FTS indexes, selector-returning search, preview, receipts, React workspace, AI `/suggest`, mutation + fuzz runs, `INFRA.md`, `README.md`.
+
+Deviations, and why:
+- **Error body:** `{ error, code, type, details }` instead of RFC 9457 Problem Details: it's the shape the assessment asked for, and duplicating both formats was noise.
+- **StrykerJS 10 → own mutation harness:** Stryker + Vitest 5 + TS 7 never activated mutants (details in `NOTES.md`).
+- **Search:** FTS5 `snippet()` is O(matches); words search ranks first and snippets only the returned page, with a linear locator above 256 KiB (8.3 s → 20 ms on 10 MB).
+- **Added:** `DELETE /documents/:id`, strict integer params, NUL-character rejection, full response/error schemas in OpenAPI (all found by tests, the benchmark, or Schemathesis).
+- **Not built:** revert/undo, `Idempotency-Key`, DOCX tracked-changes export (P4), a UI for `/suggest` (can't verify a live model here), Promptfoo evals.
+- **Not verified:** `/suggest` against a live model (no credentials available).

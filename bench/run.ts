@@ -1,4 +1,4 @@
-import { cpus, platform, release, totalmem } from "node:os";
+import { cpus, loadavg, platform, release, totalmem } from "node:os";
 import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,7 +37,8 @@ const report = (stage: string, detail: Record<string, unknown>) => {
 };
 
 console.log(`CLAUSE benchmark  size=${(SIZE / 1048576).toFixed(1)} MiB  node=${process.version}  sqlite=${process.versions.sqlite}`);
-console.log(`machine: ${cpus()[0]?.model} x${cpus().length}, ${(totalmem() / 2 ** 30).toFixed(0)} GiB RAM, ${platform()} ${release()}\n`);
+console.log(`machine: ${cpus()[0]?.model} x${cpus().length}, ${(totalmem() / 2 ** 30).toFixed(0)} GiB RAM, ${platform()} ${release()}`);
+console.log(`load average at start: ${loadavg().map((n) => n.toFixed(1)).join(" ")}  (high load inflates every number below; rerun on an idle machine)\n`);
 
 const gen = await time(() => generateContract(SIZE));
 const content = gen.value;
