@@ -117,8 +117,9 @@ export function ChangePanel(p: Props) {
       {p.staged.length > 0 && (
         <section aria-labelledby="val-h" aria-live="polite" className="rounded-lg border border-line bg-paper p-3 text-sm">
           <h3 id="val-h" className="sr-only">Validation</h3>
-          {p.preview.status === "loading" && <p className="text-muted">Validating against v{p.version}…</p>}
-          {p.preview.status === "valid" && (
+          {p.conflict && <p className="text-muted">Validation is out of date: the document has changed. Reload to re-validate.</p>}
+          {!p.conflict && p.preview.status === "loading" && <p className="text-muted">Validating against v{p.version}…</p>}
+          {!p.conflict && p.preview.status === "valid" && (
             <div className="text-ins">
               <p className="font-semibold">✓ Valid · v{p.version} → v{p.version + 1}</p>
               <ul className="mt-1 list-disc pl-5 text-[13px] text-ink/80">
@@ -129,7 +130,7 @@ export function ChangePanel(p: Props) {
               </ul>
             </div>
           )}
-          {p.preview.status === "invalid" && (
+          {!p.conflict && p.preview.status === "invalid" && (
             <div className="text-del">
               <p className="font-semibold">✗ {p.preview.error.type.replaceAll("_", " ").toLowerCase()}</p>
               <p className="mt-1 text-[13px] text-ink/80">{p.preview.error.error}</p>

@@ -111,3 +111,9 @@ the window was short, as in the small browser pane) clicking it appeared to do n
 scrolls to the first change, and a banner says "Redline preview of N staged changes ... Nothing is saved until you
 click Apply". Verified: with the change scrolled out of view (scrollTop 0), clicking Redline moved the view to the
 change (scrollTop 338) and showed the banner. Lesson: a mode switch with no visible feedback reads as a broken button.
+
+## 2026-10-15 — stale "Valid" box under a conflict banner (user report from a screenshot)
+While the "Document changed underneath you" banner was showing, the validation box still said a green
+"Valid · v3 -> v4 / version 3 is still current": true when computed, false now. Apply was correctly refused, so it was
+a trust bug, not a correctness bug. Fix: while a conflict is showing, the box says "Validation is out of date".
+Verified in the browser (green tick absent, Apply disabled). Lesson: UI that reports a past check as the present one.
