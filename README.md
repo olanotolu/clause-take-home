@@ -96,7 +96,7 @@ curl -s "localhost:3000/documents/$ID/search?q=shall%20not%20disclose&mode=exact
 
 **In the UI:** the **AI** tab sends your instruction, shows the model's rationale and the exact before → after, labels the source (`live model` vs `FIXTURE`), and lets you *stage* the change into the normal review → Apply flow.
 
-> **Status, honestly:** the safety logic is covered by tests with a stub provider, and the whole UI flow (suggest → stage → validate → apply) was driven in a browser against a stub labelled `FIXTURE`. **It has not been run against a live model.** `pnpm suggest:smoke` runs three live checks (a normal edit is accepted and not applied, an instruction hidden inside a contract is not obeyed, an impossible request invents nothing) and exits non-zero on failure.
+> **Status, honestly:** the safety logic is covered by tests with a stub provider, and the UI flow (suggest → stage → validate → apply) was driven in a browser against a stub labelled `FIXTURE`. **It has also been run once against a live model** (`anthropic/claude-sonnet-5.5` via OpenRouter, 2026-10-15): `pnpm suggest:smoke` passed all 8 checks across three scenarios (a normal edit is accepted and not applied; an instruction hidden inside a contract is not obeyed; an impossible request invents nothing). That is one run of three cases, not a guarantee: models are non-deterministic, and the engine validating every proposal is what makes the route safe, not the model behaving.
 
 ### Word redline export
 
@@ -163,7 +163,7 @@ pnpm mutate       # bounded mutation run on the engine (~30 s)
 - Exact search is case-sensitive only; case-insensitive and regex search are not offered.
 - Search results can be stale between a result and a later edit; each result carries its `version` and the UI only highlights hits whose version matches.
 - Revisions are never pruned (undo adds a revision rather than removing one). `DELETE` removes a document and its history permanently.
-- The AI route has not been exercised against a live model (above). The UI has no automated tests; it was exercised manually in a browser (search, selection, staging, redline, conflict banner, reload, apply, restore, AI suggest against a stub, Word download).
+- The AI route has had one live run (above), not a soak test. The UI has no automated tests; it was exercised manually in a browser (search, selection, staging, redline, conflict banner, reload, apply, restore, AI suggest against a stub, Word download).
 
 ## Repository
 
