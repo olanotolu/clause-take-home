@@ -1,5 +1,7 @@
 # CLAUSE — versioned document editing and search
 
+[![CI](https://github.com/olanotolu/clause-take-home/actions/workflows/ci.yml/badge.svg)](https://github.com/olanotolu/clause-take-home/actions/workflows/ci.yml)
+
 CLAUSE is a small service for making **exact, verifiable edits** to text documents and searching them. Its central design decision is separating *resolving* an edit (where does it land?) from *applying* it, so a whole batch is validated against one snapshot before a new revision is committed. If an edit is ambiguous, stale or overlapping, it is **refused rather than guessed**.
 
 ```bash
