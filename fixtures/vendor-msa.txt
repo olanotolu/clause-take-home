@@ -1,0 +1,31 @@
+MASTER SERVICES AGREEMENT
+
+Between Hooli Holdings ("Company") and Pied Piper Consulting ("Vendor").
+
+1. Scope
+
+1.1 Vendor shall perform the services described in each Statement of Work.
+
+2. Confidential Information
+
+2.1 Vendor shall not disclose Company's Confidential Information and shall use it solely to perform the services.
+
+2.2 Company shall not disclose Vendor's pricing or methodologies to any third party without Vendor's consent.
+
+3. Data Protection
+
+3.1 Where Vendor processes Personal Data on behalf of Company, Vendor shall do so only on documented instructions from Company and in accordance with the Data Processing Addendum.
+
+4. Insurance
+
+4.1 Vendor shall maintain commercial general liability insurance of not less than two million dollars ($2,000,000) per occurrence.
+
+5. Indemnification
+
+5.1 Vendor shall indemnify Company against losses arising from Vendor's gross negligence or willful misconduct.
+
+6. Termination
+
+6.1 Either party may terminate this Agreement for convenience on thirty (30) days' written notice.
+
+6.2 Upon termination, Vendor shall return or destroy Company's Confidential Information.

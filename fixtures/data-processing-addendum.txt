@@ -1,0 +1,27 @@
+DATA PROCESSING ADDENDUM
+
+This Data Processing Addendum forms part of the agreement between Soylent Data Corp ("Processor") and Wonka Retail Group ("Controller").
+
+1. Roles
+
+1.1 Controller determines the purposes and means of processing Personal Data. Processor processes Personal Data only on Controller's documented instructions.
+
+2. Confidentiality of Personnel
+
+2.1 Processor shall ensure that persons authorised to process Personal Data are bound by a duty of confidentiality.
+
+3. Security
+
+3.1 Processor shall implement appropriate technical and organisational measures to protect Personal Data, including encryption in transit and at rest.
+
+4. Sub-processors
+
+4.1 Processor shall not engage a sub-processor without Controller's prior written authorisation and shall impose equivalent data protection obligations on each sub-processor.
+
+5. Breach Notification
+
+5.1 Processor shall notify Controller without undue delay, and in any event within seventy-two (72) hours, after becoming aware of a Personal Data breach.
+
+6. Deletion
+
+6.1 At the end of the services, Processor shall delete or return all Personal Data at Controller's choice.

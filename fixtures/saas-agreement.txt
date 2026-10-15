@@ -1,0 +1,51 @@
+SOFTWARE-AS-A-SERVICE AGREEMENT
+
+This SaaS Agreement is made between Initech Software LLC ("Provider") and Umbrella Logistics Ltd. ("Customer").
+
+1. Services
+
+1.1 Provider shall make the Services available to Customer in accordance with this Agreement and the applicable Order Form.
+
+1.2 Provider shall use commercially reasonable efforts to make the Services available 99.9% of the time in any calendar month, excluding scheduled maintenance.
+
+2. Customer Data
+
+2.1 As between the parties, Customer owns all Customer Data. Provider shall not access or use Customer Data except to provide the Services.
+
+2.2 Provider shall protect Customer Data using administrative, technical and physical safeguards consistent with industry standards, and shall protect the confidentiality of Customer Data in accordance with Section 7.
+
+3. Fees and Payment
+
+3.1 Customer shall pay the fees set out in the Order Form within thirty (30) days of the invoice date.
+
+3.2 Late amounts accrue interest at one percent (1%) per month or the maximum rate permitted by law, whichever is lower.
+
+4. Intellectual Property
+
+4.1 Provider retains all right, title and interest in the Services. Customer retains all right, title and interest in Customer Data.
+
+5. Warranties and Disclaimers
+
+5.1 Provider warrants that the Services will perform materially in accordance with the documentation.
+
+5.2 EXCEPT AS EXPRESSLY STATED, THE SERVICES ARE PROVIDED "AS IS" AND PROVIDER DISCLAIMS ALL IMPLIED WARRANTIES.
+
+6. Indemnification
+
+6.1 Provider shall indemnify Customer against third-party claims alleging that the Services infringe intellectual property rights.
+
+6.2 Customer shall indemnify Provider against third-party claims arising from Customer Data.
+
+7. Confidentiality
+
+7.1 Each party shall protect the other party's confidential information using the same degree of care it uses for its own, and no less than reasonable care.
+
+7.2 Neither party shall disclose the other party's confidential information except to those who need to know it to perform this Agreement.
+
+8. Limitation of Liability
+
+8.1 Neither party's aggregate liability shall exceed the fees paid in the twelve (12) months preceding the claim.
+
+9. Term and Termination
+
+9.1 This Agreement continues for the initial term in the Order Form and renews annually unless either party gives sixty (60) days' notice.

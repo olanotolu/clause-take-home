@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
+import { NATIVE_SNIPPET_MAX_CHARS, locateTerms } from "../src/search.ts";
 import { createDoc, NDA, patch, quote, testApp } from "./helpers.ts";
 
 let app: FastifyInstance;
@@ -34,6 +35,25 @@ describe("words search (FTS5 + BM25)", () => {
   it("returns no results (not an error) when nothing matches", async () => {
     await createDoc(app, "NDA", NDA);
     expect(await search("zebra")).toMatchObject({ total: 0, results: [] });
+  });
+
+  it("every result's snippet comes from ITS OWN document (regression: FTS5 ignored `rowid = ?` beside MATCH)", async () => {
+    const texts = {
+      a: "Alpha agreement. The Receiving Party shall not disclose alpha secrets to anyone.",
+      b: "Bravo agreement. Neither party may disclose bravo pricing without consent.",
+      c: "Charlie agreement. Each side will disclose charlie reports only to auditors.",
+    };
+    const ids: Record<string, string> = {};
+    for (const [k, v] of Object.entries(texts)) ids[(await createDoc(app, k, v)).id] = v;
+    const res = await search("disclose");
+    expect(res.results).toHaveLength(3);
+    for (const r of res.results) {
+      const own = ids[r.documentId]!;
+      const shown = r.hits[0].snippet.map((s: { text: string }) => s.text).join("").replaceAll("…", "");
+      expect(own, `snippet "${shown}" is not from document ${r.title}`).toContain(shown);
+      expect(r.hits[0].start).toBeDefined();
+      expect(own.slice(r.hits[0].start, r.hits[0].end).toLowerCase()).toBe("disclose");
+    }
   });
 
   it("paginates over documents", async () => {
@@ -185,5 +205,47 @@ describe("search stays coherent with committed edits", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().content).toBe(NDA.slice(0, second.start) + "may disclose" + NDA.slice(second.end));
     expect((await search("shall not disclose", "&mode=exact")).results[0].matchCount).toBe(2);
+  });
+});
+
+describe("large documents use the linear locator instead of native snippet()", () => {
+  const filler = "Payment is due within thirty days of the invoice date. ";
+
+  it("returns a verified highlight and offsets for a document above the native-snippet threshold", async () => {
+    const text = filler.repeat(6000) + "The Vendor shall maintain strict confidentiality here. " + filler.repeat(500);
+    expect(text.length).toBeGreaterThan(NATIVE_SNIPPET_MAX_CHARS);
+    const d = await createDoc(app, "Big", text);
+    const t0 = performance.now();
+    const res = await search("confidentiality");
+    const elapsed = performance.now() - t0;
+    const hit = res.results[0].hits[0];
+    const current = (await get(`/documents/${d.id}`)).json().content;
+    expect(current.slice(hit.start, hit.end).toLowerCase()).toBe("confidentiality");
+    expect(marked(hit)).toEqual(["confidentiality"]);
+    expect(elapsed).toBeLessThan(3000); // generous: native snippet() on a 10 MB doc with a common phrase took ~8 s
+  });
+
+  it("a common phrase in a large document still answers promptly", async () => {
+    await createDoc(app, "Big", filler.repeat(8000));
+    const t0 = performance.now();
+    const res = await search("payment due");
+    expect(res.total).toBe(1);
+    expect(performance.now() - t0).toBeLessThan(3000);
+  });
+});
+
+describe("locateTerms", () => {
+  it("finds inflections, phrases and is regex-safe", () => {
+    expect(locateTerms("These obligations survive.", "obligation")).toEqual([6, 17]);
+    expect(locateTerms("upon termination of", "terminate")).toEqual([5, 16]);
+    const phrase = "a b  shall   not disclose x";
+    const [ps, pe] = locateTerms(phrase, '"shall not disclose"')!;
+    expect(phrase.slice(ps, pe)).toBe("shall   not disclose");
+    const cost = "cost is $5.00 (net)";
+    const [cs, ce] = locateTerms(cost, "$5.00")!;
+    expect(cost.slice(cs, ce)).toBe("$5.00"); // metacharacters are literal...
+    expect(locateTerms("a5x00", "5.00")).toBeUndefined(); // ...so "." is not a wildcard
+    expect(locateTerms("anything", ".*")).toBeUndefined();
+    expect(locateTerms("nothing here", "zebra")).toBeUndefined();
   });
 });

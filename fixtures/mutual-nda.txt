@@ -1,0 +1,39 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement (the "Agreement") is entered into as of January 1, 2026 by and between Acme Corp, a Delaware corporation ("Acme"), and Globex Industries, Inc., a New York corporation ("Globex"). Each of Acme and Globex may act as a Disclosing Party or a Receiving Party under this Agreement.
+
+1. Definition of Confidential Information
+
+1.1 "Confidential Information" means all non-public information disclosed by the Disclosing Party to the Receiving Party, whether orally, in writing or by inspection, that is designated as confidential or that a reasonable person would understand to be confidential.
+
+1.2 Confidential Information does not include information that (a) is or becomes publicly available through no fault of the Receiving Party; (b) was known to the Receiving Party before disclosure; (c) is independently developed without use of Confidential Information; or (d) is rightfully received from a third party without restriction.
+
+2. Obligations of the Receiving Party
+
+2.1 The Receiving Party shall not disclose Confidential Information to any third party, and shall not use Confidential Information for any purpose other than evaluating a potential business relationship between the parties.
+
+2.2 The Receiving Party shall take reasonable measures to protect the confidentiality of such information, but in no event less than the measures it uses to protect its own confidential information of a similar nature.
+
+2.3 The Receiving Party may disclose Confidential Information to its employees, contractors and advisors who have a need to know and are bound by confidentiality obligations no less protective than this Agreement.
+
+3. Compelled Disclosure
+
+3.1 If the Receiving Party is required by law to disclose Confidential Information, it shall give the Disclosing Party prompt written notice, where legally permitted, and shall disclose only the portion legally required.
+
+4. Term and Survival
+
+4.1 This Agreement governs disclosures made during a period of two (2) years from the date above.
+
+4.2 The obligations set forth in Section 2 shall survive termination of this Agreement for a period of five (5) years.
+
+5. Return of Materials
+
+5.1 Upon written request, the Receiving Party shall promptly return or destroy all Confidential Information and certify such destruction in writing.
+
+6. General
+
+6.1 This Agreement is governed by the laws of the State of Delaware, without regard to conflict-of-laws principles.
+
+6.2 Neither party shall assign this Agreement without the prior written consent of the other party.
+
+6.3 Any notice under this Agreement shall be in writing and delivered to the addresses set out on the signature page.
