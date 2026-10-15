@@ -1,0 +1,82 @@
+import type { App } from "../types.ts";
+import { sha256 } from "@clause/core";
+import { createPatch } from "diff";
+import { z } from "zod";
+import * as docs from "../documents.ts";
+import * as repo from "../repo.ts";
+import { ChangesBody, CreateBody, IdParams, PageQuery } from "../schemas.ts";
+
+
+const present = (d: repo.DocumentRecord) => ({
+  id: d.id,
+  title: d.title,
+  content: d.content,
+  version: d.version,
+  contentHash: d.contentHash,
+  createdAt: d.createdAt,
+  updatedAt: d.updatedAt,
+});
+
+export function registerDocumentRoutes(app: App): void {
+  app.post("/documents", { schema: { body: CreateBody } }, async (req, reply) => {
+    const doc = docs.createDocument(app.db, req.body);
+    return reply.code(201).header("ETag", docs.etagOf(doc)).header("Location", `/documents/${doc.id}`).send(present(doc));
+  });
+
+  app.get("/documents", { schema: { querystring: PageQuery } }, async (req) => {
+    const { items, total } = repo.listDocuments(app.db, req.query.limit, req.query.offset);
+    return { total, limit: req.query.limit, offset: req.query.offset, items };
+  });
+
+  app.get("/documents/:id", { schema: { params: IdParams } }, async (req, reply) => {
+    const doc = repo.getDocument(app.db, req.params.id);
+    if (!doc) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    const etag = docs.etagOf(doc);
+    if (req.headers["if-none-match"] === etag) return reply.code(304).header("ETag", etag).send();
+    return reply.header("ETag", etag).send(present(doc));
+  });
+
+  app.delete("/documents/:id", { schema: { params: IdParams } }, async (req, reply) => {
+    if (!repo.deleteDocument(app.db, req.params.id)) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    return reply.code(204).send();
+  });
+
+  app.patch("/documents/:id", { schema: { params: IdParams, body: ChangesBody } }, async (req, reply) => {
+    const r = docs.apply(app.db, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
+    if (!r.ok) return reply.problem(r.error);
+    if (r.value.changed) {
+      const doc = repo.getDocument(app.db, req.params.id)!;
+      reply.header("ETag", docs.etagOf(doc));
+    }
+    return r.value;
+  });
+
+  // Dry run through the exact same engine call as PATCH. Persists nothing and
+  // reserves nothing: PATCH re-validates against whatever version is current.
+  app.post("/documents/:id/changes/preview", { schema: { params: IdParams, body: ChangesBody } }, async (req, reply) => {
+    const p = docs.preview(app.db, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
+    if (!p.ok) return reply.problem(p.error);
+    const { doc, result } = p.value;
+    return {
+      id: doc.id,
+      version: doc.version,
+      wouldChange: result.changed,
+      proposedContent: result.content,
+      applied: result.applied,
+      beforeHash: doc.contentHash,
+      afterHash: sha256(result.content),
+      diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }),
+    };
+  });
+
+  app.get("/documents/:id/revisions", { schema: { params: IdParams } }, async (req, reply) => {
+    if (!repo.getDocument(app.db, req.params.id)) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    return { items: repo.listRevisions(app.db, req.params.id) };
+  });
+
+  app.get("/documents/:id/revisions/:version", { schema: { params: IdParams.extend({ version: z.coerce.number().int().min(1) }) } }, async (req, reply) => {
+    const rev = repo.getRevision(app.db, req.params.id, req.params.version);
+    if (!rev) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: `${req.params.id}@v${req.params.version}` });
+    return rev;
+  });
+}

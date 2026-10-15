@@ -1,0 +1,19 @@
+{
+  "name": "clause",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "pnpm --filter @clause/api dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "bench": "node bench/run.ts",
+    "seed": "node apps/api/src/seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "fast-check": "^4.10.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
