@@ -4,7 +4,17 @@
 
 **A redlining and search service for contracts.** Point at exact text, stage changes, preview the redline, and apply them as a new version. Search returns passages you can edit from. When a request is ambiguous, overlaps another change or was made against an old version, CLAUSE returns a precise error instead of guessing.
 
-[Live demo](https://clause-take-home.vercel.app) · [Walkthrough video (8:50)](https://clause-take-home.vercel.app/video) · [API reference](https://clause-take-home.vercel.app/api/docs) · [Production design](INFRA.md) · [One-page PDF](output/pdf/CLAUSE-infrastructure.pdf) · [Scope map](ASSESSMENT_SCOPE.md)
+| Open | What you'll see |
+|---|---|
+| **[Live demo](https://clause-take-home.vercel.app/#/documents)** | The running app: open a sample contract, press **Make a copy**, edit, run Clause CI |
+| **[Walkthrough video (8:50)](https://clause-take-home.vercel.app/video)** | Narrated tour with chapters, captions and a transcript |
+| **[API reference](https://clause-take-home.vercel.app/api/docs/)** | Interactive OpenAPI reference, generated from the same schemas that validate requests |
+| **[Production design](INFRA.md)** | Part II, one page: measured numbers against targets, decisions by topic, risks |
+| **[One-page PDF](output/pdf/CLAUSE-infrastructure.pdf)** | The same production design as a PDF |
+| **[Scope map](ASSESSMENT_SCOPE.md)** | Each item in the brief mapped to the code and test that answer it; extras labelled |
+
+[![Clause CI on a proposed edit: 2 broken by this edit, exact checks 1 of 2, model-supported 3 of 4 (advisory)](docs/img/clause-ci.png)](https://clause-take-home.vercel.app/#/documents)
+<sub>Clause CI on a proposed edit to the sample NDA: a protected passage was removed (exact check, no model involved), and the model flags that a notice obligation became optional (advisory). Click to open the demo.</sub>
 
 > The demo is a shared workspace with fictional contracts and no sign-in. The five sample contracts are read-only: use **Make a copy** to edit one. Don't put real contracts in it.
 
@@ -61,7 +71,7 @@ The brief, in my own words, with the part of the repo that answers each item.
 | **Edit a document** with a JSON change request and get the updated text back | `PATCH /documents/:id` with a `changes` array; each change targets a quote (with occurrence, prefix or suffix) or a position (with the text expected there). The response is a receipt with the full new text | [`packages/core/test`](packages/core/test), [`documents.test.ts`](apps/api/test/documents.test.ts) |
 | **Search** one or many documents for matching context | `GET /documents/search` and `GET /documents/:id/search`: ranked word search and literal exact search, with snippets and offsets you can edit from | [`search.test.ts`](apps/api/test/search.test.ts) |
 | **Tests** for change and search logic, including large files | Unit, property and API tests on SQLite and Postgres; a 10 MiB benchmark; a load check | [How it's tested](#how-its-tested), [`bench/performance`](bench/performance/README.md) |
-| **Sample requests** | [`http/demo.sh`](http/demo.sh) (curl), plus the [OpenAPI reference](https://clause-take-home.vercel.app/api/docs) | |
+| **Sample requests** | [`http/demo.sh`](http/demo.sh) (curl), plus the [OpenAPI reference](https://clause-take-home.vercel.app/api/docs/) | |
 | **README** with setup, usage, performance and API rationale | This file | |
 | Correct **4xx/5xx** with a JSON `{ error, code }` body | One error shape for every response, including framework errors; a 500 never leaks a stack or document text | a forced-500 test, the weekly API fuzz |
 | **Bulk** changes | `changes` is an array of up to 5,000, applied all-or-nothing | `engine.test.ts`, `documents.test.ts` |
@@ -89,7 +99,7 @@ Built beyond the brief, and labelled as extras in [`ASSESSMENT_SCOPE.md`](ASSESS
 | `GET /documents/:id/export.docx?from&to` | Word file with tracked changes between two versions |
 | `GET /documents/search?q&mode=words\|exact` · `GET /documents/:id/search` | Search everything · search one document |
 | `POST /documents/:id/copy` · `DELETE /documents/:id` | Copy (for the read-only samples) · delete |
-| `…/requirements`, `/requests`, `/playbooks`, `/templates`, `/activity`, `/settings/status` | The workspace features ([reference](https://clause-take-home.vercel.app/api/docs)) |
+| `…/requirements`, `/requests`, `/playbooks`, `/templates`, `/activity`, `/settings/status` | The workspace features ([reference](https://clause-take-home.vercel.app/api/docs/)) |
 
 **An edit and its receipt:**
 
@@ -188,7 +198,7 @@ The misses are written down rather than the targets moved. The targets are for t
 | Layer | What | Where |
 |---|---|---|
 | Engine | Unit tests and property tests (fast-check, fixed seed, 500 runs) | [`packages/core/test`](packages/core/test) |
-| API | The full suite is 378 tests on SQLite and 383 on Postgres, including two real connections racing on one version, a writer injected between commit and response, provider timeouts and cancellation | [`apps/api/test`](apps/api/test) |
+| API | The full suite is 379 tests on SQLite and 384 on Postgres, including two real connections racing on one version, a writer injected between commit and response, provider timeouts and cancellation | [`apps/api/test`](apps/api/test) |
 | Browser | 10 Playwright journeys on desktop and a 390 px phone, with axe accessibility checks after each step | [`e2e/journeys.spec.ts`](e2e/journeys.spec.ts) |
 | Mutation | Flip one operator at a time in the engine and see whether a test notices: 65 of 70 killed; the 5 survivors are equivalent | `pnpm mutate`, [`scripts/mutate.ts`](scripts/mutate.ts) |
 | Fuzzing | Schemathesis against the OpenAPI spec, seeded, weekly in CI; its first run found five bugs the hand-written tests had missed | [`scripts/fuzz`](scripts/fuzz) |

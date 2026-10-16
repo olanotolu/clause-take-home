@@ -262,6 +262,16 @@ describe("API surface", () => {
     expect(nf.statusCode).toBe(404);
     expect(nf.json()).toMatchObject({ code: 404 });
   });
+
+  it("redirects /docs to the reference with a RELATIVE location, so it survives the /api prefix in production", async () => {
+    const bare = await app.inject({ method: "GET", url: "/docs" });
+    expect(bare.statusCode).toBe(301);
+    // "docs/" resolves against the browser's URL: /api/docs -> /api/docs/. An absolute "/docs/" would land on the web app.
+    expect(bare.headers.location).toBe("docs/");
+    const page = await app.inject({ method: "GET", url: "/docs/" });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain("js/scalar.js");
+  });
 });
 
 describe("NUL characters are refused (SQLite FTS/length() would silently stop at them)", () => {
