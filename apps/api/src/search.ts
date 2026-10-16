@@ -84,21 +84,14 @@ export async function search(store: Store, rawQuery: string, opts: SearchOptions
  * measured at ~8 s on a 10 MB contract for a common phrase, so larger documents
  * locate their highlight with a bounded linear scan instead (see locateTerms).
  */
-export const NATIVE_SNIPPET_MAX_CHARS = 256 * 1024;
+export { NATIVE_SNIPPET_MAX_CHARS } from "./store/types.ts";
 
 async function searchWords(store: Store, query: string, opts: SearchOptions): Promise<{ total: number; results: DocumentResult[] }> {
-  // Phase 1: rank only. No document text crosses the boundary yet.
-  const ranked = await store.rankWords(query, opts.ids);
-
-  // Phase 2: build snippets only for the page being returned.
-  const page = ranked.slice(opts.offset, opts.offset + opts.limit);
-  const results = await Promise.all(
-    page.map(async (r): Promise<DocumentResult> => {
-      const content = (await store.getContent(r.id)) ?? "";
-      return { documentId: r.id, title: r.title, version: r.version, relevance: r.score, hits: [await wordsHit(store, content, r.id, query, r.size)] };
-    }),
-  );
-  return { total: ranked.length, results };
+  const page = await store.wordsPage(query, { limit: opts.limit, offset: opts.offset, ...(opts.ids && { ids: opts.ids }) });
+  return { total: page.total, results: page.items.map((r) => ({
+    documentId: r.id, title: r.title, version: r.version, relevance: r.score,
+    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : locatedHit(r.content, query)],
+  })) };
 }
 
 /** Splits FTS5's marked-up snippet into segments. */
@@ -118,15 +111,6 @@ export function parseSnippet(snip: string): Segment[] {
     rest = rest.slice(end + 1);
   }
   return segments;
-}
-
-async function wordsHit(store: Store, content: string, id: string, query: string, size: number): Promise<Hit> {
-  // The backend's own best-window snippet, where it has one and the document is small enough for it to be cheap.
-  if (store.wordsSnippet && size <= NATIVE_SNIPPET_MAX_CHARS) {
-    const snip = await store.wordsSnippet(id, query);
-    if (snip !== undefined) return nativeHit(content, snip);
-  }
-  return locatedHit(content, query);
 }
 
 /**

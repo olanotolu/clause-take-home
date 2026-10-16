@@ -30,6 +30,7 @@ export const BODY_LIMIT = 50 * 1024 * 1024;
 export interface AppOptions {
   /** Storage backend. Closed when the app closes. */
   store?: Store;
+  aiTimeoutMs?: number;
   /** Convenience: a SQLite path (or ":memory:"). Ignored when `store` is supplied. */
   dbPath?: string;
   logger?: boolean;
@@ -149,8 +150,8 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   const checkLimit = opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" };
   const suggestLimit = opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" };
   const semantic = opts.semanticEvaluator ?? noSemanticEvaluator;
-  registerCheckRoutes(typed, semantic, checkLimit);
-  registerSuggestRoutes(typed, opts.suggestionProvider, suggestLimit, semantic);
+  registerCheckRoutes(typed, semantic, checkLimit, opts.aiTimeoutMs);
+  registerSuggestRoutes(typed, opts.suggestionProvider, suggestLimit, semantic, opts.aiTimeoutMs);
   registerRequestRoutes(typed, semantic, checkLimit);
   registerPlaybookRoutes(typed);
   registerActivityRoutes(typed);

@@ -43,7 +43,7 @@ describe("seedIfEmpty (runs on whichever backend the suite is using)", () => {
     expect(await store.seedIfEmpty(SEED_DOCUMENTS)).toBe(0); // second call: already populated
     expect((await store.listDocuments(50, 0)).total).toBe(5);
     // seeded documents are real documents: version 1, searchable, with a history row
-    const found = await store.rankWords("confidentiality");
+    const found = (await store.wordsPage("confidentiality", { limit: 100, offset: 0 })).items;
     expect(found.length).toBeGreaterThan(0);
     expect(await store.listRevisions(found[0]!.id)).toHaveLength(1);
     await store.close();

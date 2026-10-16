@@ -1,3 +1,4 @@
+import { abortable, AI_REQUEST_TIMEOUT_MS } from "../ai-deadline.ts";
 import { createPatch } from "diff";
 import { z } from "zod";
 import * as docs from "../documents.ts";
@@ -10,13 +11,14 @@ import type { App } from "../types.ts";
 
 const Body = z.strictObject({ instruction: z.string().min(1).max(2000) });
 
-export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider | undefined, limit: { max: number; timeWindow: string }, semantic: SemanticEvaluator): void {
+export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider | undefined, limit: { max: number; timeWindow: string }, semantic: SemanticEvaluator, timeoutMs = AI_REQUEST_TIMEOUT_MS): void {
   /**
    * Proposes an edit. NEVER applies it: the response says `applied: false`, carries the
    * document version it was validated against, and the client commits through the normal
    * PATCH (which re-validates against whatever version is current).
    */
-  app.post("/documents/:id/suggest", { config: { rateLimit: limit }, schema: { params: IdParams, body: Body, response: { 200: SuggestOut, ...errors(400, 404, 413, 429, 500, 502, 503) } } }, async (req, reply) => {
+  app.post("/documents/:id/suggest", { config: { rateLimit: limit }, schema: { params: IdParams, body: Body, response: { 200: SuggestOut, ...errors(400, 404, 413, 429, 500, 502, 503, 504) } } }, async (req, reply) => {
+    const signal = AbortSignal.timeout(timeoutMs);
     const doc = (await app.store.getDocument(req.params.id));
     if (!doc) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
     if (!provider) {
@@ -32,8 +34,10 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
 
     let proposal: Awaited<ReturnType<typeof provider.suggest>>;
     try {
-      proposal = await provider.suggest({ document: doc.content, instruction: req.body.instruction });
+      signal.throwIfAborted();
+      proposal = await abortable(provider.suggest({ document: doc.content, instruction: req.body.instruction }, { signal }), signal);
     } catch (err) {
+      if (signal.aborted) return reply.code(504).send({ error: "The AI suggestion took too long. Try again.", code: 504, type: "AI_TIMEOUT" });
       req.log.error({ err }, "suggestion provider failed"); // logged server-side; details never sent to the client
       return reply.code(502).send({ error: "The suggestion provider failed", code: 502, type: "AI_PROVIDER_ERROR" });
     }
@@ -66,7 +70,7 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
 
     // The proposal is tested before a human reads it: the user's own instruction is the goal, and the document's saved
     // requirements are the regression suite. A failure here only means "no report", never a failed suggestion.
-    const ci = await runCi(app.store, doc.id, { expectedVersion: doc.version, changes: base.changes, goal: req.body.instruction }, semantic).catch(() => undefined);
+    const ci = await runCi(app.store, doc.id, { expectedVersion: doc.version, changes: base.changes, goal: req.body.instruction, signal }, semantic).catch(() => undefined);
     return {
       ...base,
       validation: {
@@ -74,7 +78,7 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
         applied: result.applied,
         diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }),
       },
-      ci: ci?.ok ? ci.value : null,
+      ci: !signal.aborted && ci?.ok ? ci.value : null,
     };
   });
 }

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import { openDb, transaction, type Db } from "../db.ts";
 import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
-import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store, type IntegrationConnection, type IntegrationProvider } from "./types.ts";
+import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, NATIVE_SNIPPET_MAX_CHARS, type WordSnapshot, type RevisionInfo, type Store, type IntegrationConnection, type IntegrationProvider } from "./types.ts";
 
 const OPEN = "\u0002";
 const CLOSE = "\u0003";
@@ -153,41 +153,30 @@ export function sqliteStore(db: Db): Store {
       return r && { version: r.version, content: r.content, contentHash: r.content_hash, createdAt: r.created_at, summary: JSON.parse(r.summary) };
     },
 
-    async rankWords(query, ids = []) {
+    async wordsPage(query, { ids = [], limit, offset }) {
       const match = compileWordsQuery(query);
       const idFilter = ids.length ? `AND d.id IN (${placeholders(ids.length)})` : "";
+      db.exec("BEGIN");
       try {
-        const rows = db
-          .prepare(
-            `SELECT d.id, d.title, d.version, length(d.content) AS size, bm25(documents_words, 5.0, 1.0) AS score
-             FROM documents_words
-             JOIN documents d ON d.seq = documents_words.rowid
-             WHERE documents_words MATCH ? ${idFilter}
-             ORDER BY score, d.seq`,
-          )
-          .all(match, ...ids) as unknown as { id: string; title: string; version: number; size: number; score: number }[];
-        return rows.map((r): RankedDocument => ({ id: r.id, title: r.title, version: r.version, size: r.size, score: -r.score }));
+        const { n } = db.prepare(`SELECT count(*) AS n FROM documents_words JOIN documents d ON d.seq = documents_words.rowid WHERE documents_words MATCH ? ${idFilter}`).get(match, ...ids) as { n: number };
+        const ranked = db.prepare(`SELECT d.id, d.title, d.version, length(d.content) AS size, bm25(documents_words, 5.0, 1.0) AS score
+          FROM documents_words JOIN documents d ON d.seq = documents_words.rowid
+          WHERE documents_words MATCH ? ${idFilter} ORDER BY score, d.seq LIMIT ? OFFSET ?`).all(match, ...ids, limit, offset) as unknown as Omit<WordSnapshot, "content">[];
+        const items = ranked.map((r): WordSnapshot => {
+          const content = getDoc(r.id)!.content;
+          const snippet = r.size <= NATIVE_SNIPPET_MAX_CHARS
+            ? db.prepare(`SELECT snippet(documents_words, 1, '${OPEN}', '${CLOSE}', '${ELLIPSIS}', 24) AS snip
+                FROM documents_words JOIN documents d ON d.seq = documents_words.rowid WHERE documents_words MATCH ? AND d.id = ?`).get(match, r.id) as { snip: string } | undefined
+            : undefined;
+          return { ...r, score: -r.score, content, ...(snippet && { nativeSnippet: snippet.snip }) };
+        });
+        db.exec("COMMIT");
+        return { total: n, items };
       } catch (e) {
+        db.exec("ROLLBACK");
         if (e instanceof Error && /fts5|unterminated|syntax|malformed/i.test(e.message)) throw new InvalidQueryError(`Unsupported query: ${e.message}`);
         throw e;
       }
-    },
-
-    async wordsSnippet(id, query) {
-      // NOTE: filter on the JOINED d.id, never `documents_words.rowid = ?`: FTS5 silently ignored the rowid
-      // constraint next to MATCH and returned another document's snippet.
-      const rows = db
-        .prepare(
-          `SELECT d.id AS id, snippet(documents_words, 1, '${OPEN}', '${CLOSE}', '${ELLIPSIS}', 24) AS snip
-           FROM documents_words JOIN documents d ON d.seq = documents_words.rowid
-           WHERE documents_words MATCH ? AND d.id = ?`,
-        )
-        .all(compileWordsQuery(query), id) as unknown as { id: string; snip: string }[];
-      return rows.length === 1 && rows[0]!.id === id ? rows[0]!.snip : undefined; // defence in depth
-    },
-
-    async getContent(id) {
-      return (db.prepare("SELECT content FROM documents WHERE id = ?").get(id) as { content: string } | undefined)?.content;
     },
 
     /** Trigram index (case-insensitive, needs >= 3 chars) narrows candidates; instr() covers shorter queries. */

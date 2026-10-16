@@ -51,7 +51,7 @@ interface Workspace {
   goal: string;
   setGoal: (g: string) => void;
   toast: (text: string, tone?: Toast["tone"]) => void;
-  openDoc: (id: string) => Promise<void>;
+  openDoc: (id: string) => Promise<Doc | null>;
   refreshDocs: () => Promise<DocSummary[]>;
   stage: (replacement: string) => void;
   removeStaged: (id: number) => void;
@@ -142,23 +142,48 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return [];
   }, []);
 
-  const openDoc = useCallback(async (id: string) => {
-    setOpening(true);
-    const r = await api.get(id);
-    setOpening(false);
-    if (!r.ok) {
-      toast(r.status === 404 ? "That document no longer exists." : r.error.error, "fail");
-      navigate({ name: "home" });
-      return;
+  const stagedRef = useRef(staged);
+  stagedRef.current = staged;
+  const currentDocRef = useRef(doc);
+  currentDocRef.current = doc;
+  const loadGeneration = useRef(0);
+  const pendingLoad = useRef<{ id: string; promise: Promise<Doc | null> } | null>(null);
+  const blockDraftNavigation = useCallback(() => {
+    if (stagedRef.current.length) {
+      toast("Apply or discard your staged changes before opening a document.");
+      if (currentDocRef.current) navigate({ name: "doc", id: currentDocRef.current.id, tab: "edit" });
+      return true;
     }
-    setDoc(r.data);
-    setSelection(null);
-    setStaged([]);
-    setConflict(null);
-    setPreview({ status: "idle" });
-    setRedline(false);
-    setGoal("");
+    return false;
   }, [toast]);
+  const openDoc = useCallback((id: string): Promise<Doc | null> => {
+    if (blockDraftNavigation()) return Promise.resolve(null);
+    if (pendingLoad.current?.id === id) return pendingLoad.current.promise;
+    const generation = ++loadGeneration.current;
+    setOpening(true);
+    const promise = (async () => {
+      const r = await api.get(id);
+      if (generation !== loadGeneration.current) return null;
+      pendingLoad.current = null;
+      setOpening(false);
+      if (blockDraftNavigation()) return null;
+      if (!r.ok) {
+        toast(r.status === 404 ? "That document no longer exists." : r.error.error, "fail");
+        navigate({ name: "home" });
+        return null;
+      }
+      setDoc(r.data);
+      setSelection(null);
+      setStaged([]);
+      setConflict(null);
+      setPreview({ status: "idle" });
+      setRedline(false);
+      setGoal("");
+      return r.data;
+    })();
+    pendingLoad.current = { id, promise };
+    return promise;
+  }, [toast, blockDraftNavigation]);
 
   const refreshRequests = useCallback(async () => {
     const r = await api.requests();
@@ -216,7 +241,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // The route is the source of truth for which document is open.
   const routeDocId = route.name === "doc" ? route.id : null;
   useEffect(() => {
-    if (routeDocId && routeDocId !== doc?.id) void openDoc(routeDocId);
+    if (pendingLoad.current && pendingLoad.current.id !== routeDocId) {
+      loadGeneration.current++;
+      pendingLoad.current = null;
+      setOpening(false);
+    }
+    if (routeDocId) {
+      if (routeDocId !== doc?.id) void openDoc(routeDocId);
+    } else {
+      loadGeneration.current++;
+      pendingLoad.current = null;
+      setOpening(false);
+    }
   }, [routeDocId, doc?.id, openDoc]);
 
   // Validate the staged batch against the version on screen: the same engine call PATCH uses.
@@ -260,16 +296,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [searchPage, doc]);
 
   const pickHit = useCallback((result: DocResult, hit: Hit) => {
-    void (async () => {
-      if (result.documentId !== doc?.id) {
-        navigate({ name: "doc", id: result.documentId, tab: "edit" });
-        await openDoc(result.documentId);
-      } else {
-        navigate({ name: "doc", id: result.documentId, tab: "edit" });
+    if (staged.length) {
+      toast("Apply or discard your staged changes before opening a document.");
+      return;
+    }
+    navigate({ name: "doc", id: result.documentId, tab: "edit" });
+    void openDoc(result.documentId).then((loaded) => {
+      if (!loaded) return;
+      const quote = hit.target && "quote" in hit.target ? hit.target.quote.exact : undefined;
+      if (loaded.version !== result.version || hit.start === undefined || hit.end === undefined || !quote || loaded.content.slice(hit.start, hit.end) !== quote) {
+        setSelection(null);
+        toast("This document changed or the passage could not be verified. Search again to select the current passage.");
+        return;
       }
-      if (hit.start !== undefined && hit.end !== undefined) setSelection({ start: hit.start, end: hit.end });
-    })();
-  }, [doc?.id, openDoc]);
+      setSelection({ start: hit.start, end: hit.end });
+    });
+  }, [staged.length, openDoc, toast]);
 
   const stage = useCallback((replacement: string) => {
     if (!doc || !selection) return;

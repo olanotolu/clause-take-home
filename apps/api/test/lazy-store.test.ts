@@ -31,16 +31,15 @@ describe("lazyStore (a serverless instance must boot even while the database is 
     const real = await testStore();
     const lazy = lazyStore({ kind: real.kind, maxContentChars: real.maxContentChars }, async () => real);
     const doc = await lazy.insertDocument({ title: "NDA", content: "Receiving Party shall not disclose Confidential Information." });
-    expect((await lazy.rankWords("disclose")).map((r) => r.id)).toEqual([doc.id]);
+    expect(((await lazy.wordsPage("disclose", { limit: 100, offset: 0 })).items).map((r) => r.id)).toEqual([doc.id]);
     expect((await lazy.exactCandidates("shall not disclose")).length).toBeGreaterThan(0);
-    expect(await lazy.getContent(doc.id)).toContain("Receiving Party");
+    expect((await lazy.wordsPage("disclose", { limit: 1, offset: 0 })).items[0]?.content).toContain("Receiving Party");
     await lazy.addRequirement(doc.id, { kind: "absent", text: "perpetual" });
     expect(await lazy.listRequirements(doc.id)).toHaveLength(1);
     expect(await lazy.listRequests()).toEqual([]);
     expect((await lazy.listRecentRevisions(5)).length).toBe(1);
     expect(await lazy.listRevisions(doc.id)).toHaveLength(1);
-    // Only SQLite has a native snippet; the search layer checks for the method's presence.
-    expect(typeof lazy.wordsSnippet).toBe(real.kind === "sqlite" ? "function" : "undefined");
+
     await lazy.deleteDocument(doc.id);
     expect(await lazy.getDocument(doc.id)).toBeUndefined();
     await lazy.close();

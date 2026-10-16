@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import pg from "pg";
 import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
-import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store, type IntegrationProvider } from "./types.ts";
+import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type WordSnapshot, type RevisionInfo, type Store, type IntegrationProvider } from "./types.ts";
 
 /**
  * A tsvector may not exceed ~1 MB, and the generated column indexes the whole text, so a hosted document is capped.
@@ -219,10 +219,10 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
   }
 
   /** Runs `fn` on one connection inside a transaction. */
-  async function tx<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  async function tx<T>(fn: (c: pg.PoolClient) => Promise<T>, begin = "BEGIN"): Promise<T> {
     const client = await pool.connect();
     try {
-      await client.query("BEGIN");
+      await client.query(begin);
       const out = await fn(client);
       await client.query("COMMIT");
       return out;
@@ -329,26 +329,20 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
       return x && { version: x.version, content: x.content, contentHash: x.content_hash, createdAt: x.created_at, summary: JSON.parse(x.summary) };
     },
 
-    async rankWords(query, ids = []) {
-      const tsquery = toTsQuery(query);
-      const params: unknown[] = [tsquery];
-      let idFilter = "";
-      if (ids.length) {
-        params.push(ids);
-        idFilter = "AND id = ANY($2)";
-      }
-      const r = await pool.query<{ id: string; title: string; version: number; size: number; score: number }>(
-        `SELECT id, title, version, length(content) AS size, ts_rank_cd(search, q, 1) AS score
-         FROM documents, to_tsquery('english', $1) q
-         WHERE search @@ q ${idFilter}
-         ORDER BY score DESC, seq`,
-        params,
-      );
-      return r.rows.map((x): RankedDocument => ({ id: x.id, title: x.title, version: x.version, size: Number(x.size), score: Number(x.score) }));
-    },
-
-    async getContent(id) {
-      return (await pool.query<{ content: string }>("SELECT content FROM documents WHERE id = $1", [id])).rows[0]?.content;
+    async wordsPage(query, { ids = [], limit, offset }) {
+      const params: unknown[] = [toTsQuery(query)];
+      const idFilter = ids.length ? "AND id = ANY($2)" : "";
+      if (ids.length) params.push(ids);
+      return tx(async (client) => {
+        const count = await client.query<{ n: string }>(`SELECT count(*) AS n FROM documents, to_tsquery('english', $1) q WHERE search @@ q ${idFilter}`, params);
+        const rows = await client.query<WordSnapshot>(`WITH page AS MATERIALIZED (
+          SELECT id, title, version, length(content) AS size, ts_rank_cd(search, q, 1) AS score, seq
+          FROM documents, to_tsquery('english', $1) q WHERE search @@ q ${idFilter}
+          ORDER BY score DESC, seq LIMIT $${params.length + 1} OFFSET $${params.length + 2})
+          SELECT page.id, page.title, page.version, page.size, page.score, d.content
+          FROM page JOIN documents d ON d.id = page.id ORDER BY page.score DESC, page.seq`, [...params, limit, offset]);
+        return { total: Number(count.rows[0]!.n), items: rows.rows.map((r) => ({ ...r, size: Number(r.size), score: Number(r.score) })) };
+      }, "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
     },
 
     /** LIKE is case-sensitive; the trigram GIN index serves it for patterns of >= 3 characters. Callers verify by scanning the text. */
