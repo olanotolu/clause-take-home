@@ -150,7 +150,9 @@ export interface SeedRequest {
   dueInDays?: number;
 }
 
-export interface RankedDocument {
+export const NATIVE_SNIPPET_MAX_CHARS = 256 * 1024;
+
+export interface WordSnapshot {
   id: string;
   title: string;
   version: number;
@@ -158,6 +160,8 @@ export interface RankedDocument {
   size: number;
   /** Backend-specific relevance, higher is better (SQLite: -bm25, Postgres: ts_rank_cd). */
   score: number;
+  content: string;
+  nativeSnippet?: string;
 }
 
 export interface ExactCandidate {
@@ -201,11 +205,8 @@ export interface Store {
   listRevisions(id: string): Promise<RevisionInfo[]>;
   getRevision(id: string, version: number): Promise<(RevisionInfo & { content: string }) | undefined>;
 
-  /** Ranks documents matching the plain-text query (words AND-ed, "quoted phrases"). Throws InvalidQueryError. */
-  rankWords(query: string, ids?: string[]): Promise<RankedDocument[]>;
-  /** Optional: the backend's own best-window snippet, with \u0002/\u0003 around matches. Postgres omits it. */
-  wordsSnippet?(id: string, query: string): Promise<string | undefined>;
-  getContent(id: string): Promise<string | undefined>;
+  /** Page metadata, content, and snippets share one database read snapshot. */
+  wordsPage(query: string, options: { ids?: string[]; limit: number; offset: number }): Promise<{ total: number; items: WordSnapshot[] }>;
   /** Documents that MAY contain `query` literally and case-sensitively (callers verify by scanning the text). */
   exactCandidates(query: string, ids?: string[]): Promise<ExactCandidate[]>;
 

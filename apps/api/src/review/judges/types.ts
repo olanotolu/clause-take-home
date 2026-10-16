@@ -22,4 +22,5 @@ export interface JudgeInput {
 export interface Judge {
   readonly id: string;
   judge(input: JudgeInput): Promise<JudgeAnswer>;
+  judgeBatch?(inputs: JudgeInput[]): Promise<JudgeAnswer[]>;
 }
