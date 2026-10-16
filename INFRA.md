@@ -1,6 +1,10 @@
 # CLAUSE: production design
 
-**Starting point.** The deployed demo is open, shared and fictional; hosted runs on Vercel functions + Neon Postgres, local on SQLite. **Assumptions (mine):** contracts ~1 MiB with a 25 MiB tail, hundreds of workspaces, ≤50 concurrent editors each, reads ≫ writes, 99.9% availability (unproven), US + EU customers. Numbers are tagged **measured** (this repo, Apple M4, Node 24/26, one process, SQLite), **target** (what production must hit), or **untested**.
+Where it stands: the deployed demo is open, shared, and fictional. Hosted runs on Vercel functions + Neon Postgres; local runs on SQLite.
+
+Working assumptions (mine, not a brief): contracts around 1 MiB with a 25 MiB tail, hundreds of workspaces, up to 50 concurrent editors each, reads far above writes, 99.9% availability goal (unproven), US and EU customers.
+
+Every number below is tagged. **Measured** means this repo on Apple M4, Node 24/26, one process, SQLite. **Target** means what production must hit. **Untested** means nobody has run it.
 
 ```text
 Client → CDN/WAF (ETag 304, rate limit, OIDC) → Stateless API ×2+ ──CAS──▶ Postgres (docs, revisions, chunks, audit)
@@ -9,11 +13,11 @@ Client → CDN/WAF (ETag 304, rate limit, OIDC) → Stateless API ×2+ ──CAS
                                                    └──▶ Queue ──▶ Workers (reindex, ingest, AI) ──▶ LLM gateway
 ```
 
-## What the prototype measured, and what that means
+## What the prototype measured
 
 | Operation (ms) | Measured | Production target | What it tells us |
 |---|---|---|---|
-| Edit engine, 1 replacement in 10 MiB | **7** | n/a | The algorithm is not the cost; 100-change batch is 9 |
+| Edit engine, 1 replacement in 10 MiB | **7** | n/a | The algorithm is not the cost; a 100-change batch is 9 |
 | Full-stack edit, 10 MiB (SQLite) | **789** | untested on Postgres (500k-char cap) | Time is two index updates + a 10 MB snapshot + the response |
 | Words search, 10 MiB, rare / common | **21 / 25** | p95 < 300 | Index lookup is cheap once snippets are paginated (was 8,337 before the fix) |
 | Exact search, 10 MiB, unique / many hits | **16 / 52** | p95 < 300 | Trigram scan; grows with hit count |
@@ -23,9 +27,9 @@ Client → CDN/WAF (ETag 304, rate limit, OIDC) → Stateless API ×2+ ──CAS
 | Edit 1 MB, p95: 1 client / 8 writers | **61 / 879** | p95 < 500 (**missed at 8**) | One SQLite writer: throughput plateaus at ~19 edits/s |
 | LLM judge call | **~2,400** median | hard deadline 25,000 | Always async/advisory; the whole benchmark run cost $1.52 |
 
-**Sizing arithmetic (from the assumptions, not a load test).** 500 concurrent editors at one edit per 15 s is ~33 edits/s. One SQLite writer tops out near 19/s, so production needs per-document row locks in Postgres and at least two API replicas; the target is p95 edit < 500 ms at 1 MiB, to be proven by repeating `pnpm load` against Postgres before any capacity claim.
+Sizing arithmetic (from the assumptions, not a load test): 500 concurrent editors at one edit per 15 s is ~33 edits/s. One SQLite writer tops out near 19/s, so production needs per-document row locks in Postgres and at least two API replicas. The target is p95 edit < 500 ms at 1 MiB, proven only by repeating `pnpm load` against Postgres before any capacity claim.
 
-## Decisions by topic (trade-off in the last column)
+## Decisions by topic
 
 | Topic | Design | Number | Trade-off |
 |---|---|---|---|
@@ -44,8 +48,8 @@ Client → CDN/WAF (ETag 304, rate limit, OIDC) → Stateless API ×2+ ──CAS
 
 ## Risks and first measurements
 
-1. **Postgres is untested at size** (500,000-character cap on hosted): repeat `pnpm load` and the 10 MiB benchmark there before raising it.
-2. **Exact search and edit p95 miss their targets at 8 clients** on the prototype; chunked indexes and per-document locks are the proposed fix, not yet shown to work.
-3. **No tenancy today:** nothing here is customer-ready until authentication, row-level security and audit are in; SOC 2 and GDPR are evidence and review, not architecture.
+1. Postgres is untested at size (500,000-character cap on hosted). Repeat `pnpm load` and the 10 MiB benchmark there before raising it.
+2. Exact search and edit p95 miss their targets at 8 clients on the prototype. Chunked indexes and per-document locks are the proposed fix, not yet shown to work.
+3. No tenancy today. Nothing here is customer-ready until authentication, row-level security, and audit are in; SOC 2 and GDPR are evidence and review, not architecture.
 
-Raw numbers: [`bench/performance`](bench/performance/README.md), `pnpm load`; longer alternatives: [appendix](docs/INFRA_APPENDIX.md).
+Raw numbers: [`bench/performance`](bench/performance/README.md), `pnpm load`. Longer alternatives: [appendix](docs/INFRA_APPENDIX.md).
