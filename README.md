@@ -16,6 +16,8 @@ pnpm test                 # 150 tests
 
 No native build step: storage is Node's built-in `node:sqlite`, and TypeScript runs directly under Node's type stripping (`pnpm typecheck` runs `tsc`).
 
+**Live demo:** https://clause-take-home.vercel.app (open to anyone, no sign-in; API reference at `/api/docs`). Vercel Services serve the React app and this API from one project; storage is Neon Postgres, the same code and test suite as the SQLite default. The AI features call `anthropic/claude-sonnet-5.5` through OpenRouter and are rate limited per IP. Do not paste real confidential text into the demo.
+
 ## The problem it solves
 
 `text.replace("shall not disclose", "may disclose")` silently edits the first of however many matches exist. CLAUSE instead:
