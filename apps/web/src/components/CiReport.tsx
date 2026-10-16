@@ -61,6 +61,11 @@ function Row({ r, onShow }: { r: RequirementReport; onShow: (e: Evidence) => voi
       {r.after.verdict !== "PASS" && <EvidenceList outcome={r.after} />}
       {r.before.verdict !== "PASS" && r.before.detail !== r.after.detail && <p className="mt-1 text-[12px] text-muted">Before: {r.before.detail}</p>}
       <EvidenceList outcome={r.before} onShow={onShow} />
+      {r.after.judges && r.after.judges.length > 0 && (
+        <p className="mt-1.5 text-[11.5px] text-muted">
+          Judged by {r.after.judges.map((j) => `${j.id.split("/").pop()} (${j.label.replace("_", " ")})`).join(" · ")}
+        </p>
+      )}
     </li>
   );
 }

@@ -18,9 +18,19 @@ export interface EvidenceSpan {
   verified: boolean;
 }
 
+/** One judge's opinion, kept in the report so a reader can see who said what. */
+export interface JudgeDetail {
+  id: string;
+  label: string;
+  probability?: number;
+  rationale?: string;
+}
+
 export interface Check {
   verdict: Verdict;
   detail: string;
+  /** Per-judge opinions for semantic checks; absent for exact checks. */
+  judges?: JudgeDetail[];
   /** Offsets index the text this check ran on: the current version for `before`, the proposed text for `after`. */
   evidence: EvidenceSpan[];
 }

@@ -221,7 +221,8 @@ export const CheckBody = ChangesBody.extend({
 
 const VerdictSchema = z.enum(["PASS", "FAIL", "NEEDS_REVIEW", "UNAVAILABLE"]);
 const EvidenceOut = z.object({ start: z.number().int(), end: z.number().int(), quote: z.string(), verified: z.boolean() });
-const CheckOutcome = z.object({ verdict: VerdictSchema, detail: z.string(), evidence: z.array(EvidenceOut) });
+const JudgeDetailOut = z.object({ id: z.string(), label: z.string(), probability: z.number().optional(), rationale: z.string().optional() });
+const CheckOutcome = z.object({ verdict: VerdictSchema, detail: z.string(), evidence: z.array(EvidenceOut), judges: z.array(JudgeDetailOut).optional() });
 
 export const RequirementReportOut = z.object({
   id: z.string(),
