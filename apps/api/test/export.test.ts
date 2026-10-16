@@ -1,10 +1,11 @@
+import fc from "fast-check";
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { redlineDocx } from "../src/docx.ts";
+import { redlineDocx, redlineParts } from "../src/docx.ts";
 import { createDoc, patch, quote, testApp, usingPostgres } from "./helpers.ts";
 
 const unescapeXml = (s: string) => s.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&apos;", "'").replaceAll("&amp;", "&");
@@ -51,6 +52,45 @@ function readRedline(xml: string) {
 
 const exportOf = (from: string, to: string) =>
   redlineDocx({ title: "T", from: { version: 1, content: from }, to: { version: 2, content: to, createdAt: "2026-10-15T12:00:00.000Z" } });
+
+describe("redlineParts (line diff first, word diff only inside changed blocks)", () => {
+  const seed = process.env.FC_SEED ? Number(process.env.FC_SEED) : 20261015;
+  const word = fc.constantFrom("the", "Party", "shall", "notice", "five (5)", "years", "", " ", "  ");
+  const line = fc.array(word, { maxLength: 6 }).map((w) => w.join(" "));
+  const doc = fc.array(line, { maxLength: 8 }).map((l) => l.join("\n"));
+  const join = (parts: { kind: string; value: string }[], keep: string) => parts.filter((p) => p.kind === "same" || p.kind === keep).map((p) => p.value).join("");
+
+  it("rejecting every change gives the old text and accepting gives the new, for random paragraph edits", () => {
+    fc.assert(
+      fc.property(doc, doc, (from, to) => {
+        const parts = redlineParts(from, to);
+        expect(join(parts, "del")).toBe(from);
+        expect(join(parts, "ins")).toBe(to);
+      }),
+      { seed, numRuns: 500 },
+    );
+  });
+
+  it("stays exact and fast when every paragraph is rewritten (no line to anchor on)", () => {
+    const from = Array.from({ length: 700 }, (_, i) => `Clause ${i} keeps item ${i} confidential.`).join("\n");
+    const to = Array.from({ length: 650 }, (_, i) => `Section ${i} treats item ${i} as secret.`).join("\n");
+    const started = performance.now();
+    const parts = redlineParts(from, to);
+    expect(performance.now() - started).toBeLessThan(2000); // generous: the unbounded search took minutes at this shape
+    expect(join(parts, "del")).toBe(from);
+    expect(join(parts, "ins")).toBe(to);
+  });
+
+  it("keeps word-level detail inside a changed paragraph and leaves unchanged paragraphs whole", () => {
+    const parts = redlineParts("Alpha stays.\nIt shall give prompt written notice.\nOmega stays.", "Alpha stays.\nIt may give notice at its discretion.\nOmega stays.");
+    // Unchanged paragraphs stay inside unchanged runs (adjacent unchanged text is merged into one run).
+    expect(parts[0]!.kind).toBe("same");
+    expect(parts[0]!.value.startsWith("Alpha stays.\n")).toBe(true);
+    expect(parts.filter((p) => p.kind === "del").map((p) => p.value.trim())).toContain("shall");
+    expect(parts.at(-1)!.kind).toBe("same");
+    expect(parts.at(-1)!.value.endsWith("Omega stays.")).toBe(true);
+  });
+});
 
 describe("redlineDocx", () => {
   it("writes native Word tracked changes attributed to CLAUSE with the revision date", async () => {
