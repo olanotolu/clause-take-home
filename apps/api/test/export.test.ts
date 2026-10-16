@@ -1,3 +1,6 @@
+import { execFileSync, spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
@@ -89,6 +92,42 @@ describe("redlineDocx", () => {
     expect(buf.subarray(0, 2).toString()).toBe("PK");
     const zip = await JSZip.loadAsync(buf);
     for (const f of ["[Content_Types].xml", "word/document.xml", "_rels/.rels"]) expect(zip.file(f), f).not.toBeNull();
+  });
+});
+
+// The accept/reject tests above read the XML with a parser written next to the writer. pandoc is a separate
+// implementation of tracked changes, so agreement with it is stronger evidence (still not Microsoft Word itself).
+// Skipped, not failed, where pandoc is not installed.
+const hasPandoc = spawnSync("pandoc", ["--version"]).status === 0;
+const repoRoot = join(import.meta.dirname, "../../..");
+const lines = (s: string) => s.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+const viaPandoc = (docx: Buffer, mode: "accept" | "reject") =>
+  lines(execFileSync("pandoc", ["-f", "docx", `--track-changes=${mode}`, "-t", "plain", "--wrap=none"], { input: docx, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }));
+
+describe.skipIf(!hasPandoc)("redlineDocx read by pandoc, a parser we did not write", () => {
+  it("accept gives the new text and reject gives the old text", async () => {
+    const pairs: [string, string][] = [
+      ["The Vendor shall not disclose it.", "The Vendor may disclose it."],
+      ["1.1 One\n\n1.2 Two\n", "1.1 One\n\n1.2 Two and three\n1.3 Four\n"],
+      ["all removed\nacross lines", "brand new"],
+      ["café 日本語 🎉 <tag> & \"quotes\"", "café 日本語 🔥 <tag> && \"quotes\""],
+    ];
+    for (const [from, to] of pairs) {
+      const docx = await exportOf(from, to);
+      expect(viaPandoc(docx, "accept"), `accept ${JSON.stringify(from)} -> ${JSON.stringify(to)}`).toEqual(lines(to));
+      expect(viaPandoc(docx, "reject"), `reject ${JSON.stringify(from)} -> ${JSON.stringify(to)}`).toEqual(lines(from));
+    }
+  });
+
+  it("the committed sample redline rejects to the original NDA and accepts to the edited one", () => {
+    const sample = readFileSync(join(repoRoot, "samples/mutual-nda-redline.docx"));
+    const original = lines(readFileSync(join(repoRoot, "fixtures/mutual-nda.txt"), "utf8"));
+    const rejected = viaPandoc(sample, "reject");
+    const accepted = viaPandoc(sample, "accept");
+    expect(rejected).toEqual(original);
+    expect(accepted).not.toEqual(original);
+    expect(accepted.join("\n")).toContain("three (3) years");
+    expect(accepted.join("\n")).toContain("seven (7) years");
   });
 });
 
