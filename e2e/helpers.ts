@@ -65,6 +65,7 @@ export async function stageReplacement(page: Page, passage: string, replacement:
 export async function expectAccessible(page: Page, known: Record<string, string> = {}) {
   // Axe measures contrast on what is painted, so let entrance animations (opacity) finish first.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.effect?.getComputedTiming().iterations === Infinity || a.playState !== "running"));
+  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   const blocking = violations.filter((v) => (v.impact === "serious" || v.impact === "critical") && !(v.id in known));
   expect(blocking.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes, e.g. ${v.nodes[0]?.target.join(" ")})`)).toEqual([]);

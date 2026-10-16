@@ -54,6 +54,8 @@ test("search finds a clause and opens the document", async ({ page, request }) =
   const dialog = page.getByRole("dialog", { name: "Search documents and clauses" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("combobox").fill(token);
+  // Results arrive after a debounce and a request; measure only once they are on screen.
+  await expect(dialog.getByRole("option").first()).toBeVisible();
   await expectAccessible(page);
   await dialog.getByRole("option").first().click();
   await expect(page).toHaveURL(new RegExp(doc.id));

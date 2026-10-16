@@ -62,7 +62,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
     trustProxy: opts.trustProxy ?? false,
     // Ids are at most 100 characters, so anything longer is a bad request like any other. Fastify's own answer to an
     // over-long path parameter is a 414 whose `code` is a string, which breaks this API's { error, code: number } contract.
-    maxParamLength: 1024,
+    routerOptions: { maxParamLength: 1024 },
     frameworkErrors: (error, _req, res) => {
       const reply = res as import("fastify").FastifyReply;
       if (error.code === "FST_ERR_MAX_PARAM_LENGTH") return reply.code(400).send({ error: "A path parameter is too long", code: 400, type: "VALIDATION_ERROR" });
