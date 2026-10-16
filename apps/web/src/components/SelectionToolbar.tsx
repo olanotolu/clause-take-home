@@ -1,5 +1,5 @@
 import { Pencil, ShieldCheck, Search, X } from "../ui/icons.tsx";
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { countOccurrences } from "../lib/segments.ts";
 import { plural } from "../lib/wordDelta.ts";
 import { Button } from "../ui/Button.tsx";
@@ -31,7 +31,8 @@ export function SelectionToolbar({ container, content, selection, onStage, onPro
     setText(selected);
   }, [selection.start, selection.end, selected]);
 
-  useLayoutEffect(() => {
+  // A search selection may exist on mount; passive effects see the parent's attached scroll ref.
+  useEffect(() => {
     const c = container.current;
     const span = c?.querySelector<HTMLElement>('[data-kind="sel"]');
     if (!c || !span) return setPos(null);
