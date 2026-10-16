@@ -229,6 +229,8 @@ export const RequirementReportOut = z.object({
   before: CheckOutcome.meta({ description: "Result on the current version. Evidence offsets index the current text." }),
   after: CheckOutcome.meta({ description: "Result on the proposed text. Evidence offsets index the proposed text." }),
   delta: z.enum(["held", "regressed", "achieved", "still_failing", "uncertain"]),
+  method: z.enum(["exact", "model"]).meta({ description: "exact = literal text matching, no model. model = a judge's opinion: advisory, and its quotes show only that the text exists, not that it supports the conclusion." }),
+  answeredBy: z.array(z.string()).meta({ description: "Judges that actually answered; empty for exact checks and when no judge could." }),
   touchedBy: z.array(z.number().int()),
 });
 

@@ -31,7 +31,7 @@ export type Delta = "held" | "regressed" | "achieved" | "still_failing" | "uncer
 export interface Evidence { start: number; end: number; quote: string; verified: boolean }
 export interface JudgeDetail { id: string; label: string; probability?: number; rationale?: string }
 export interface CheckOutcome { verdict: Verdict; detail: string; evidence: Evidence[]; judges?: JudgeDetail[] }
-export interface RequirementReport { id: string; kind: RequirementKind | "goal"; text: string; before: CheckOutcome; after: CheckOutcome; delta: Delta; touchedBy: number[] }
+export interface RequirementReport { id: string; kind: RequirementKind | "goal"; text: string; before: CheckOutcome; after: CheckOutcome; delta: Delta; method: "exact" | "model"; answeredBy: string[]; touchedBy: number[] }
 export interface CiReport {
   documentId: string;
   version: number;
