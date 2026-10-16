@@ -13,7 +13,8 @@
     "seed": "node apps/api/src/seed.ts",
     "dev:web": "pnpm --filter @clause/web dev",
     "mutate": "node scripts/mutate.ts",
-    "suggest:smoke": "node --env-file-if-exists=.env.local scripts/suggest-smoke.ts"
+    "suggest:smoke": "node --env-file-if-exists=.env.local scripts/suggest-smoke.ts",
+    "gen:seed": "node scripts/gen-seed-data.ts"
   },
   "devDependencies": {
     "@types/node": "^24",

@@ -5,8 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 DB="$(mktemp -d)/fuzz.db"; PORT="${PORT:-3222}"
 trap 'kill $SERVER 2>/dev/null || true' EXIT
-CLAUSE_DB="$DB" node ../../apps/api/src/seed.ts >/dev/null
-CLAUSE_DB="$DB" PORT="$PORT" node ../../apps/api/src/server.ts >/dev/null 2>&1 & SERVER=$!
+CLAUSE_STORAGE=sqlite CLAUSE_DB="$DB" node ../../apps/api/src/seed.ts >/dev/null
+CLAUSE_STORAGE=sqlite CLAUSE_DB="$DB" PORT="$PORT" node ../../apps/api/src/server.ts >/dev/null 2>&1 & SERVER=$!
 sleep 1.5
 # /suggest is excluded: without AI credentials it correctly answers 503, which the fuzzer reports as a "server error".
 # DELETE is excluded: the fuzzer would delete every seeded document in its first requests, starving the other operations

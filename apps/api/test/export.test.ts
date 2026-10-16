@@ -2,7 +2,7 @@ import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { redlineDocx } from "../src/docx.ts";
-import { createDoc, patch, quote, testApp } from "./helpers.ts";
+import { createDoc, patch, quote, testApp, usingPostgres } from "./helpers.ts";
 
 const unescapeXml = (s: string) => s.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&apos;", "'").replaceAll("&amp;", "&");
 
@@ -130,7 +130,8 @@ describe("GET /documents/:id/export.docx", () => {
     for (const q of ["from=0", "from=abc", "to=1.5", "from=%201"]) expect((await get(`/documents/${d.id}/export.docx?${q}`)).statusCode, q).toBe(400);
   });
 
-  it("refuses versions too large to diff instead of hanging", async () => {
+  // The hosted Postgres backend refuses documents this large at upload (see postgres.test.ts), so only SQLite can reach this limit.
+  it.skipIf(usingPostgres)("refuses versions too large to diff instead of hanging", async () => {
     const d = await createDoc(app, "Big", "a ".repeat(600_000));
     await patch(app, d.id, { changes: [{ operation: "replace", target: { position: { start: 0, end: 1, expectedText: "a" } }, replacement: "b" }] });
     const res = await get(`/documents/${d.id}/export.docx`);

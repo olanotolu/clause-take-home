@@ -9,3 +9,5 @@ mutation-report.json
 .mutation-tmp/
 .env.*
 !.env.example
+.vercel
+.env*

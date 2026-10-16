@@ -1,17 +1,26 @@
 import { buildApp } from "./app.ts";
-import { dbPathFromEnv } from "./config.ts";
+import { lazyStoreFromEnv } from "./config.ts";
 import { providerFromEnv } from "./suggest.ts";
 
 const port = Number(process.env.PORT ?? 3000);
-const dbPath = dbPathFromEnv();
-
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true });
 
 // AI suggestions are optional: enabled only when credentials exist (OPENROUTER_API_KEY, or AI Gateway credentials).
 // Everything else works without them.
 const suggestionProvider = providerFromEnv(process.env);
-const app = await buildApp({ dbPath, logger: true, ...(suggestionProvider && { suggestionProvider }) });
+// On Vercel, release idle database connections when the function instance is suspended.
+const onPool = process.env.VERCEL ? (await import("@vercel/functions")).attachDatabasePool : undefined;
+const store = lazyStoreFromEnv(process.env, { ...(onPool && { onPool }) });
+const app = await buildApp({ store, logger: true, trustProxy: Boolean(process.env.VERCEL), ...(suggestionProvider && { suggestionProvider }) });
+app.log.info(`storage: ${store.kind}`);
 app.log.info(suggestionProvider ? `AI suggestions enabled (${suggestionProvider.model})` : "AI suggestions disabled (no OPENROUTER_API_KEY or AI Gateway credentials)");
-await app.listen({ port, host: process.env.HOST ?? "127.0.0.1" });
+const listening = app.listen({ port, host: process.env.HOST ?? (process.env.VERCEL ? "0.0.0.0" : "127.0.0.1") });
+if (process.env.VERCEL) {
+  // Vercel's runtime takes over listen(); awaiting it here left the function waiting forever (requests hung until the
+  // platform timed out). Don't block module startup on it there; still report a failure.
+  listening.catch((err) => {
+    app.log.error(err);
+    process.exit(1);
+  });
+} else {
+  await listening; // locally, fail loudly (e.g. port already in use)
+}

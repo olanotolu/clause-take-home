@@ -7,6 +7,7 @@ export type DomainError =
   | { type: "REVISION_NOT_FOUND"; id: string; version: number }
   | { type: "INVALID_VERSION_RANGE"; from: number; to: number }
   | { type: "TOO_LARGE_TO_EXPORT"; chars: number; max: number }
+  | { type: "TOO_LARGE_FOR_BACKEND"; chars: number; max: number }
   | { type: "VERSION_CONFLICT"; expectedVersion: number; currentVersion: number }
   | { type: "PRECONDITION_FAILED"; expected: string; current: string }
   | { type: "CONTRADICTORY_PRECONDITIONS"; ifMatchVersion: number; expectedVersion: number }
@@ -35,6 +36,8 @@ export function toHttp(e: DomainError): HttpError {
       return { status: 422, type: e.type, error: `from (v${e.from}) must be lower than to (v${e.to})`, details: { from: e.from, to: e.to } };
     case "TOO_LARGE_TO_EXPORT":
       return { status: 413, type: e.type, error: `Those versions are ${e.chars} characters; redline export is limited to ${e.max} per version`, details: { chars: e.chars, max: e.max } };
+    case "TOO_LARGE_FOR_BACKEND":
+      return { status: 413, type: e.type, error: `This deployment indexes documents up to ${e.max} characters; this one is ${e.chars}`, details: { chars: e.chars, max: e.max } };
     case "VERSION_CONFLICT":
       return {
         status: 409,

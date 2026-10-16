@@ -4,11 +4,11 @@ import { MAX_EXPORT_CHARS, redlineDocx } from "../docx.ts";
 import { createPatch } from "diff";
 import { z } from "zod";
 import * as docs from "../documents.ts";
-import * as repo from "../repo.ts";
+import type { DocumentRecord } from "../store/types.ts";
 import { ChangesBody, CreateBody, DocumentOut, DocumentSummaryOut, ExportQuery, IdParams, PageQuery, PreviewOut, RevertBody, VersionParam, ReceiptOut, RevisionInfoOut, errors } from "../schemas.ts";
 
 
-const present = (d: repo.DocumentRecord) => ({
+const present = (d: DocumentRecord) => ({
   id: d.id,
   title: d.title,
   content: d.content,
@@ -20,17 +20,19 @@ const present = (d: repo.DocumentRecord) => ({
 
 export function registerDocumentRoutes(app: App): void {
   app.post("/documents", { schema: { body: CreateBody, response: { 201: DocumentOut, ...errors(400, 413, 500) } } }, async (req, reply) => {
-    const doc = docs.createDocument(app.db, req.body);
+    const created = await docs.createDocument(app.store, req.body);
+    if (!created.ok) return reply.problem(created.error);
+    const doc = created.value;
     return reply.code(201).header("ETag", docs.etagOf(doc)).header("Location", `/documents/${doc.id}`).send(present(doc));
   });
 
   app.get("/documents", { schema: { querystring: PageQuery, response: { 200: z.object({ total: z.number().int(), limit: z.number().int(), offset: z.number().int(), items: z.array(DocumentSummaryOut) }), ...errors(400, 500) } } }, async (req) => {
-    const { items, total } = repo.listDocuments(app.db, req.query.limit, req.query.offset);
+    const { items, total } = (await app.store.listDocuments(req.query.limit, req.query.offset));
     return { total, limit: req.query.limit, offset: req.query.offset, items };
   });
 
   app.get("/documents/:id", { schema: { params: IdParams, response: { 200: DocumentOut, 304: z.null(), ...errors(400, 404, 500) } } }, async (req, reply) => {
-    const doc = repo.getDocument(app.db, req.params.id);
+    const doc = (await app.store.getDocument(req.params.id));
     if (!doc) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
     const etag = docs.etagOf(doc);
     if (req.headers["if-none-match"] === etag) return reply.code(304).header("ETag", etag).send(null);
@@ -38,15 +40,15 @@ export function registerDocumentRoutes(app: App): void {
   });
 
   app.delete("/documents/:id", { schema: { params: IdParams, response: { 204: z.null(), ...errors(400, 404, 500) } } }, async (req, reply) => {
-    if (!repo.deleteDocument(app.db, req.params.id)) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    if (!(await app.store.deleteDocument(req.params.id))) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
     return reply.code(204).send(null);
   });
 
   app.patch("/documents/:id", { schema: { params: IdParams, body: ChangesBody, response: { 200: ReceiptOut, ...errors(400, 404, 409, 412, 413, 422, 500) } } }, async (req, reply) => {
-    const r = docs.apply(app.db, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
+    const r = await docs.apply(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!r.ok) return reply.problem(r.error);
     if (r.value.changed) {
-      const doc = repo.getDocument(app.db, req.params.id)!;
+      const doc = (await app.store.getDocument(req.params.id))!;
       reply.header("ETag", docs.etagOf(doc));
     }
     return r.value;
@@ -55,7 +57,7 @@ export function registerDocumentRoutes(app: App): void {
   // Dry run through the exact same engine call as PATCH. Persists nothing and
   // reserves nothing: PATCH re-validates against whatever version is current.
   app.post("/documents/:id/changes/preview", { schema: { params: IdParams, body: ChangesBody, response: { 200: PreviewOut, ...errors(400, 404, 409, 412, 413, 422, 500) } } }, async (req, reply) => {
-    const p = docs.preview(app.db, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
+    const p = await docs.preview(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!p.ok) return reply.problem(p.error);
     const { doc, result } = p.value;
     return {
@@ -72,22 +74,22 @@ export function registerDocumentRoutes(app: App): void {
 
   // Undo: restore an old version's text as a new version. Same preconditions and response as PATCH.
   app.post("/documents/:id/revert", { schema: { params: IdParams, body: RevertBody, response: { 200: ReceiptOut, ...errors(400, 404, 409, 412, 500) } } }, async (req, reply) => {
-    const r = docs.revert(app.db, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
+    const r = await docs.revert(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!r.ok) return reply.problem(r.error);
-    if (r.value.changed) reply.header("ETag", docs.etagOf(repo.getDocument(app.db, req.params.id)!));
+    if (r.value.changed) reply.header("ETag", docs.etagOf((await app.store.getDocument(req.params.id))!));
     return r.value;
   });
 
   // Word redline: native tracked changes (<w:ins>/<w:del>) between two versions. Read-only.
   app.get("/documents/:id/export.docx", { schema: { params: IdParams, querystring: ExportQuery, response: errors(400, 404, 413, 422, 500) } }, async (req, reply) => {
-    const doc = repo.getDocument(app.db, req.params.id);
+    const doc = (await app.store.getDocument(req.params.id));
     if (!doc) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
     const toV = req.query.to ?? doc.version;
     const fromV = req.query.from ?? 1;
     if (fromV >= toV) return reply.problem({ type: "INVALID_VERSION_RANGE", from: fromV, to: toV });
-    const from = repo.getRevision(app.db, doc.id, fromV);
+    const from = (await app.store.getRevision(doc.id, fromV));
     if (!from) return reply.problem({ type: "REVISION_NOT_FOUND", id: doc.id, version: fromV });
-    const to = repo.getRevision(app.db, doc.id, toV);
+    const to = (await app.store.getRevision(doc.id, toV));
     if (!to) return reply.problem({ type: "REVISION_NOT_FOUND", id: doc.id, version: toV });
     const chars = Math.max(from.content.length, to.content.length);
     if (chars > MAX_EXPORT_CHARS) return reply.problem({ type: "TOO_LARGE_TO_EXPORT", chars, max: MAX_EXPORT_CHARS });
@@ -101,12 +103,12 @@ export function registerDocumentRoutes(app: App): void {
   });
 
   app.get("/documents/:id/revisions", { schema: { params: IdParams, response: { 200: z.object({ items: z.array(RevisionInfoOut) }), ...errors(400, 404, 500) } } }, async (req, reply) => {
-    if (!repo.getDocument(app.db, req.params.id)) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
-    return { items: repo.listRevisions(app.db, req.params.id) };
+    if (!(await app.store.getDocument(req.params.id))) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    return { items: (await app.store.listRevisions(req.params.id)) };
   });
 
   app.get("/documents/:id/revisions/:version", { schema: { params: IdParams.extend({ version: VersionParam }), response: { 200: RevisionInfoOut.extend({ content: z.string() }), ...errors(400, 404, 500) } } }, async (req, reply) => {
-    const rev = repo.getRevision(app.db, req.params.id, req.params.version);
+    const rev = (await app.store.getRevision(req.params.id, req.params.version));
     if (!rev) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: `${req.params.id}@v${req.params.version}` });
     return rev;
   });

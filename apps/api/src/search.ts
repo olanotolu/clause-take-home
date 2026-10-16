@@ -1,5 +1,7 @@
 import { selectorFor, type Target } from "@clause/core";
-import type { Db } from "./db.ts";
+import { InvalidQueryError, queryTerms, type Store } from "./store/types.ts";
+
+export { InvalidQueryError };
 
 export const MAX_QUERY_LENGTH = 200;
 const SNIPPET_RADIUS = 60;
@@ -29,7 +31,7 @@ export interface DocumentResult {
   documentId: string;
   title: string;
   version: number;
-  /** words: -bm25 (higher is better). exact: number of occurrences in the document. */
+  /** words: backend relevance score, higher is better (SQLite -bm25, Postgres ts_rank_cd). exact: number of occurrences. */
   relevance: number;
   matchCount?: number;
   hits: Hit[];
@@ -45,8 +47,6 @@ export interface SearchPage {
   results: DocumentResult[];
 }
 
-export class InvalidQueryError extends Error {}
-
 export interface SearchOptions {
   mode: Mode;
   limit: number;
@@ -57,24 +57,6 @@ export interface SearchOptions {
   hitsPerDocument?: number;
 }
 
-/**
- * Plain text -> FTS5 query. Every term (or "quoted phrase") is emitted as an
- * FTS5 phrase literal, so operators, column filters, NEAR, `*` and `-` in user
- * input are inert. Terms are implicitly ANDed.
- */
-/** Splits user text into words and "quoted phrases". */
-export function queryTerms(q: string): string[] {
-  return [...q.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => (m[1] ?? m[2] ?? "").trim()).filter(Boolean);
-}
-
-export function compileWordsQuery(q: string): string {
-  const terms = queryTerms(q);
-  if (terms.length === 0) throw new InvalidQueryError("Query is empty");
-  return terms.map((t) => `"${t.replaceAll('"', '""')}"`).join(" ");
-}
-
-const placeholders = (n: number) => Array.from({ length: n }, () => "?").join(",");
-
 function validate(q: string): string {
   const trimmed = q.trim();
   if (trimmed.length === 0) throw new InvalidQueryError("Query is empty");
@@ -84,17 +66,17 @@ function validate(q: string): string {
   return trimmed;
 }
 
-export function search(db: Db, rawQuery: string, opts: SearchOptions): SearchPage {
+export async function search(store: Store, rawQuery: string, opts: SearchOptions): Promise<SearchPage> {
   const query = validate(rawQuery);
   if (opts.mode === "words") {
-    const { total, results } = searchWords(db, query, opts);
+    const { total, results } = await searchWords(store, query, opts);
     return { query, mode: opts.mode, total, limit: opts.limit, offset: opts.offset, results };
   }
-  const all = searchExact(db, query, opts).all;
+  const all = await searchExact(store, query, opts);
   return { query, mode: opts.mode, total: all.length, limit: opts.limit, offset: opts.offset, results: all.slice(opts.offset, opts.offset + opts.limit) };
 }
 
-// ---------------------------------------------------------------- words (FTS5 + BM25)
+// ---------------------------------------------------------------- words (ranked, backend-specific)
 
 /**
  * Documents whose size is at most this get FTS5's native snippet() (it picks the
@@ -104,33 +86,18 @@ export function search(db: Db, rawQuery: string, opts: SearchOptions): SearchPag
  */
 export const NATIVE_SNIPPET_MAX_CHARS = 256 * 1024;
 
-function searchWords(db: Db, query: string, opts: SearchOptions): { total: number; results: DocumentResult[] } {
-  const match = compileWordsQuery(query);
-  const ids = opts.ids ?? [];
-  const idFilter = ids.length ? `AND d.id IN (${placeholders(ids.length)})` : "";
-
-  // Phase 1: rank only. bm25() is cheap and no document text crosses the boundary.
-  let ranked: { id: string; seq: number; title: string; version: number; size: number; score: number }[];
-  try {
-    ranked = db
-      .prepare(
-        `SELECT d.id, d.seq, d.title, d.version, length(d.content) AS size, bm25(documents_words, 5.0, 1.0) AS score
-         FROM documents_words
-         JOIN documents d ON d.seq = documents_words.rowid
-         WHERE documents_words MATCH ? ${idFilter}
-         ORDER BY score, d.seq`,
-      )
-      .all(match, ...ids) as unknown as typeof ranked;
-  } catch (e) {
-    if (e instanceof Error && /fts5|unterminated|syntax|malformed/i.test(e.message)) throw new InvalidQueryError(`Unsupported query: ${e.message}`);
-    throw e;
-  }
+async function searchWords(store: Store, query: string, opts: SearchOptions): Promise<{ total: number; results: DocumentResult[] }> {
+  // Phase 1: rank only. No document text crosses the boundary yet.
+  const ranked = await store.rankWords(query, opts.ids);
 
   // Phase 2: build snippets only for the page being returned.
-  const results = ranked.slice(opts.offset, opts.offset + opts.limit).map((r): DocumentResult => {
-    const content = (db.prepare("SELECT content FROM documents WHERE seq = ?").get(r.seq) as { content: string }).content;
-    return { documentId: r.id, title: r.title, version: r.version, relevance: -r.score, hits: [wordsHit(db, content, r.seq, match, query, r.size)] };
-  });
+  const page = ranked.slice(opts.offset, opts.offset + opts.limit);
+  const results = await Promise.all(
+    page.map(async (r): Promise<DocumentResult> => {
+      const content = (await store.getContent(r.id)) ?? "";
+      return { documentId: r.id, title: r.title, version: r.version, relevance: r.score, hits: [await wordsHit(store, content, r.id, query, r.size)] };
+    }),
+  );
   return { total: ranked.length, results };
 }
 
@@ -153,19 +120,13 @@ export function parseSnippet(snip: string): Segment[] {
   return segments;
 }
 
-function wordsHit(db: Db, content: string, seq: number, match: string, query: string, size: number): Hit {
-  if (size > NATIVE_SNIPPET_MAX_CHARS) return locatedHit(content, query);
-  // NOTE: filter on the JOINED d.seq, never `documents_words.rowid = ?`: FTS5 silently
-  // ignored the rowid constraint next to MATCH and returned another document's snippet.
-  const row = db
-    .prepare(
-      `SELECT d.seq AS seq, snippet(documents_words, 1, '${OPEN}', '${CLOSE}', '${ELLIPSIS}', 24) AS snip
-       FROM documents_words JOIN documents d ON d.seq = documents_words.rowid
-       WHERE documents_words MATCH ? AND d.seq = ?`,
-    )
-    .all(match, seq) as unknown as { seq: number; snip: string }[];
-  const own = row.length === 1 && row[0]!.seq === seq ? row[0] : undefined; // defence in depth
-  return own ? nativeHit(content, own.snip) : locatedHit(content, query);
+async function wordsHit(store: Store, content: string, id: string, query: string, size: number): Promise<Hit> {
+  // The backend's own best-window snippet, where it has one and the document is small enough for it to be cheap.
+  if (store.wordsSnippet && size <= NATIVE_SNIPPET_MAX_CHARS) {
+    const snip = await store.wordsSnippet(id, query);
+    if (snip !== undefined) return nativeHit(content, snip);
+  }
+  return locatedHit(content, query);
 }
 
 /**
@@ -230,7 +191,7 @@ function locatedHit(content: string, query: string): Hit {
   return { snippet: exactSnippet(content, start, end), start, end, target: selectorFor(content, start, end) };
 }
 
-// ---------------------------------------------------------------- exact (trigram prefilter + literal scan)
+// ---------------------------------------------------------------- exact (index prefilter + literal scan)
 
 function exactSnippet(content: string, start: number, end: number): Segment[] {
   const from = Math.max(0, start - SNIPPET_RADIUS);
@@ -250,26 +211,10 @@ function exactSnippet(content: string, start: number, end: number): Segment[] {
  * CANDIDATE filter (it is case-insensitive and needs >= 3 characters); every
  * reported offset comes from scanning the real current content.
  */
-function searchExact(db: Db, query: string, opts: SearchOptions): { all: DocumentResult[] } {
+async function searchExact(store: Store, query: string, opts: SearchOptions): Promise<DocumentResult[]> {
   const perDoc = opts.hitsPerDocument ?? 3;
-  const idFilter = opts.ids?.length ? `AND d.id IN (${placeholders(opts.ids.length)})` : "";
-  const ids = opts.ids ?? [];
-
-  const candidates =
-    query.length >= 3
-      ? db
-          .prepare(
-            `SELECT d.id, d.title, d.version, d.content FROM documents_trgm
-             JOIN documents d ON d.seq = documents_trgm.rowid
-             WHERE documents_trgm MATCH ? ${idFilter}`,
-          )
-          .all(`"${query.replaceAll('"', '""')}"`, ...ids)
-      : db
-          .prepare(`SELECT d.id, d.title, d.version, d.content FROM documents d WHERE instr(d.content, ?) > 0 ${idFilter}`)
-          .all(query, ...ids);
-
   const out: DocumentResult[] = [];
-  for (const row of candidates as unknown as { id: string; title: string; version: number; content: string }[]) {
+  for (const row of await store.exactCandidates(query, opts.ids)) {
     const hits: Hit[] = [];
     let matchCount = 0;
     for (let at = row.content.indexOf(query); at !== -1; at = row.content.indexOf(query, at + query.length)) {
@@ -282,5 +227,5 @@ function searchExact(db: Db, query: string, opts: SearchOptions): { all: Documen
     if (matchCount > 0) out.push({ documentId: row.id, title: row.title, version: row.version, relevance: matchCount, matchCount, hits });
   }
   out.sort((a, b) => b.relevance - a.relevance || a.title.localeCompare(b.title));
-  return { all: out };
+  return out;
 }

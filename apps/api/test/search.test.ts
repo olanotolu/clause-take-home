@@ -124,6 +124,16 @@ describe("exact search (literal substring, real offsets)", () => {
     expect(res.results[0].matchCount).toBe(1);
   });
 
+  it("treats % _ and \\ literally (they are LIKE wildcards in Postgres)", async () => {
+    const lit = await createDoc(app, "Lit", "Discount of 100% applies; see file a_b and path C:\\temp.");
+    await createDoc(app, "Decoy", "Discount of 100 percent applies; see file aXb and path C:temp.");
+    for (const [q, expected] of [["100%", 1], ["a_b", 1], ["C:\\temp", 1], ["%", 1], ["_", 1]] as const) {
+      const res = await search(q, "&mode=exact");
+      expect(res.total, q).toBe(expected);
+      expect(res.results[0].documentId, q).toBe(lit.id);
+    }
+  });
+
   it("handles queries shorter than three characters (no trigram possible)", async () => {
     await createDoc(app, "Doc", "a-b a-b a-c");
     expect((await search("a-", "&mode=exact")).results[0].matchCount).toBe(3);

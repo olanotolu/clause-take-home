@@ -1,10 +1,11 @@
+import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import scalar from "@scalar/fastify-api-reference";
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, hasZodFastifySchemaValidationErrors, type ZodTypeProvider } from "@fastify/type-provider-zod";
 import Fastify, { type FastifyInstance } from "fastify";
-import type { Db } from "./db.ts";
+import { createSqliteStore } from "./store/sqlite.ts";
+import type { Store } from "./store/types.ts";
 import type { App } from "./types.ts";
-import { openDb } from "./db.ts";
 import { toHttp, type DomainError } from "./errors.ts";
 import { registerDocumentRoutes } from "./routes/documents.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
@@ -15,18 +16,23 @@ import type { EditSuggestionProvider } from "./suggest.ts";
 export const BODY_LIMIT = 50 * 1024 * 1024;
 
 export interface AppOptions {
-  /** SQLite path, or ":memory:". Ignored when `db` is supplied. */
+  /** Storage backend. Closed when the app closes. */
+  store?: Store;
+  /** Convenience: a SQLite path (or ":memory:"). Ignored when `store` is supplied. */
   dbPath?: string;
-  db?: Db;
   logger?: boolean;
   bodyLimit?: number;
+  /** Behind a proxy (Vercel) the client IP comes from X-Forwarded-For; never trust that header when directly exposed. */
+  trustProxy?: boolean;
+  /** Per-IP cap on /suggest, the only route that spends money. Per instance (in memory), so it is a brake, not a quota. */
+  suggestRateLimit?: { max: number; timeWindow: string };
   /** Source of AI edit proposals. Omit to disable /suggest (503). The rest of the API never depends on it. */
   suggestionProvider?: EditSuggestionProvider;
 }
 
 declare module "fastify" {
   interface FastifyInstance {
-    db: Db;
+    store: Store;
   }
   interface FastifyReply {
     problem(error: DomainError): FastifyReply;
@@ -34,14 +40,14 @@ declare module "fastify" {
 }
 
 export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: opts.logger ?? false, bodyLimit: opts.bodyLimit ?? BODY_LIMIT });
+  const app = Fastify({ logger: opts.logger ?? false, bodyLimit: opts.bodyLimit ?? BODY_LIMIT, trustProxy: opts.trustProxy ?? false });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  const db = opts.db ?? openDb(opts.dbPath ?? ":memory:");
-  app.decorate("db", db);
+  const store = opts.store ?? createSqliteStore(opts.dbPath ?? ":memory:");
+  app.decorate("store", store);
   app.addHook("onClose", async () => {
-    if (!opts.db) db.close();
+    await store.close();
   });
 
   app.decorateReply("problem", function (this: import("fastify").FastifyReply, error: DomainError) {
@@ -60,6 +66,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
       });
     }
     const status = (err as { statusCode?: number }).statusCode ?? 500;
+    if (status === 429) return reply.code(429).send({ error: "Too many requests; slow down and try again later", code: 429, type: "RATE_LIMITED" });
     if (status === 413) return reply.code(413).send({ error: `Request body exceeds ${BODY_LIMIT} bytes`, code: 413, type: "PAYLOAD_TOO_LARGE" });
     if (status >= 400 && status < 500) return reply.code(status).send({ error: err instanceof Error ? err.message : "Bad request", code: status, type: "BAD_REQUEST" });
     req.log.error({ err }, "unhandled error");
@@ -93,9 +100,12 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   app.get("/openapi.json", { schema: { hide: true } }, async () => app.swagger());
   app.get("/health", { schema: { hide: true } }, async () => ({ status: "ok" }));
 
+  // global:false: nothing is limited unless a route opts in (only /suggest does).
+  await app.register(rateLimit, { global: false });
+
   const typed = app.withTypeProvider<ZodTypeProvider>() as unknown as App;
   registerDocumentRoutes(typed);
   registerSearchRoutes(typed);
-  registerSuggestRoutes(typed, opts.suggestionProvider);
+  registerSuggestRoutes(typed, opts.suggestionProvider, opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" });
   return app;
 }

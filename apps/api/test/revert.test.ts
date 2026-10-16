@@ -1,11 +1,7 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { openDb } from "../src/db.ts";
 import * as docs from "../src/documents.ts";
-import { createDoc, patch, quote, testApp } from "./helpers.ts";
+import { createDoc, patch, quote, sharedStores, testApp } from "./helpers.ts";
 
 let app: FastifyInstance;
 beforeEach(async () => void (app = await testApp()));
@@ -120,24 +116,22 @@ describe("POST /documents/:id/revert", () => {
 });
 
 describe("revert races with another writer", () => {
-  let dir: string;
-  beforeEach(() => void (dir = mkdtempSync(join(tmpdir(), "clause-revert-"))));
-  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  it("a revert prepared against a stale version is refused and the other writer's edit survives", async () => {
+    const { a, b, cleanup } = await sharedStores();
+    try {
+      const created = await docs.createDocument(a, { title: "t", content: "alpha beta" });
+      if (!created.ok) throw new Error("create failed");
+      const id = created.value.id;
+      await docs.apply(a, id, { changes: [quote("alpha", "ALPHA")] }); // v2
 
-  it("a revert prepared against a stale version is refused and the other writer's edit survives", () => {
-    const a = openDb(join(dir, "t.db"));
-    const b = openDb(join(dir, "t.db"));
-    const doc = docs.createDocument(a, { title: "t", content: "alpha beta" });
-    docs.apply(a, doc.id, { changes: [quote("alpha", "ALPHA")] }); // v2
+      // Writer B decides to revert to v1 while looking at v2, but writer A commits v3 first.
+      await docs.apply(a, id, { expectedVersion: 2, changes: [quote("beta", "BETA")] });
+      const late = await docs.revert(b, id, { toVersion: 1, expectedVersion: 2 });
 
-    // Writer B decides to revert to v1 while looking at v2...
-    // ...but writer A commits v3 first.
-    docs.apply(a, doc.id, { expectedVersion: 2, changes: [quote("beta", "BETA")] });
-    const late = docs.revert(b, doc.id, { toVersion: 1, expectedVersion: 2 });
-
-    expect(late).toEqual({ ok: false, error: { type: "VERSION_CONFLICT", expectedVersion: 2, currentVersion: 3 } });
-    expect(docs.revert(b, doc.id, { toVersion: 1, expectedVersion: 3 }).ok).toBe(true); // retry with fresh version works
-    a.close();
-    b.close();
+      expect(late).toEqual({ ok: false, error: { type: "VERSION_CONFLICT", expectedVersion: 2, currentVersion: 3 } });
+      expect((await docs.revert(b, id, { toVersion: 1, expectedVersion: 3 })).ok).toBe(true); // retry with the fresh version works
+    } finally {
+      await cleanup();
+    }
   });
 });
