@@ -3,14 +3,22 @@
  * concurrency on ~1 MB documents, the size INFRA.md plans around. Run by hand: `pnpm load [workers] [seconds]`.
  * It measures ONE instance on THIS machine, so it checks the order of magnitude of the targets in INFRA.md, not a
  * production capacity.
+ *
+ * `pnpm load 8 10 --client=oha` drives the read and search scenarios with oha (a load generator written in Rust,
+ * `cargo install oha`) instead of this Node process. The client shares the machine with the server, so a lighter
+ * client takes less CPU away from what is being measured. Edits stay on the Node client either way: each edit must send
+ * the version the previous one returned, which a fixed-request generator cannot do.
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const WORKERS = Number(process.argv[2] ?? 8);
-const SECONDS = Number(process.argv[3] ?? 10);
+const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const OHA = process.argv.includes("--client=oha");
+const WORKERS = Number(args[0] ?? 8);
+const SECONDS = Number(args[1] ?? 10);
+const ohaVersion = OHA ? execFileSync("oha", ["--version"], { encoding: "utf8" }).trim() : "";
 const PORT = 3299;
 const BASE = `http://127.0.0.1:${PORT}`;
 const dir = mkdtempSync(join(tmpdir(), "clause-load-"));
@@ -36,7 +44,7 @@ const docs = await Promise.all(Array.from({ length: WORKERS }, async (_, w) => {
   const d = await api<{ id: string; version: number }>("POST", "/documents", { title: `load ${w}`, content }, 201);
   return { id: d.id, version: d.version, flip: false, w, size: content.length };
 }));
-console.log(`${WORKERS} workers x ${SECONDS}s per scenario; ${docs.length} documents of ${(docs[0]!.size / 1e6).toFixed(2)} MB (${new Date().toISOString().slice(0, 10)}, node ${process.version})\n`);
+console.log(`${WORKERS} workers x ${SECONDS}s per scenario; ${docs.length} documents of ${(docs[0]!.size / 1e6).toFixed(2)} MB (${new Date().toISOString().slice(0, 10)}, node ${process.version}; reads and searches driven by ${OHA ? ohaVersion : "this Node process"})\n`);
 
 type Row = { name: string; n: number; rps: number; p50: number; p95: number; p99: number; errors: number };
 async function scenario(name: string, step: (w: number) => Promise<void>): Promise<Row> {
@@ -54,10 +62,26 @@ async function scenario(name: string, step: (w: number) => Promise<void>): Promi
   return { name, n: lat.length, rps: lat.length / SECONDS, p50: q(0.5), p95: q(0.95), p99: q(0.99), errors };
 }
 
+/** The same GET, driven by oha with WORKERS connections for SECONDS. Percentiles come from oha's own JSON report. */
+function ohaScenario(name: string, path: string): Row {
+  const out = execFileSync("oha", ["-z", `${SECONDS}s`, "-c", String(WORKERS), "--no-tui", "--output-format", "json", BASE + path], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const r = JSON.parse(out) as { summary: { requestsPerSec: number }; latencyPercentiles: Record<string, number>; statusCodeDistribution: Record<string, number> };
+  const n = Object.values(r.statusCodeDistribution).reduce((a, b) => a + b, 0);
+  const ok = r.statusCodeDistribution["200"] ?? 0;
+  const ms = (p: string) => (r.latencyPercentiles[p] ?? NaN) * 1000;
+  return { name: `${name} [oha]`, n, rps: r.summary.requestsPerSec, p50: ms("p50"), p95: ms("p95"), p99: ms("p99"), errors: n - ok };
+}
+
+const reads: [string, string][] = [
+  ["read one document (1 MB)", `/documents/${docs[0]!.id}`],
+  ["search: words, all documents", "/documents/search?q=confidential+information&mode=words&limit=10"],
+  ["search: exact phrase, all documents", `/documents/search?q=${encodeURIComponent("shall not disclose")}&mode=exact&limit=10`],
+];
 const rows: Row[] = [];
-rows.push(await scenario("read one document (1 MB)", async (w) => { await api("GET", `/documents/${docs[w]!.id}`); }));
-rows.push(await scenario("search: words, all documents", async () => { await api("GET", "/documents/search?q=confidential+information&mode=words&limit=10"); }));
-rows.push(await scenario("search: exact phrase, all documents", async () => { await api("GET", `/documents/search?q=${encodeURIComponent("shall not disclose")}&mode=exact&limit=10`); }));
+for (const [name, path] of reads) {
+  // The Node client reads each worker's own document; oha sends one fixed URL, so it reads the first document.
+  rows.push(OHA ? ohaScenario(name, path) : await scenario(name, async (w) => { await api("GET", name.startsWith("read") ? `/documents/${docs[w]!.id}` : path); }));
+}
 rows.push(await scenario("edit: one replacement in 1 MB (own document)", async (w) => {
   const d = docs[w]!;
   const [from, to] = d.flip ? [`B-${w}`, `A-${w}`] : [`A-${w}`, `B-${w}`];
@@ -68,7 +92,8 @@ rows.push(await scenario("edit: one replacement in 1 MB (own document)", async (
 const f = (x: number) => x.toFixed(x < 10 ? 1 : 0);
 console.log("| scenario | requests | req/s | p50 ms | p95 ms | p99 ms | errors |\n|---|---|---|---|---|---|---|");
 for (const r of rows) console.log(`| ${r.name} | ${r.n} | ${f(r.rps)} | ${f(r.p50)} | ${f(r.p95)} | ${f(r.p99)} | ${r.errors} |`);
-const edit = rows[3]!; const search = rows[1]!;
-console.log(`\nINFRA.md targets: edit p95 < 500 ms -> ${edit.p95 < 500 ? "met" : "MISSED"} (${f(edit.p95)} ms); search p95 < 300 ms -> ${search.p95 < 300 ? "met" : "MISSED"} (${f(search.p95)} ms)`);
+const edit = rows[3]!; const words = rows[1]!; const exact = rows[2]!;
+const verdict = (r: Row, target: number) => `${r.p95 < target ? "met" : "MISSED"} (${f(r.p95)} ms)`;
+console.log(`\nINFRA.md targets: edit p95 < 500 ms -> ${verdict(edit, 500)}; words search p95 < 300 ms -> ${verdict(words, 300)}; exact search p95 < 300 ms -> ${verdict(exact, 300)}`);
 stop();
 process.exit(rows.some((r) => r.errors > 0) ? 1 : 0);
