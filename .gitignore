@@ -11,3 +11,5 @@ mutation-report.json
 !.env.example
 .vercel
 .env*
+bench/ci/data/
+bench/ci/results/

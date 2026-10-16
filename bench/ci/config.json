@@ -1,0 +1,9 @@
+{
+ "note": "Fixed BEFORE any judge ran on the test cases. tau was chosen on the dev split only.",
+ "heuristicTau": 0.2,
+ "heuristicDevMacroF1": 0.4537,
+ "jevMinConfidence": 0.7,
+ "llmModel": "anthropic/claude-sonnet-5.5",
+ "jevModel": "typesafe-ai/jev-1.14.0",
+ "judgeTimeoutMs": 40000
+}

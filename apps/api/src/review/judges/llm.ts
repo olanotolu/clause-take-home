@@ -44,11 +44,12 @@ export function createLlmJudge(opts: { id: string; generate: GenerateFn }): Judg
   };
 }
 
-/** AI SDK 7 structured output through OpenRouter, temperature 0. */
-export function openRouterGenerate(apiKey: string, model: string): GenerateFn {
+/** AI SDK 7 structured output through OpenRouter, temperature 0. `onUsage` lets a caller (the benchmark) meter real token use. */
+export function openRouterGenerate(apiKey: string, model: string, onUsage?: (u: { inputTokens: number; outputTokens: number }) => void): GenerateFn {
   const llm = createOpenRouter({ apiKey })(model);
   return async ({ system, prompt, signal }) => {
-    const { output } = await generateText({ model: llm, system, prompt, output: Output.object({ schema: LlmAnswerSchema }), temperature: 0, ...(signal && { abortSignal: signal }) });
+    const { output, usage } = await generateText({ model: llm, system, prompt, output: Output.object({ schema: LlmAnswerSchema }), temperature: 0, ...(signal && { abortSignal: signal }) });
+    onUsage?.({ inputTokens: usage?.inputTokens ?? 0, outputTokens: usage?.outputTokens ?? 0 });
     return output;
   };
 }

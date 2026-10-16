@@ -1,0 +1,1775 @@
+{
+ "meta": {
+  "seed": 20261015,
+  "datasetZipSha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+  "maxDocChars": 20000,
+  "perLabel": 20,
+  "pairs": 30,
+  "controlSpans": 3,
+  "note": "Ids and offsets only. Texts come from ContractNLI (CC BY 4.0, Koreeda & Manning 2021), downloaded by fetch-data.ts."
+ },
+ "dev": [
+  {
+   "id": "dev-440-nda-5",
+   "split": "dev",
+   "docId": 440,
+   "hypothesis": "nda-5",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-440-nda-13",
+   "split": "dev",
+   "docId": 440,
+   "hypothesis": "nda-13",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-79-nda-10",
+   "split": "dev",
+   "docId": 79,
+   "hypothesis": "nda-10",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-152-nda-7",
+   "split": "dev",
+   "docId": 152,
+   "hypothesis": "nda-7",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-28-nda-4",
+   "split": "dev",
+   "docId": 28,
+   "hypothesis": "nda-4",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-63-nda-7",
+   "split": "dev",
+   "docId": 63,
+   "hypothesis": "nda-7",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-81-nda-7",
+   "split": "dev",
+   "docId": 81,
+   "hypothesis": "nda-7",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-610-nda-15",
+   "split": "dev",
+   "docId": 610,
+   "hypothesis": "nda-15",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-28-nda-15",
+   "split": "dev",
+   "docId": 28,
+   "hypothesis": "nda-15",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-12-nda-5",
+   "split": "dev",
+   "docId": 12,
+   "hypothesis": "nda-5",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-582-nda-12",
+   "split": "dev",
+   "docId": 582,
+   "hypothesis": "nda-12",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-20-nda-19",
+   "split": "dev",
+   "docId": 20,
+   "hypothesis": "nda-19",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-61-nda-4",
+   "split": "dev",
+   "docId": 61,
+   "hypothesis": "nda-4",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-32-nda-10",
+   "split": "dev",
+   "docId": 32,
+   "hypothesis": "nda-10",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-54-nda-3",
+   "split": "dev",
+   "docId": 54,
+   "hypothesis": "nda-3",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-398-nda-18",
+   "split": "dev",
+   "docId": 398,
+   "hypothesis": "nda-18",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-33-nda-20",
+   "split": "dev",
+   "docId": 33,
+   "hypothesis": "nda-20",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-405-nda-1",
+   "split": "dev",
+   "docId": 405,
+   "hypothesis": "nda-1",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-411-nda-8",
+   "split": "dev",
+   "docId": 411,
+   "hypothesis": "nda-8",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-582-nda-13",
+   "split": "dev",
+   "docId": 582,
+   "hypothesis": "nda-13",
+   "label": "Entailment"
+  },
+  {
+   "id": "dev-12-nda-2",
+   "split": "dev",
+   "docId": 12,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-205-nda-2",
+   "split": "dev",
+   "docId": 205,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-405-nda-2",
+   "split": "dev",
+   "docId": 405,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-435-nda-2",
+   "split": "dev",
+   "docId": 435,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-15-nda-17",
+   "split": "dev",
+   "docId": 15,
+   "hypothesis": "nda-17",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-411-nda-2",
+   "split": "dev",
+   "docId": 411,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-575-nda-20",
+   "split": "dev",
+   "docId": 575,
+   "hypothesis": "nda-20",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-54-nda-17",
+   "split": "dev",
+   "docId": 54,
+   "hypothesis": "nda-17",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-575-nda-17",
+   "split": "dev",
+   "docId": 575,
+   "hypothesis": "nda-17",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-482-nda-2",
+   "split": "dev",
+   "docId": 482,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-547-nda-16",
+   "split": "dev",
+   "docId": 547,
+   "hypothesis": "nda-16",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-37-nda-2",
+   "split": "dev",
+   "docId": 37,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-478-nda-20",
+   "split": "dev",
+   "docId": 478,
+   "hypothesis": "nda-20",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-19-nda-7",
+   "split": "dev",
+   "docId": 19,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-478-nda-2",
+   "split": "dev",
+   "docId": 478,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-563-nda-1",
+   "split": "dev",
+   "docId": 563,
+   "hypothesis": "nda-1",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-205-nda-16",
+   "split": "dev",
+   "docId": 205,
+   "hypothesis": "nda-16",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-27-nda-2",
+   "split": "dev",
+   "docId": 27,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-20-nda-2",
+   "split": "dev",
+   "docId": 20,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-9-nda-7",
+   "split": "dev",
+   "docId": 9,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "dev-456-nda-8",
+   "split": "dev",
+   "docId": 456,
+   "hypothesis": "nda-8",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-381-nda-15",
+   "split": "dev",
+   "docId": 381,
+   "hypothesis": "nda-15",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-610-nda-11",
+   "split": "dev",
+   "docId": 610,
+   "hypothesis": "nda-11",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-381-nda-5",
+   "split": "dev",
+   "docId": 381,
+   "hypothesis": "nda-5",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-79-nda-18",
+   "split": "dev",
+   "docId": 79,
+   "hypothesis": "nda-18",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-482-nda-17",
+   "split": "dev",
+   "docId": 482,
+   "hypothesis": "nda-17",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-70-nda-15",
+   "split": "dev",
+   "docId": 70,
+   "hypothesis": "nda-15",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-598-nda-2",
+   "split": "dev",
+   "docId": 598,
+   "hypothesis": "nda-2",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-507-nda-11",
+   "split": "dev",
+   "docId": 507,
+   "hypothesis": "nda-11",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-17-nda-20",
+   "split": "dev",
+   "docId": 17,
+   "hypothesis": "nda-20",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-598-nda-11",
+   "split": "dev",
+   "docId": 598,
+   "hypothesis": "nda-11",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-435-nda-16",
+   "split": "dev",
+   "docId": 435,
+   "hypothesis": "nda-16",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-39-nda-15",
+   "split": "dev",
+   "docId": 39,
+   "hypothesis": "nda-15",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-456-nda-12",
+   "split": "dev",
+   "docId": 456,
+   "hypothesis": "nda-12",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-61-nda-20",
+   "split": "dev",
+   "docId": 61,
+   "hypothesis": "nda-20",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-71-nda-1",
+   "split": "dev",
+   "docId": 71,
+   "hypothesis": "nda-1",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-9-nda-15",
+   "split": "dev",
+   "docId": 9,
+   "hypothesis": "nda-15",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-37-nda-11",
+   "split": "dev",
+   "docId": 37,
+   "hypothesis": "nda-11",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-19-nda-13",
+   "split": "dev",
+   "docId": 19,
+   "hypothesis": "nda-13",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "dev-14-nda-10",
+   "split": "dev",
+   "docId": 14,
+   "hypothesis": "nda-10",
+   "label": "NotMentioned"
+  }
+ ],
+ "static": [
+  {
+   "id": "test-228-nda-4",
+   "split": "test",
+   "docId": 228,
+   "hypothesis": "nda-4",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-55-nda-15",
+   "split": "test",
+   "docId": 55,
+   "hypothesis": "nda-15",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-493-nda-10",
+   "split": "test",
+   "docId": 493,
+   "hypothesis": "nda-10",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-52-nda-16",
+   "split": "test",
+   "docId": 52,
+   "hypothesis": "nda-16",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-564-nda-7",
+   "split": "test",
+   "docId": 564,
+   "hypothesis": "nda-7",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-65-nda-15",
+   "split": "test",
+   "docId": 65,
+   "hypothesis": "nda-15",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-21-nda-20",
+   "split": "test",
+   "docId": 21,
+   "hypothesis": "nda-20",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-465-nda-12",
+   "split": "test",
+   "docId": 465,
+   "hypothesis": "nda-12",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-48-nda-12",
+   "split": "test",
+   "docId": 48,
+   "hypothesis": "nda-12",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-413-nda-19",
+   "split": "test",
+   "docId": 413,
+   "hypothesis": "nda-19",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-564-nda-18",
+   "split": "test",
+   "docId": 564,
+   "hypothesis": "nda-18",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-55-nda-16",
+   "split": "test",
+   "docId": 55,
+   "hypothesis": "nda-16",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-542-nda-19",
+   "split": "test",
+   "docId": 542,
+   "hypothesis": "nda-19",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-218-nda-5",
+   "split": "test",
+   "docId": 218,
+   "hypothesis": "nda-5",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-301-nda-16",
+   "split": "test",
+   "docId": 301,
+   "hypothesis": "nda-16",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-51-nda-15",
+   "split": "test",
+   "docId": 51,
+   "hypothesis": "nda-15",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-117-nda-8",
+   "split": "test",
+   "docId": 117,
+   "hypothesis": "nda-8",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-400-nda-10",
+   "split": "test",
+   "docId": 400,
+   "hypothesis": "nda-10",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-66-nda-10",
+   "split": "test",
+   "docId": 66,
+   "hypothesis": "nda-10",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-1-nda-16",
+   "split": "test",
+   "docId": 1,
+   "hypothesis": "nda-16",
+   "label": "Entailment"
+  },
+  {
+   "id": "test-228-nda-7",
+   "split": "test",
+   "docId": 228,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-387-nda-7",
+   "split": "test",
+   "docId": 387,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-395-nda-2",
+   "split": "test",
+   "docId": 395,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-476-nda-2",
+   "split": "test",
+   "docId": 476,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-66-nda-2",
+   "split": "test",
+   "docId": 66,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-540-nda-2",
+   "split": "test",
+   "docId": 540,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-181-nda-7",
+   "split": "test",
+   "docId": 181,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-544-nda-1",
+   "split": "test",
+   "docId": 544,
+   "hypothesis": "nda-1",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-600-nda-20",
+   "split": "test",
+   "docId": 600,
+   "hypothesis": "nda-20",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-496-nda-4",
+   "split": "test",
+   "docId": 496,
+   "hypothesis": "nda-4",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-6-nda-2",
+   "split": "test",
+   "docId": 6,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-127-nda-1",
+   "split": "test",
+   "docId": 127,
+   "hypothesis": "nda-1",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-62-nda-7",
+   "split": "test",
+   "docId": 62,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-321-nda-1",
+   "split": "test",
+   "docId": 321,
+   "hypothesis": "nda-1",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-600-nda-2",
+   "split": "test",
+   "docId": 600,
+   "hypothesis": "nda-2",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-80-nda-7",
+   "split": "test",
+   "docId": 80,
+   "hypothesis": "nda-7",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-42-nda-1",
+   "split": "test",
+   "docId": 42,
+   "hypothesis": "nda-1",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-400-nda-20",
+   "split": "test",
+   "docId": 400,
+   "hypothesis": "nda-20",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-354-nda-19",
+   "split": "test",
+   "docId": 354,
+   "hypothesis": "nda-19",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-310-nda-20",
+   "split": "test",
+   "docId": 310,
+   "hypothesis": "nda-20",
+   "label": "Contradiction"
+  },
+  {
+   "id": "test-301-nda-5",
+   "split": "test",
+   "docId": 301,
+   "hypothesis": "nda-5",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-476-nda-3",
+   "split": "test",
+   "docId": 476,
+   "hypothesis": "nda-3",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-49-nda-1",
+   "split": "test",
+   "docId": 49,
+   "hypothesis": "nda-1",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-80-nda-5",
+   "split": "test",
+   "docId": 80,
+   "hypothesis": "nda-5",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-43-nda-16",
+   "split": "test",
+   "docId": 43,
+   "hypothesis": "nda-16",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-413-nda-20",
+   "split": "test",
+   "docId": 413,
+   "hypothesis": "nda-20",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-596-nda-11",
+   "split": "test",
+   "docId": 596,
+   "hypothesis": "nda-11",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-85-nda-12",
+   "split": "test",
+   "docId": 85,
+   "hypothesis": "nda-12",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-53-nda-18",
+   "split": "test",
+   "docId": 53,
+   "hypothesis": "nda-18",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-6-nda-1",
+   "split": "test",
+   "docId": 6,
+   "hypothesis": "nda-1",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-444-nda-10",
+   "split": "test",
+   "docId": 444,
+   "hypothesis": "nda-10",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-24-nda-18",
+   "split": "test",
+   "docId": 24,
+   "hypothesis": "nda-18",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-77-nda-11",
+   "split": "test",
+   "docId": 77,
+   "hypothesis": "nda-11",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-540-nda-7",
+   "split": "test",
+   "docId": 540,
+   "hypothesis": "nda-7",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-83-nda-17",
+   "split": "test",
+   "docId": 83,
+   "hypothesis": "nda-17",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-117-nda-12",
+   "split": "test",
+   "docId": 117,
+   "hypothesis": "nda-12",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-59-nda-20",
+   "split": "test",
+   "docId": 59,
+   "hypothesis": "nda-20",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-22-nda-18",
+   "split": "test",
+   "docId": 22,
+   "hypothesis": "nda-18",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-31-nda-16",
+   "split": "test",
+   "docId": 31,
+   "hypothesis": "nda-16",
+   "label": "NotMentioned"
+  },
+  {
+   "id": "test-40-nda-17",
+   "split": "test",
+   "docId": 40,
+   "hypothesis": "nda-17",
+   "label": "NotMentioned"
+  }
+ ],
+ "regression": [
+  {
+   "id": "reg-21-nda-19",
+   "docId": 21,
+   "hypothesis": "nda-19",
+   "evidenceSpans": [
+    [
+     3323,
+     3474
+    ],
+    [
+     3475,
+     3677
+    ],
+    [
+     8434,
+     8617
+    ]
+   ],
+   "controlSpans": [
+    [
+     1034,
+     1195
+    ],
+    [
+     1196,
+     1274
+    ],
+    [
+     7194,
+     7324
+    ]
+   ]
+  },
+  {
+   "id": "reg-526-nda-19",
+   "docId": 526,
+   "hypothesis": "nda-19",
+   "evidenceSpans": [
+    [
+     9912,
+     10245
+    ]
+   ],
+   "controlSpans": [
+    [
+     4188,
+     4282
+    ],
+    [
+     5216,
+     5423
+    ],
+    [
+     12142,
+     12179
+    ]
+   ]
+  },
+  {
+   "id": "reg-53-nda-19",
+   "docId": 53,
+   "hypothesis": "nda-19",
+   "evidenceSpans": [
+    [
+     12075,
+     12384
+    ]
+   ],
+   "controlSpans": [
+    [
+     2656,
+     2693
+    ],
+    [
+     12385,
+     12581
+    ],
+    [
+     12582,
+     12763
+    ]
+   ]
+  },
+  {
+   "id": "reg-212-nda-15",
+   "docId": 212,
+   "hypothesis": "nda-15",
+   "evidenceSpans": [
+    [
+     6847,
+     7038
+    ]
+   ],
+   "controlSpans": [
+    [
+     373,
+     496
+    ],
+    [
+     8785,
+     9026
+    ],
+    [
+     10114,
+     10158
+    ]
+   ]
+  },
+  {
+   "id": "reg-542-nda-15",
+   "docId": 542,
+   "hypothesis": "nda-15",
+   "evidenceSpans": [
+    [
+     5262,
+     5512
+    ]
+   ],
+   "controlSpans": [
+    [
+     42,
+     265
+    ],
+    [
+     1539,
+     1813
+    ],
+    [
+     11651,
+     11989
+    ]
+   ]
+  },
+  {
+   "id": "reg-22-nda-3",
+   "docId": 22,
+   "hypothesis": "nda-3",
+   "evidenceSpans": [
+    [
+     1536,
+     2075
+    ]
+   ],
+   "controlSpans": [
+    [
+     5168,
+     5456
+    ],
+    [
+     6211,
+     6250
+    ],
+    [
+     6344,
+     6402
+    ]
+   ]
+  },
+  {
+   "id": "reg-543-nda-11",
+   "docId": 543,
+   "hypothesis": "nda-11",
+   "evidenceSpans": [
+    [
+     2434,
+     2451
+    ],
+    [
+     3109,
+     3202
+    ]
+   ],
+   "controlSpans": [
+    [
+     2451,
+     2806
+    ],
+    [
+     3870,
+     4097
+    ],
+    [
+     5098,
+     5198
+    ]
+   ]
+  },
+  {
+   "id": "reg-465-nda-19",
+   "docId": 465,
+   "hypothesis": "nda-19",
+   "evidenceSpans": [
+    [
+     5649,
+     5763
+    ],
+    [
+     10931,
+     11005
+    ],
+    [
+     11006,
+     11259
+    ],
+    [
+     11259,
+     11369
+    ]
+   ],
+   "controlSpans": [
+    [
+     1274,
+     1449
+    ],
+    [
+     3115,
+     3169
+    ],
+    [
+     7713,
+     7833
+    ]
+   ]
+  },
+  {
+   "id": "reg-584-nda-7",
+   "docId": 584,
+   "hypothesis": "nda-7",
+   "evidenceSpans": [
+    [
+     3217,
+     3469
+    ],
+    [
+     3633,
+     3996
+    ],
+    [
+     3996,
+     4843
+    ]
+   ],
+   "controlSpans": [
+    [
+     1442,
+     2304
+    ],
+    [
+     2747,
+     3015
+    ],
+    [
+     10513,
+     10709
+    ]
+   ]
+  },
+  {
+   "id": "reg-497-nda-13",
+   "docId": 497,
+   "hypothesis": "nda-13",
+   "evidenceSpans": [
+    [
+     722,
+     960
+    ],
+    [
+     960,
+     1032
+    ],
+    [
+     1032,
+     1078
+    ],
+    [
+     1078,
+     1337
+    ],
+    [
+     1513,
+     1629
+    ]
+   ],
+   "controlSpans": [
+    [
+     2850,
+     3101
+    ],
+    [
+     3376,
+     3701
+    ],
+    [
+     7451,
+     7482
+    ]
+   ]
+  },
+  {
+   "id": "reg-24-nda-10",
+   "docId": 24,
+   "hypothesis": "nda-10",
+   "evidenceSpans": [
+    [
+     4162,
+     4166
+    ],
+    [
+     4166,
+     4258
+    ],
+    [
+     4258,
+     4341
+    ],
+    [
+     4437,
+     4465
+    ],
+    [
+     4465,
+     4466
+    ],
+    [
+     4467,
+     4550
+    ]
+   ],
+   "controlSpans": [
+    [
+     6549,
+     6783
+    ],
+    [
+     7444,
+     7750
+    ],
+    [
+     8338,
+     8410
+    ]
+   ]
+  },
+  {
+   "id": "reg-2-nda-12",
+   "docId": 2,
+   "hypothesis": "nda-12",
+   "evidenceSpans": [
+    [
+     4578,
+     4670
+    ],
+    [
+     5144,
+     5278
+    ],
+    [
+     10607,
+     10813
+    ]
+   ],
+   "controlSpans": [
+    [
+     2150,
+     2192
+    ],
+    [
+     4390,
+     4547
+    ],
+    [
+     8822,
+     9296
+    ]
+   ]
+  },
+  {
+   "id": "reg-84-nda-13",
+   "docId": 84,
+   "hypothesis": "nda-13",
+   "evidenceSpans": [
+    [
+     1316,
+     1363
+    ],
+    [
+     1688,
+     1920
+    ]
+   ],
+   "controlSpans": [
+    [
+     199,
+     231
+    ],
+    [
+     396,
+     429
+    ],
+    [
+     1496,
+     1687
+    ]
+   ]
+  },
+  {
+   "id": "reg-493-nda-1",
+   "docId": 493,
+   "hypothesis": "nda-1",
+   "evidenceSpans": [
+    [
+     936,
+     1276
+    ],
+    [
+     1276,
+     1370
+    ],
+    [
+     1370,
+     1598
+    ]
+   ],
+   "controlSpans": [
+    [
+     2510,
+     2719
+    ],
+    [
+     7180,
+     7372
+    ],
+    [
+     8031,
+     8070
+    ]
+   ]
+  },
+  {
+   "id": "reg-429-nda-19",
+   "docId": 429,
+   "hypothesis": "nda-19",
+   "evidenceSpans": [
+    [
+     3229,
+     3561
+    ],
+    [
+     4445,
+     4579
+    ],
+    [
+     4580,
+     4712
+    ]
+   ],
+   "controlSpans": [
+    [
+     3611,
+     3710
+    ],
+    [
+     3883,
+     4017
+    ],
+    [
+     7742,
+     7783
+    ]
+   ]
+  },
+  {
+   "id": "reg-476-nda-5",
+   "docId": 476,
+   "hypothesis": "nda-5",
+   "evidenceSpans": [
+    [
+     1909,
+     2526
+    ],
+    [
+     4103,
+     4191
+    ]
+   ],
+   "controlSpans": [
+    [
+     6542,
+     6975
+    ],
+    [
+     9900,
+     9946
+    ],
+    [
+     9947,
+     9979
+    ]
+   ]
+  },
+  {
+   "id": "reg-1-nda-20",
+   "docId": 1,
+   "hypothesis": "nda-20",
+   "evidenceSpans": [
+    [
+     8307,
+     8874
+    ]
+   ],
+   "controlSpans": [
+    [
+     5849,
+     6094
+    ],
+    [
+     7898,
+     8156
+    ],
+    [
+     14790,
+     14932
+    ]
+   ]
+  },
+  {
+   "id": "reg-165-nda-5",
+   "docId": 165,
+   "hypothesis": "nda-5",
+   "evidenceSpans": [
+    [
+     4039,
+     4431
+    ]
+   ],
+   "controlSpans": [
+    [
+     3034,
+     3129
+    ],
+    [
+     7325,
+     7607
+    ],
+    [
+     8432,
+     8466
+    ]
+   ]
+  },
+  {
+   "id": "reg-127-nda-8",
+   "docId": 127,
+   "hypothesis": "nda-8",
+   "evidenceSpans": [
+    [
+     3177,
+     3336
+    ]
+   ],
+   "controlSpans": [
+    [
+     1195,
+     1247
+    ],
+    [
+     4698,
+     4779
+    ],
+    [
+     4898,
+     4928
+    ]
+   ]
+  },
+  {
+   "id": "reg-157-nda-3",
+   "docId": 157,
+   "hypothesis": "nda-3",
+   "evidenceSpans": [
+    [
+     420,
+     1084
+    ],
+    [
+     1084,
+     1131
+    ],
+    [
+     1131,
+     1333
+    ],
+    [
+     1333,
+     1465
+    ],
+    [
+     1465,
+     1614
+    ],
+    [
+     1614,
+     1720
+    ],
+    [
+     1720,
+     1827
+    ]
+   ],
+   "controlSpans": [
+    [
+     377,
+     420
+    ],
+    [
+     4287,
+     4326
+    ],
+    [
+     4326,
+     4641
+    ]
+   ]
+  },
+  {
+   "id": "reg-48-nda-7",
+   "docId": 48,
+   "hypothesis": "nda-7",
+   "evidenceSpans": [
+    [
+     1885,
+     2149
+    ]
+   ],
+   "controlSpans": [
+    [
+     1697,
+     1732
+    ],
+    [
+     4189,
+     4396
+    ],
+    [
+     4396,
+     4648
+    ]
+   ]
+  },
+  {
+   "id": "reg-498-nda-15",
+   "docId": 498,
+   "hypothesis": "nda-15",
+   "evidenceSpans": [
+    [
+     7971,
+     8172
+    ],
+    [
+     8172,
+     8357
+    ],
+    [
+     8357,
+     8458
+    ]
+   ],
+   "controlSpans": [
+    [
+     3793,
+     4246
+    ],
+    [
+     9829,
+     10008
+    ],
+    [
+     10008,
+     10329
+    ]
+   ]
+  },
+  {
+   "id": "reg-57-nda-7",
+   "docId": 57,
+   "hypothesis": "nda-7",
+   "evidenceSpans": [
+    [
+     1703,
+     1803
+    ],
+    [
+     1872,
+     1894
+    ]
+   ],
+   "controlSpans": [
+    [
+     37,
+     287
+    ],
+    [
+     1288,
+     1371
+    ],
+    [
+     2056,
+     2155
+    ]
+   ]
+  },
+  {
+   "id": "reg-78-nda-12",
+   "docId": 78,
+   "hypothesis": "nda-12",
+   "evidenceSpans": [
+    [
+     1997,
+     2106
+    ],
+    [
+     2546,
+     2599
+    ]
+   ],
+   "controlSpans": [
+    [
+     592,
+     634
+    ],
+    [
+     2710,
+     2953
+    ],
+    [
+     7027,
+     7062
+    ]
+   ]
+  },
+  {
+   "id": "reg-55-nda-16",
+   "docId": 55,
+   "hypothesis": "nda-16",
+   "evidenceSpans": [
+    [
+     6542,
+     6863
+    ]
+   ],
+   "controlSpans": [
+    [
+     0,
+     31
+    ],
+    [
+     3321,
+     3606
+    ],
+    [
+     7622,
+     8007
+    ]
+   ]
+  },
+  {
+   "id": "reg-138-nda-18",
+   "docId": 138,
+   "hypothesis": "nda-18",
+   "evidenceSpans": [
+    [
+     1602,
+     2054
+    ]
+   ],
+   "controlSpans": [
+    [
+     226,
+     268
+    ],
+    [
+     728,
+     993
+    ],
+    [
+     5026,
+     5156
+    ]
+   ]
+  },
+  {
+   "id": "reg-97-nda-16",
+   "docId": 97,
+   "hypothesis": "nda-16",
+   "evidenceSpans": [
+    [
+     5223,
+     5563
+    ],
+    [
+     6376,
+     6476
+    ],
+    [
+     6527,
+     6603
+    ]
+   ],
+   "controlSpans": [
+    [
+     8495,
+     8796
+    ],
+    [
+     12089,
+     12172
+    ],
+    [
+     12708,
+     12791
+    ]
+   ]
+  },
+  {
+   "id": "reg-564-nda-5",
+   "docId": 564,
+   "hypothesis": "nda-5",
+   "evidenceSpans": [
+    [
+     3423,
+     3866
+    ],
+    [
+     3866,
+     3927
+    ],
+    [
+     3928,
+     3972
+    ],
+    [
+     3972,
+     4088
+    ]
+   ],
+   "controlSpans": [
+    [
+     8607,
+     8641
+    ],
+    [
+     10984,
+     11153
+    ],
+    [
+     18000,
+     18134
+    ]
+   ]
+  },
+  {
+   "id": "reg-444-nda-7",
+   "docId": 444,
+   "hypothesis": "nda-7",
+   "evidenceSpans": [
+    [
+     10845,
+     10876
+    ],
+    [
+     10876,
+     11177
+    ]
+   ],
+   "controlSpans": [
+    [
+     3255,
+     3419
+    ],
+    [
+     4214,
+     4335
+    ],
+    [
+     9568,
+     9750
+    ]
+   ]
+  },
+  {
+   "id": "reg-544-nda-8",
+   "docId": 544,
+   "hypothesis": "nda-8",
+   "evidenceSpans": [
+    [
+     1679,
+     2485
+    ],
+    [
+     2930,
+     3316
+    ]
+   ],
+   "controlSpans": [
+    [
+     5978,
+     6154
+    ],
+    [
+     8932,
+     8997
+    ],
+    [
+     10434,
+     10644
+    ]
+   ]
+  }
+ ]
+}

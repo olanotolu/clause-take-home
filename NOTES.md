@@ -150,3 +150,9 @@ an instruction. One run, three scenarios: evidence, not proof. The route's safet
 still goes through the deterministic engine, a scope policy, and a version check, and nothing is applied without a human click.
 The API key lives only in a git-ignored, owner-readable `.env.local`; it was pasted into a chat to hand it over, so it should be
 rotated or given a spend limit after the demo.
+
+## 2026-10-15 — benchmark statistics: my "reference value" was wrong, the code was right
+The first Wilson-interval test asserted 81/100 -> upper bound 0.8777, a number I wrote from memory. It failed (code gave 0.8749).
+Rather than "fix the code to match", I cross-checked against statsmodels' `proportion_confint(method="wilson")`: 0.874852. Code was
+right to ~1e-5. The test now pins independently computed values. Lesson: a failing test can mean the *expectation* is wrong;
+check against a second implementation before deciding which side moves.

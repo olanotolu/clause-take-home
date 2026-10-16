@@ -15,7 +15,9 @@
     "mutate": "node scripts/mutate.ts",
     "suggest:smoke": "node --env-file-if-exists=.env.local scripts/suggest-smoke.ts",
     "gen:seed": "node scripts/gen-seed-data.ts",
-    "ci:smoke": "node --env-file-if-exists=.env.local scripts/ci-smoke.ts"
+    "ci:smoke": "node --env-file-if-exists=.env.local scripts/ci-smoke.ts",
+    "bench:ci": "node --env-file-if-exists=.env.local bench/ci/run.ts",
+    "bench:ci:report": "node bench/ci/report.ts"
   },
   "devDependencies": {
     "@types/node": "^24",
