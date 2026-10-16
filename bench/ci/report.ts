@@ -1,0 +1,176 @@
+/**
+ * Turns the raw judge answers in results/ into the metrics in RESULTS.md. Pure maths over recorded answers: it calls no
+ * model, so anyone can regenerate the report from the raw files and check it.
+ */
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { combineJudges } from "../../apps/api/src/review/ensemble.ts";
+import { verifyQuotes } from "../../apps/api/src/review/evidence.ts";
+import type { JudgeAnswer, JudgeLabel } from "../../apps/api/src/review/judges/types.ts";
+import type { CasesFile } from "./build-cases.ts";
+import { brier, classReport, confusion, fmtCi, pct, percentile, wilson } from "./metrics.ts";
+import type { RawRecord } from "./run.ts";
+
+export const NLI = ["Entailment", "Contradiction", "NotMentioned", "Abstain"] as const;
+type Nli = (typeof NLI)[number];
+const TO_NLI: Record<JudgeLabel, Nli> = { entailed: "Entailment", contradicted: "Contradiction", not_mentioned: "NotMentioned", unclear: "Abstain" };
+const asNli = (r: RawRecord | undefined): Nli => (r?.answer ? TO_NLI[r.answer.label] : "Abstain"); // an outage counts as no answer
+
+export interface Texts { static: Map<string, string>; before: Map<string, string>; after_pos: Map<string, string>; after_ctrl: Map<string, string> }
+
+export interface JudgeSummary {
+  judge: string;
+  calls: number;
+  errors: number;
+  static: {
+    n: number;
+    accuracy: ReturnType<typeof wilson>;
+    macroF1: number;
+    recall: Record<string, number>;
+    binaryAccuracy: ReturnType<typeof wilson>;
+    abstain: number;
+    brier: number | null;
+    confusion: ReturnType<typeof confusion<Nli>>;
+  };
+  regression: { pairs: number; usable: number; detected: number; falseAlarm: number; separates: number; recallAll: ReturnType<typeof wilson> };
+  product: { usable: number; flaggedPos: number; flaggedCtrl: number; failPos: number; reviewPos: number; failCtrl: number; reviewCtrl: number } | null;
+  quotes: { total: number; verified: number } | null;
+  latency: { p50: number; p95: number };
+  tokens: { input: number; output: number } | null;
+}
+
+/** Index records by (case, kind). */
+const index = (rs: RawRecord[]) => new Map<string, RawRecord>(rs.map((r) => [`${r.caseId}|${r.kind}`, r]));
+
+export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, texts: Texts, truth: Map<string, Nli>): JudgeSummary {
+  const idx = index(rs);
+  const get = (id: string, kind: string) => idx.get(`${id}|${kind}`);
+
+  const rows = cases.static.map((c) => ({ truth: c.label as Nli, pred: asNli(get(c.id, "static")) }));
+  const m = confusion(NLI, rows);
+  const rep = classReport(NLI, m);
+  const binCorrect = cases.static.filter((c) => (c.label === "Entailment") === (asNli(get(c.id, "static")) === "Entailment")).length;
+  const probs = cases.static.flatMap((c) => { const a = get(c.id, "static")?.answer; return a?.pEntailed === undefined ? [] : [{ p: a.pEntailed, outcome: c.label === "Entailment" }]; });
+
+  // Label-level regression: a pair is usable if the judge saw the requirement as satisfied BEFORE the edit.
+  let usable = 0, detected = 0, falseAlarm = 0, separates = 0, detectedAll = 0;
+  for (const p of cases.regression) {
+    const before = asNli(get(p.id, "before"));
+    const pos = asNli(get(p.id, "after_pos")) !== "Entailment";
+    const ctrl = asNli(get(p.id, "after_ctrl")) !== "Entailment";
+    if (pos && before === "Entailment") detectedAll++;
+    if (before !== "Entailment") continue;
+    usable++;
+    if (pos) detected++;
+    if (ctrl) falseAlarm++;
+    if (pos && !ctrl) separates++;
+  }
+
+  // Product-level (what a user would see): the policy applied to this judge alone, so PASS needs verified evidence.
+  const verdict = (id: string, kind: "before" | "after_pos" | "after_ctrl", text: string | undefined) => {
+    const r = get(id, kind);
+    return combineJudges(text ?? "", [r?.answer ? { judgeId: judge, answer: r.answer } : { judgeId: judge }]).verdict;
+  };
+  let pu = 0, fp = 0, fc = 0, failP = 0, revP = 0, failC = 0, revC = 0;
+  for (const p of cases.regression) {
+    if (verdict(p.id, "before", texts.before.get(p.id)) !== "PASS") continue;
+    pu++;
+    const vp = verdict(p.id, "after_pos", texts.after_pos.get(p.id));
+    const vc = verdict(p.id, "after_ctrl", texts.after_ctrl.get(p.id));
+    if (vp !== "PASS") { fp++; vp === "FAIL" ? failP++ : revP++; }
+    if (vc !== "PASS") { fc++; vc === "FAIL" ? failC++ : revC++; }
+  }
+
+  // Quote integrity: of the passages a judge quoted, how many are really in the text?
+  let qTotal = 0, qVerified = 0;
+  for (const r of rs) {
+    if (!r.answer?.quotes.length) continue;
+    const t = r.kind === "static" ? texts.static.get(r.caseId) : texts[r.kind].get(r.caseId);
+    if (!t) continue;
+    for (const e of verifyQuotes(t, r.answer.quotes, 10)) { qTotal++; if (e.verified) qVerified++; }
+  }
+
+  const ok = rs.filter((r) => r.answer);
+  const inTok = rs.reduce((s, r) => s + (r.inputTokens ?? 0), 0);
+  const outTok = rs.reduce((s, r) => s + (r.outputTokens ?? 0), 0);
+  void truth;
+  return {
+    judge,
+    calls: rs.length,
+    errors: rs.length - ok.length,
+    static: {
+      n: cases.static.length,
+      accuracy: wilson(rep.correct, rep.total),
+      macroF1: rep.macroF1,
+      recall: Object.fromEntries(NLI.slice(0, 3).map((l) => [l, rep.per[l].recall])),
+      binaryAccuracy: wilson(binCorrect, cases.static.length),
+      abstain: rows.filter((r) => r.pred === "Abstain").length,
+      brier: probs.length ? brier(probs) : null,
+      confusion: m,
+    },
+    regression: { pairs: cases.regression.length, usable, detected, falseAlarm, separates, recallAll: wilson(detectedAll, cases.regression.length) },
+    product: pu || rs.length ? { usable: pu, flaggedPos: fp, flaggedCtrl: fc, failPos: failP, reviewPos: revP, failCtrl: failC, reviewCtrl: revC } : null,
+    quotes: qTotal ? { total: qTotal, verified: qVerified } : null,
+    latency: { p50: percentile(ok.map((r) => r.ms), 0.5), p95: percentile(ok.map((r) => r.ms), 0.95) },
+    tokens: inTok || outTok ? { input: inTok, output: outTok } : null,
+  };
+}
+
+export function readRaw(file: string): RawRecord[] {
+  return existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as RawRecord) : [];
+}
+
+/** Price per token from OpenRouter's public model list (USD). Returns undefined if unavailable: we never invent a price. */
+export async function openRouterPrice(model: string): Promise<{ prompt: number; completion: number } | undefined> {
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models");
+    const data = (await res.json()) as { data: { id: string; pricing: { prompt: string; completion: string } }[] };
+    const m = data.data.find((x) => x.id === model);
+    return m ? { prompt: Number(m.pricing.prompt), completion: Number(m.pricing.completion) } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const fmtMs = (ms: number) => (Number.isNaN(ms) ? "n/a" : ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`);
+
+export function renderMarkdown(args: { summaries: JudgeSummary[]; cases: CasesFile; config: Record<string, unknown>; prices: Record<string, { prompt: number; completion: number } | undefined>; jevNote: string; generatedAt: string }): string {
+  const { summaries, cases, config, prices, jevNote, generatedAt } = args;
+  const L: string[] = [];
+  L.push("# CLAUSE CI benchmark results", "", `Generated ${generatedAt} by \`pnpm bench:ci:report\` from the raw answers in \`bench/ci/results/\`. Nothing below is typed by hand.`, "");
+  L.push("## What was measured", "");
+  L.push("Can a judge tell whether a contract **satisfies a requirement**, and does it notice when an edit **stops** satisfying it? Data: [ContractNLI](https://stanfordnlp.github.io/contract-nli/) (Koreeda & Manning, *Findings of EMNLP 2021*; CC BY 4.0): real NDAs with expert labels and evidence spans. The requirement text is ContractNLI's own hypothesis wording.", "");
+  L.push(`- **Static task** (n=${cases.static.length}, 20 per label from the test split): classify each document as *Entailment*, *Contradiction* or *NotMentioned* for one hypothesis.`);
+  L.push(`- **Regression task** (n=${cases.regression.length} pairs): for a hypothesis the experts marked *Entailment*, (a) **delete the expert-marked evidence sentences** (should stop being satisfied) and (b) as a control **delete ${cases.meta.controlSpans} unrelated sentences** (should stay satisfied). Edits are applied with CLAUSE's own edit engine.`);
+  L.push(`- Cases, seed (${cases.meta.seed}) and thresholds were **committed before any judge ran** on them (commit \`cafc0d5\`). The keyword baseline's one threshold was tuned on the dev split only (dev macro-F1 ${config.heuristicDevMacroF1}).`, "");
+  L.push("## Judges", "", `- **keyword-baseline**: no model; best-matching sentence by distinctive-word overlap (τ=${config.heuristicTau}), negation mismatch ⇒ contradicted. Its quotes are real sentences, so they verify.`);
+  for (const s of summaries.filter((x) => x.judge !== "keyword-baseline")) L.push(`- **${s.judge}**`);
+  L.push(`- ${jevNote}`, "");
+
+  L.push("## Static task: three-way classification", "", "| Judge | Accuracy [95% CI] | Macro-F1 | Entailment recall | Contradiction recall | NotMentioned recall | Abstained/errored | Brier |", "|---|---|---|---|---|---|---|---|");
+  for (const s of summaries) L.push(`| ${s.judge} | ${fmtCi(Math.round(s.static.accuracy.p * s.static.n), s.static.n)} | ${s.static.macroF1.toFixed(3)} | ${pct(s.static.recall.Entailment!)} | ${pct(s.static.recall.Contradiction!)} | ${pct(s.static.recall.NotMentioned!)} | ${s.static.abstain} | ${s.static.brier === null ? "n/a" : s.static.brier.toFixed(3)} |`);
+  L.push("", "Chance for three balanced classes is 33.3% accuracy. *Brier* scores the judge's own P(entailed) against the truth (lower is better; 0.25 = coin flip); the keyword baseline has no probability.", "");
+
+  L.push("## Regression task: does a judge notice that an edit broke a requirement?", "", "Counted only on pairs where the judge saw the requirement as satisfied **before** the edit (otherwise there is nothing to regress).", "", "| Judge | Usable pairs | Edit that removes the evidence is flagged | Harmless edit wrongly flagged | Tells the two apart | Flagged, counting unusable pairs as misses |", "|---|---|---|---|---|---|");
+  for (const s of summaries) { const r = s.regression; L.push(`| ${s.judge} | ${r.usable}/${r.pairs} | ${fmtCi(r.detected, r.usable)} | ${fmtCi(r.falseAlarm, r.usable)} | ${fmtCi(r.separates, r.usable)} | ${fmtCi(Math.round(r.recallAll.p * r.pairs), r.pairs)} |`); }
+  L.push("", "*Tells the two apart* = flagged the evidence-deleting edit **and** did not flag the harmless one, in the same pair (the strictest, paired measure).", "");
+
+  L.push("## What a user would actually see (CLAUSE CI's policy applied to each judge alone)", "", "A PASS needs a quote that is verified verbatim in the text, so a judge that cites nothing can never PASS.", "", "| Judge | Usable pairs (PASS before) | Evidence-deleting edit: FAIL / NEEDS_REVIEW | Harmless edit: FAIL / NEEDS_REVIEW |", "|---|---|---|---|");
+  for (const s of summaries) { const p = s.product; if (!p) continue; L.push(`| ${s.judge} | ${p.usable}/${s.regression.pairs} | ${p.failPos} / ${p.reviewPos} (of ${p.usable}) | ${p.failCtrl} / ${p.reviewCtrl} (of ${p.usable}) |`); }
+  L.push("");
+
+  L.push("## Evidence integrity, latency, cost", "", "| Judge | Quotes found verbatim in the text | Latency p50 / p95 per call | Tokens (in / out) | Cost for this run |", "|---|---|---|---|---|");
+  for (const s of summaries) {
+    const price = prices[s.judge];
+    const cost = s.tokens && price ? `$${(s.tokens.input * price.prompt + s.tokens.output * price.completion).toFixed(2)} (${s.calls} calls)` : s.tokens ? "price unavailable" : "n/a";
+    L.push(`| ${s.judge} | ${s.quotes ? fmtCi(s.quotes.verified, s.quotes.total) : "n/a (no quotes)"} | ${fmtMs(s.latency.p50)} / ${fmtMs(s.latency.p95)} | ${s.tokens ? `${s.tokens.input.toLocaleString()} / ${s.tokens.output.toLocaleString()}` : "n/a"} | ${cost} |`);
+  }
+  L.push("", "## How to read this, and its limits", "");
+  L.push(`- **Small samples.** n=${cases.static.length} static items and ${cases.regression.length} pairs give wide intervals (a 95% interval on 30 trials is roughly ±17 points). Differences between rows that fall inside each other's intervals are **not evidence that one judge is better**.`);
+  L.push("- **Automatic labels have noise.** The regression 'truth' assumes the experts marked *all* supporting sentences; if one was missed, deleting the marked ones may not remove entailment, which would show up as a missed flag that is the label's fault, not the judge's.");
+  L.push("- **NDAs only**, English, documents ≤ 20,000 characters. Nothing here says how any judge behaves on other contract types.");
+  L.push("- One run per judge at temperature 0; models can change behind an alias, so the exact model ids above are part of the result.");
+  L.push("- This measures whether a judge's answer matches the experts' labels. It does not measure legal correctness, and CLAUSE CI's reports remain advisory.", "");
+  L.push("Dataset: ContractNLI, Koreeda & Manning (2021), CC BY 4.0, https://stanfordnlp.github.io/contract-nli/", "");
+  return L.join("\n");
+}

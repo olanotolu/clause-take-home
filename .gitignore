@@ -12,4 +12,3 @@ mutation-report.json
 .vercel
 .env*
 bench/ci/data/
-bench/ci/results/

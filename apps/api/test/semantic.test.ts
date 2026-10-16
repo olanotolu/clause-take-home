@@ -4,7 +4,7 @@ import type { FastifyInstance } from "fastify";
 import { combineJudges } from "../src/review/ensemble.ts";
 import { createSemanticEvaluator } from "../src/review/evaluator.ts";
 import { verifyQuotes } from "../src/review/evidence.ts";
-import { buildJudgePrompt, createLlmJudge, JUDGE_SYSTEM_PROMPT, MAX_JUDGED_CHARS, type LlmAnswer } from "../src/review/judges/llm.ts";
+import { buildJudgePrompt, clampAnswer, createLlmJudge, JUDGE_SYSTEM_PROMPT, MAX_JUDGED_CHARS, MAX_RATIONALE_CHARS, type LlmAnswer } from "../src/review/judges/llm.ts";
 import type { Judge, JudgeAnswer } from "../src/review/judges/types.ts";
 import { createDoc, quote, testApp } from "./helpers.ts";
 
@@ -149,6 +149,19 @@ describe("createLlmJudge", () => {
   it("distinguishes a goal from a standing requirement in the prompt", () => {
     expect(buildJudgePrompt({ requirement: "r", text: "t", isGoal: true })).toContain('kind="goal"');
     expect(buildJudgePrompt({ requirement: "r", text: "t", isGoal: false })).toContain('kind="standing"');
+  });
+
+  it("accepts a correct verdict with an over-long rationale, too many quotes or an out-of-range probability, and trims them (regression: the benchmark lost 5 of 91 answers to a 400-char limit)", async () => {
+    const chatty: LlmAnswer = { verdict: "entailed", probability: 1.7, quotes: ["a".repeat(20), "b".repeat(20), "c".repeat(20), "d".repeat(20), "e".repeat(20)], rationale: "word ".repeat(200) };
+    const out = await createLlmJudge({ id: "m", generate: async () => chatty }).judge({ requirement: "x", text: NDA, isGoal: false });
+    expect(out.label).toBe("entailed");
+    expect(out.pEntailed).toBe(1);
+    expect(out.quotes).toHaveLength(3);
+    expect(out.rationale.length).toBeLessThanOrEqual(MAX_RATIONALE_CHARS);
+    expect(out.rationale.endsWith("…")).toBe(true);
+    expect(clampAnswer({ ...chatty, probability: Number.NaN }).probability).toBe(0.5);
+    expect(clampAnswer({ ...chatty, probability: -3 }).probability).toBe(0);
+    expect(clampAnswer({ ...chatty, rationale: "short" }).rationale).toBe("short"); // untouched when within limits
   });
 
   it("lets a model failure propagate (the evaluator, not the judge, absorbs it)", async () => {

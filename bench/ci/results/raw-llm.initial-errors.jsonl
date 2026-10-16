@@ -1,0 +1,5 @@
+{"judge":"anthropic/claude-sonnet-5.5","caseId":"test-493-nda-10","kind":"static","answer":null,"ms":3297,"error":"No object generated: response did not match schema."}
+{"judge":"anthropic/claude-sonnet-5.5","caseId":"test-542-nda-19","kind":"static","answer":null,"ms":2615,"error":"No object generated: response did not match schema."}
+{"judge":"anthropic/claude-sonnet-5.5","caseId":"test-400-nda-10","kind":"static","answer":null,"ms":2820,"error":"No object generated: response did not match schema."}
+{"judge":"anthropic/claude-sonnet-5.5","caseId":"test-80-nda-7","kind":"static","answer":null,"ms":6073,"error":"No object generated: response did not match schema."}
+{"judge":"anthropic/claude-sonnet-5.5","caseId":"reg-542-nda-15","kind":"after_pos","answer":null,"ms":3148,"error":"No object generated: response did not match schema."}
