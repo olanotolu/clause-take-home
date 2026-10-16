@@ -33,7 +33,7 @@ That table is the heart of Part I. Everything else is built to make it trustwort
 
 ## The fastest way to see it
 
-On the live site, start on the **Workspace** board (sample requests, one per piece of legal work). Open *Mutual confidentiality for Acme*, press **Run Clause CI** to audit the contract against its requirements, then **Open in editor**. Select a phrase that appears more than once and choose **Protect** (it becomes a requirement), or **Replace** it, then **Run Clause CI** again to see what the edit breaks. Nothing is saved until you press **Apply**. The **Activity** tab shows every version; restoring one makes a *new* version (history is never rewritten), and the Word redline downloads from there.
+On the live site, start on the **Workspace** board (sample requests, one per piece of legal work). Open *Mutual confidentiality for Acme* and choose **Open in editor**. In the **Rules** tab pick the *NDA Playbook* and Apply it: its rules become this document's requirements. Then select a clause, **Replace** it, and press **Run Clause CI** to see which requirements the edit breaks (or select a phrase and choose **Protect** to add your own). Back on the Workspace board, **Run Clause CI** on the request audits the current text the same way. Nothing is saved until you press **Apply**. The **Activity** tab shows every version; restoring one makes a *new* version (history is never rewritten), and the Word redline downloads from there.
 
 Locally (Node 24+ and pnpm):
 
