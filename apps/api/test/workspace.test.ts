@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { snapshotOf } from "../src/review/snapshot.ts";
 import type { CiReport, SemanticEvaluator } from "../src/review/types.ts";
@@ -7,7 +7,13 @@ import { MAX_REQUIREMENTS_PER_DOCUMENT } from "../src/store/types.ts";
 import { createDoc, patch, quote, testApp, testStore } from "./helpers.ts";
 
 const NDA = "MUTUAL NDA\n1.1 The Receiving Party shall not disclose Confidential Information.\n1.2 These obligations survive for three (3) years.";
+/** Timestamps have millisecond resolution, so ordering tests move the clock instead of sleeping. */
+const tick = (ms = 1000) => vi.setSystemTime(Date.now() + ms);
+
 const stub = (verdict: "PASS" | "FAIL"): SemanticEvaluator => ({ models: ["stub"], async evaluate() { return { verdict, detail: "stub", evidence: [], judges: [] }; } });
+
+beforeEach(() => void vi.useFakeTimers({ toFake: ["Date"] }));
+afterEach(() => void vi.useRealTimers());
 
 describe("requests", () => {
   let app: FastifyInstance;
@@ -21,7 +27,7 @@ describe("requests", () => {
     const a = (await create({ documentId: d.id, title: "First", goal: "Do the first thing" })).json();
     expect(a).toMatchObject({ status: "inbox", priority: "medium", type: "Other", dueDate: null, ci: null, documentId: d.id });
     const b = (await create({ documentId: d.id, title: "Second", goal: "Do the second", status: "in_progress", priority: "high", type: "NDA", dueDate: "2026-12-31" })).json();
-    await new Promise((r) => setTimeout(r, 5)); // timestamps have millisecond resolution
+    tick();
     await app.inject({ method: "PATCH", url: `/requests/${a.id}`, payload: { priority: "low" } });
     const all = (await app.inject({ method: "GET", url: "/requests" })).json().items;
     expect(all.map((r: { id: string }) => r.id)).toEqual([a.id, b.id]); // a was touched last
@@ -182,9 +188,9 @@ describe("activity across documents", () => {
 
   it("lists the newest versions of every document first, with titles, and honours the limit", async () => {
     const a = await createDoc(app, "Alpha", NDA);
-    await new Promise((r) => setTimeout(r, 5)); // timestamps have millisecond resolution
+    tick();
     const b = await createDoc(app, "Beta", NDA);
-    await new Promise((r) => setTimeout(r, 5));
+    tick();
     expect((await patch(app, a.id, { expectedVersion: 1, changes: [quote("MUTUAL", "BILATERAL")] })).statusCode).toBe(200);
     const items = (await app.inject({ method: "GET", url: "/activity" })).json().items as { title: string; version: number; documentId: string }[];
     expect(items.map((i) => `${i.title} v${i.version}`)).toEqual(["Alpha v2", "Beta v1", "Alpha v1"]);
