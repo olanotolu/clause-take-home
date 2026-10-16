@@ -17,3 +17,5 @@ bench/ci/data/
 test-results/
 playwright-report/
 coverage/
+.schemathesis/
+.fuzz-venv/

@@ -154,6 +154,15 @@ describe("PATCH /documents/:id", () => {
     }
   });
 
+  it("answers an over-long id with a 400 in the API's own error shape, not Fastify's 414", async () => {
+    for (const length of [70, 300, 5000]) {
+      const res = await app.inject({ method: "GET", url: `/documents/${"x".repeat(length)}` });
+      expect(res.statusCode, `${length} chars`).toBe(400);
+      expect(res.json()).toMatchObject({ code: 400, type: "VALIDATION_ERROR" });
+      expect(typeof res.json().code).toBe("number");
+    }
+  });
+
   it("answers a server fault with 500 and { error, code, type }, without the cause, a stack or document text", async () => {
     const store = await testStore();
     const faulty = await buildApp({ store });

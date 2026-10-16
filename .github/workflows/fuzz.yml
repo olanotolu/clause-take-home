@@ -1,0 +1,41 @@
+name: API fuzz (Schemathesis)
+
+# Scheduled rather than on every push: it is a few minutes of generated requests, and what it finds are contract
+# problems (undocumented statuses, bodies that break the { error, code } shape), not regressions in a given change.
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      examples:
+        description: Maximum examples per operation
+        default: "200"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Fuzz the OpenAPI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Schemathesis (pinned)
+        run: python3 -m venv .fuzz-venv && .fuzz-venv/bin/pip install --quiet schemathesis==4.31.1
+      - name: Fuzz a throwaway database
+        env:
+          EXAMPLES: ${{ inputs.examples || '200' }}
+        run: PATH="$PWD/.fuzz-venv/bin:$PATH" ./scripts/fuzz/run.sh "$EXAMPLES"

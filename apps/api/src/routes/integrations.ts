@@ -25,19 +25,19 @@ function bindingCookie(provider: IntegrationProvider, value: string, maxAge: num
 }
 
 export function registerIntegrationRoutes(app: App): void {
-  app.get("/integrations", { schema: { response: { 200: z.object({ providers: z.array(z.object({ id: Provider, name: z.string(), description: z.string(), configured: z.boolean(), connected: z.boolean(), accountName: z.string().nullable(), connectedAt: z.string().nullable() })) }), ...errors(401, 403, 500) } } }, async (req) => {
+  app.get("/integrations", { schema: { response: { 200: z.object({ providers: z.array(z.object({ id: Provider, name: z.string(), description: z.string(), configured: z.boolean(), connected: z.boolean(), accountName: z.string().nullable(), connectedAt: z.string().nullable() })) }), ...errors(400, 401, 403, 500) } } }, async (req) => {
     await auth(req.headers.authorization);
     return { providers: await listProviders(app.store) };
   });
 
-  app.post("/integrations/:provider/connect", { schema: { params: z.object({ provider: Provider }), response: { 200: z.object({ url: z.string() }), ...errors(401, 403, 500, 503) } } }, async (req, reply) => {
+  app.post("/integrations/:provider/connect", { schema: { params: z.object({ provider: Provider }), response: { 200: z.object({ url: z.string() }), ...errors(400, 401, 403, 500, 503) } } }, async (req, reply) => {
     const user = await auth(req.headers.authorization);
     const { url, binding } = authorizationUrl(req.params.provider, user);
     reply.header("set-cookie", bindingCookie(req.params.provider, binding, OAUTH_COOKIE_MAX_AGE_S));
     return { url };
   });
 
-  app.get("/integrations/:provider/callback", { schema: { params: z.object({ provider: Provider }), querystring: z.object({ code: z.string().optional(), state: z.string().optional(), error: z.string().optional() }), response: errors(500) } }, async (req, reply) => {
+  app.get("/integrations/:provider/callback", { schema: { params: z.object({ provider: Provider }), querystring: z.object({ code: z.string().optional(), state: z.string().optional(), error: z.string().optional() }), response: { 302: z.null().describe("Back to the Integrations page, with ?connected= or ?error="), ...errors(500) } } }, async (req, reply) => {
     // This is a browser navigation from the provider, so failures go back to the Integrations page rather than to a
     // raw JSON body. The one-time binding cookie is cleared whatever the outcome.
     const provider = req.params.provider;
@@ -55,14 +55,14 @@ export function registerIntegrationRoutes(app: App): void {
     return back(`connected=${encodeURIComponent(provider)}`);
   });
 
-  app.get("/integrations/:provider/files", { schema: { params: z.object({ provider: Provider }), querystring: Query, response: { 200: z.object({ files: z.array(z.object({ id: z.string(), name: z.string(), mimeType: z.string(), folder: z.boolean(), parentId: z.string().optional(), driveId: z.string().optional(), imported: z.boolean() })), nextPageToken: z.string().nullable() }), ...errors(401, 403, 409, 502) } } }, async (req) => {
+  app.get("/integrations/:provider/files", { schema: { params: z.object({ provider: Provider }), querystring: Query, response: { 200: z.object({ files: z.array(z.object({ id: z.string(), name: z.string(), mimeType: z.string(), folder: z.boolean(), parentId: z.string().optional(), driveId: z.string().optional(), imported: z.boolean() })), nextPageToken: z.string().nullable() }), ...errors(400, 401, 403, 409, 502) } } }, async (req) => {
     await auth(req.headers.authorization);
     const page = await browseFiles(app.store, req.params.provider, req.query.parentId, req.query.driveId, req.query.pageToken);
     const files = await Promise.all(page.files.map(async (file) => ({ ...file, imported: Boolean(await app.store.getIntegrationImport(req.params.provider, file.id)) })));
     return { ...page, files };
   });
 
-  app.post("/integrations/:provider/import", { schema: { params: z.object({ provider: Provider }), body: ImportBody, response: { 200: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), 201: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), ...errors(401, 403, 409, 413, 415, 502) } } }, async (req, reply) => {
+  app.post("/integrations/:provider/import", { schema: { params: z.object({ provider: Provider }), body: ImportBody, response: { 200: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), 201: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), ...errors(400, 401, 403, 409, 413, 415, 502) } } }, async (req, reply) => {
     await auth(req.headers.authorization);
     const file = req.body.file as RemoteFile;
     if (file.folder) throw new IntegrationError(400, "FOLDER_NOT_IMPORTABLE", "Choose a document file to import.");
@@ -78,7 +78,7 @@ export function registerIntegrationRoutes(app: App): void {
     return reply.code(result.imported ? 201 : 200).send({ imported: result.imported, document: { id: result.doc.id, title: result.doc.title, version: result.doc.version } });
   });
 
-  app.delete("/integrations/:provider", { schema: { params: z.object({ provider: Provider }), response: { 204: z.null(), ...errors(401, 403, 500) } } }, async (req, reply) => {
+  app.delete("/integrations/:provider", { schema: { params: z.object({ provider: Provider }), response: { 204: z.null(), ...errors(400, 401, 403, 500) } } }, async (req, reply) => {
     await auth(req.headers.authorization);
     await app.store.deleteIntegrationConnection(req.params.provider as IntegrationProvider);
     return reply.code(204).send(null);
