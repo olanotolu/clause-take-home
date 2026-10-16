@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
+import { buildApp } from "../src/app.ts";
 import { createDoc, NDA, patch, quote, testApp, testStore } from "./helpers.ts";
 
 let app: FastifyInstance;
@@ -134,9 +135,28 @@ describe("PATCH /documents/:id", () => {
     await small.close();
   });
 
+  it("treats an empty body with a JSON content-type as no body, as a copied curl DELETE sends", async () => {
+    const doc = await createDoc(app, "NDA", "hello");
+    const json = { "content-type": "application/json" };
+    expect((await app.inject({ method: "DELETE", url: `/documents/${doc.id}`, headers: json })).statusCode).toBe(204);
+    // A route that needs a body still says so, with a 400 rather than a crash.
+    const missing = await app.inject({ method: "POST", url: "/documents", headers: json, payload: "" });
+    expect(missing.statusCode).toBe(400);
+    expect(missing.json()).toMatchObject({ code: 400, type: "VALIDATION_ERROR" });
+  });
+
+  it("still rejects malformed JSON and prototype-poisoning payloads with 400", async () => {
+    const json = { "content-type": "application/json" };
+    for (const payload of ["{not json", '{"title":"x","content":"y","__proto__":{"admin":true}}']) {
+      const res = await app.inject({ method: "POST", url: "/documents", headers: json, payload });
+      expect(res.statusCode, payload).toBe(400);
+      expect(res.json()).toMatchObject({ code: 400 });
+    }
+  });
+
   it("answers a server fault with 500 and { error, code, type }, without the cause, a stack or document text", async () => {
     const store = await testStore();
-    const faulty = await testApp({ store });
+    const faulty = await buildApp({ store });
     const doc = await createDoc(faulty, "NDA", "Confidential: Redwood acquisition");
     store.getDocument = async () => { throw new Error("connection to db-7.internal refused while reading 'Redwood acquisition'"); };
     const res = await faulty.inject({ method: "GET", url: `/documents/${doc.id}` });

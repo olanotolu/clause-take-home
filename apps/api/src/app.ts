@@ -60,6 +60,16 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
+  // Fastify rejects an empty body that arrives with "content-type: application/json", which is what a copied
+  // `curl -X DELETE -H 'content-type: application/json'` sends. Treat it as "no body": routes that need one still
+  // fail validation (400), and malformed JSON keeps the stock parser's checks, including prototype-poisoning.
+  const jsonParser = app.getDefaultJsonParser("error", "error");
+  app.removeContentTypeParser("application/json");
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+    if (body === "") return done(null, undefined);
+    jsonParser(req, body as string, done);
+  });
+
   const store = opts.store ?? createSqliteStore(opts.dbPath ?? ":memory:");
   app.decorate("store", store);
   app.addHook("onClose", async () => {
