@@ -50,6 +50,8 @@ test("search selects the exact passage and edits directly from it", async ({ pag
   const token = `zebracrossing${Date.now().toString(36)}`;
   const doc = await createDocument(request, { extra: `Schedule A: the ${token} fee applies.` });
   await page.goto("/#/documents");
+  // The app is code-split, so the page can load before the shortcut handler exists: wait for a rendered view first.
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "Search documents and clauses" });
   await expect(dialog).toBeVisible();
@@ -81,6 +83,8 @@ test("a stale search hit never selects unrelated text", async ({ page, request }
     await route.fulfill({ response });
   });
   await page.goto("/#/documents");
+  // The app is code-split, so the page can load before the shortcut handler exists: wait for a rendered view first.
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "Search documents and clauses" });
   await dialog.getByRole("combobox").fill(token);
@@ -94,6 +98,8 @@ test("opening a search result preserves a staged edit", async ({ page, request }
   const doc = await createDocument(request, { extra: `The ${token} applies.` });
   await openDocument(page, doc.title);
   await stageReplacement(page, "two (2) years", "four (4) years");
+  // The app is code-split, so the page can load before the shortcut handler exists: wait for a rendered view first.
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "Search documents and clauses" });
   await dialog.getByRole("combobox").fill(token);
@@ -110,6 +116,8 @@ test("opening a document title cannot discard another document's draft", async (
   const second = await createDocument(request);
   await openDocument(page, first.title);
   await stageReplacement(page, "two (2) years", "four (4) years");
+  // The app is code-split, so the page can load before the shortcut handler exists: wait for a rendered view first.
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "Search documents and clauses" });
   await dialog.getByRole("option").filter({ hasText: second.title }).click();
