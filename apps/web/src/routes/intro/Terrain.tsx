@@ -12,6 +12,33 @@ interface Props {
   onFail: () => void;
 }
 
+/**
+ * The camera holds a framing for each beat and moves between them in the gaps, like cuts that are dollies instead:
+ * a new heading and a new lens (a tighter or wider shot) per beat, eased, never a straight linear glide.
+ */
+const SHOTS = [
+  { from: 0, to: 0.12, yaw: 0, focal: 1.55 },
+  { from: 0.24, to: 0.36, yaw: -0.3, focal: 1.85 },
+  { from: 0.44, to: 0.56, yaw: 0.32, focal: 1.4 },
+  { from: 0.64, to: 0.76, yaw: -0.12, focal: 2.15 },
+  { from: 0.88, to: 1, yaw: 0, focal: 1.5 },
+] as const;
+
+export function shotAt(p: number): { yaw: number; focal: number } {
+  for (let i = 0; i < SHOTS.length - 1; i++) {
+    const a = SHOTS[i]!;
+    const b = SHOTS[i + 1]!;
+    if (p <= a.to) return { yaw: a.yaw, focal: a.focal };
+    if (p < b.from) {
+      const t = (p - a.to) / (b.from - a.to);
+      const e = t * t * t * (t * (t * 6 - 15) + 10); // smootherstep
+      return { yaw: a.yaw + (b.yaw - a.yaw) * e, focal: a.focal + (b.focal - a.focal) * e };
+    }
+  }
+  const last = SHOTS[SHOTS.length - 1]!;
+  return { yaw: last.yaw, focal: last.focal };
+}
+
 function compile(gl: WebGL2RenderingContext, type: number, src: string) {
   const sh = gl.createShader(type);
   if (!sh) throw new Error("no shader");
@@ -55,7 +82,7 @@ export function Terrain({ p, px, py, reduce, onFail }: Props) {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const u = (name: string) => gl.getUniformLocation(program, name);
-    const uRes = u("uRes"), uTime = u("uTime"), uScroll = u("uScroll"), uIntro = u("uIntro"), uAnimate = u("uAnimate"), uPointer = u("uPointer");
+    const uRes = u("uRes"), uTime = u("uTime"), uScroll = u("uScroll"), uIntro = u("uIntro"), uAnimate = u("uAnimate"), uPointer = u("uPointer"), uYaw = u("uYaw"), uFocal = u("uFocal");
 
     const automated = navigator.webdriver === true;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -96,6 +123,9 @@ export function Terrain({ p, px, py, reduce, onFail }: Props) {
       gl.uniform1f(uIntro, intro);
       gl.uniform1f(uAnimate, reduce ? 0 : 1);
       gl.uniform2f(uPointer, reduce ? 0 : px.get(), reduce ? 0 : py.get());
+      const shot = shotAt(Math.min(Math.max(p.get(), 0), 1));
+      gl.uniform1f(uYaw, shot.yaw);
+      gl.uniform1f(uFocal, shot.focal);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       raf = requestAnimationFrame(draw);
     };

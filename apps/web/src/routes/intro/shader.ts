@@ -14,6 +14,8 @@ uniform float uScroll;   // 0..1 through the page
 uniform float uIntro;    // 0..1 over the opening seconds
 uniform float uAnimate;  // 0 under reduced motion: no drift, no shimmer
 uniform vec2 uPointer;   // -0.5..0.5
+uniform float uYaw;      // camera heading, set per beat
+uniform float uFocal;    // focal length: larger is a tighter shot
 out vec4 outColor;
 
 float hash(vec2 p) { p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113)); return fract(p.x * p.y * (p.x + p.y)); }
@@ -68,11 +70,11 @@ void main() {
   vec3 ro = vec3(uPointer.x * 4.0 + sin(t0 * 0.07) * 1.5, 0.0, uScroll * 170.0 + t0 * 0.35);
   ro.y = dune(ro.xz) + 15.0 + uScroll * 16.0;
   float pitch = -0.17 - uScroll * 0.12 - uPointer.y * 0.06;
-  vec3 fwd = normalize(vec3(uPointer.x * 0.12, sin(pitch), cos(pitch)));
+  vec3 fwd = normalize(vec3(sin(uYaw + uPointer.x * 0.1) * cos(pitch), sin(pitch), cos(uYaw + uPointer.x * 0.1) * cos(pitch)));
   vec3 right = normalize(cross(vec3(0, 1, 0), fwd));
   vec3 up = cross(fwd, right);
   uv.y += uAnimate * 0.0016 * sin(uv.x * 70.0 + uTime * 1.6) * smoothstep(0.1, -0.05, uv.y);
-  vec3 rd = normalize(uv.x * right + uv.y * up + 1.55 * fwd);
+  vec3 rd = normalize(uv.x * right + uv.y * up + uFocal * fwd);
 
   // The day: dawn at the top of the page, high gold light by the end. The sun climbs out of the dark in the opening.
   float day = smoothstep(0.0, 0.32, uScroll);

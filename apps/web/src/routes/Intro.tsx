@@ -2,6 +2,7 @@ import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScrol
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight } from "../ui/icons.tsx";
 import { BEATS, beatStart, BONE, INK } from "./intro/content.ts";
+import { Char, Cursor, Magnetic } from "./intro/Motion.tsx";
 import { Words } from "./intro/Type.tsx";
 import { CheckPanel, ResolvePanel, VersionPanel } from "./intro/Panels.tsx";
 import { Terrain } from "./intro/Terrain.tsx";
@@ -28,6 +29,37 @@ function Beat({ p, at, children, className = "", hold = false }: { p: MotionValu
     <motion.div style={{ opacity, y, pointerEvents: live ? "auto" : "none" }} aria-hidden={!live} className={`absolute inset-x-0 ${className}`}>
       {children}
     </motion.div>
+  );
+}
+
+const STOPS = [
+  { at: 0, label: "Opening" },
+  { at: 0.3, label: "01 Resolve" },
+  { at: 0.5, label: "02 Version" },
+  { at: 0.7, label: "03 Check" },
+  { at: 1, label: "The way in" },
+] as const;
+
+/** Five stops down the right edge: they show where you are and jump there, smoothly. */
+function Dots({ p, scroller }: { p: MotionValue<number>; scroller: React.RefObject<HTMLDivElement | null> }) {
+  const [at, setAt] = useState(0);
+  useMotionValueEvent(p, "change", (v) => setAt(STOPS.reduce((best, s, i) => (Math.abs(v - s.at) < Math.abs(v - STOPS[best]!.at) ? i : best), 0)));
+  return (
+    <nav aria-label="Intro sections" className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center max-[640px]:right-1">
+      {STOPS.map((s, i) => (
+        <button
+          key={s.label}
+          type="button"
+          aria-label={s.label}
+          aria-current={at === i ? "step" : undefined}
+          onClick={() => { const el = scroller.current; if (el) el.scrollTo({ top: s.at * (el.scrollHeight - el.clientHeight), behavior: "smooth" }); }}
+          className="group grid size-7 place-items-center"
+        >
+          <span className="block rounded-full transition-all duration-300" style={{ width: at === i ? 8 : 5, height: at === i ? 8 : 5, background: BONE, opacity: at === i ? 1 : 0.45 }} />
+          <span aria-hidden className="pointer-events-none absolute right-8 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:hidden" style={{ background: "rgb(18 9 4 / .7)", color: BONE }}>{s.label}</span>
+        </button>
+      ))}
+    </nav>
   );
 }
 
@@ -86,6 +118,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
       className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain"
       style={{ background: INK }}
     >
+      <Cursor reduce={reduce} />
       <div ref={track} className="relative h-[560vh]">
         <div className="sticky top-0 h-screen overflow-hidden" style={{ background: STILL }}>
           {!still && <Terrain p={p} px={px} py={py} reduce={reduce} onFail={failed} />}
@@ -98,23 +131,26 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                 <span aria-hidden className="block size-[15px] rounded-[4px] border-2" style={{ borderColor: BONE, borderRightColor: "transparent" }} />
                 CLAUSE
               </motion.span>
-              <button ref={skip} type="button" onClick={onEnter} className="flex h-9 items-center gap-2.5 rounded-full border pl-4 pr-2 text-[13px] font-semibold transition-colors hover:bg-[rgb(246_234_210/.14)]" style={{ borderColor: "rgb(246 234 210 / .5)", color: BONE }}>
+              <Magnetic reduce={reduce} strength={0.25}>
+              <button ref={skip} type="button" data-cursor="Skip" onClick={onEnter} className="flex h-9 items-center gap-2.5 rounded-full border pl-4 pr-2 text-[13px] font-semibold transition-colors hover:bg-[rgb(246_234_210/.14)]" style={{ borderColor: "rgb(246 234 210 / .5)", color: BONE }}>
                 Skip intro
                 <kbd className="rounded-md border px-1.5 py-px text-[10px] font-semibold tracking-wide max-[640px]:hidden" style={{ borderColor: "rgb(246 234 210 / .4)", color: "rgb(246 234 210 / .75)" }}>Esc</kbd>
               </button>
+              </Magnetic>
             </div>
 
             <motion.div style={{ opacity: heroOpacity, y: heroY }} className="absolute inset-x-7 bottom-[11vh] max-[640px]:inset-x-5 max-[640px]:bottom-[9vh]">
-              <h1 className="text-[clamp(2.6rem,7.2vw,6.4rem)] leading-[0.96] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)", textWrap: "balance" }}>
+              <h1 aria-label="Edits that land exactly where you point." className="text-[clamp(2.6rem,7.2vw,6.4rem)] leading-[0.96] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)", textWrap: "balance" }}>
                 {HEADLINE.map((line, li) => (
-                  <span key={line[0]} className="block" style={{ fontWeight: li === 0 ? 300 : 700 }}>
-                    {line.map((w, i) => (
-                      <span key={w} className="mr-[0.2em] inline-block overflow-hidden align-bottom pb-[0.12em]">
-                        <motion.span className="inline-block" initial={reduce ? false : { y: "118%" }} animate={{ y: 0 }} transition={{ duration: 1.4, delay: 1.0 + (li * 3 + i) * 0.1, ease: EASE }}>
-                          {w}
-                        </motion.span>
-                      </span>
-                    ))}
+                  <span key={line[0]} aria-hidden className="block" style={{ fontWeight: li === 0 ? 300 : 700 }}>
+                    {line.map((w, wi) => {
+                      const before = HEADLINE.slice(0, li).flat().length + wi;
+                      return (
+                        <span key={w} className="mr-[0.2em] inline-block overflow-hidden align-bottom pb-[0.14em] pr-[0.04em]">
+                          {w.split("").map((c, ci) => <Char key={`${ci}-${c}`} reduce={reduce} delay={1.0 + before * 0.09 + ci * 0.028}>{c}</Char>)}
+                        </span>
+                      );
+                    })}
                   </span>
                 ))}
               </h1>
@@ -143,7 +179,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                         <Words p={p} from={s + 0.012} to={s + 0.1} runs={b.runs} />
                       </p>
                     </div>
-                    <Panel p={p} s={s} />
+                    <Panel p={p} s={s} reduce={reduce} />
                   </div>
                 </Beat>
               );
@@ -152,8 +188,10 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
             <Beat p={p} at={[0.8, 0.88, 0.999, 1]} hold className="bottom-[11vh] px-7 max-[640px]:bottom-[9vh] max-[640px]:px-5">
               <h2 className="max-w-[13ch] text-[clamp(2.3rem,5.8vw,5rem)] leading-[0.98] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)" }}><span style={{ fontWeight: 300 }}>See it on a</span> <span style={{ fontWeight: 700 }}>real contract.</span></h2>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <Magnetic reduce={reduce} strength={0.3}>
                 <button
                   type="button"
+                  data-cursor="Enter"
                   onClick={onEnter}
                   tabIndex={atEnd ? 0 : -1}
                   className="group inline-flex h-[60px] items-center gap-4 rounded-full pl-8 pr-2 text-[17px] font-bold tracking-[-0.01em] transition-transform duration-150 active:scale-[0.97]"
@@ -162,12 +200,14 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                   Open the workspace
                   <span className="grid size-11 place-items-center rounded-full transition-transform duration-300 group-hover:translate-x-1" style={{ background: INK, color: BONE }}><ArrowRight size={18} aria-hidden /></span>
                 </button>
+                </Magnetic>
                 <p className="text-sm" style={{ color: "rgb(246 234 210 / .8)" }}>Sample contracts, no sign-in.</p>
               </div>
             </Beat>
           </div>
 
           <Counter p={p} />
+          <Dots p={p} scroller={scroller} />
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[2px]" style={{ background: "rgb(246 234 210 / .18)" }}>
             <motion.div className="h-full" style={{ width: fill, background: BONE }} />
           </div>
