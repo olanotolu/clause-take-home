@@ -7,6 +7,7 @@ import type { App } from "../types.ts";
 export interface StatusInputs {
   semantic: SemanticEvaluator;
   suggestionsEnabled: boolean;
+  suggestionModel: string | null;
   checkPerHour: number;
   suggestPerHour: number;
   version: string;
@@ -22,7 +23,7 @@ export function registerSettingsRoutes(app: App, inputs: StatusInputs): void {
     version: inputs.version,
     storage: app.store.kind,
     access: "open" as const,
-    ai: { judges: [...inputs.semantic.models], suggestions: inputs.suggestionsEnabled, strictnessOptions: ["balanced" as const, "strict" as const] },
+    ai: { judges: [...inputs.semantic.models], suggestions: inputs.suggestionsEnabled, suggestionModel: inputs.suggestionModel, strictnessOptions: ["balanced" as const, "strict" as const] },
     limits: {
       maxDocumentChars: Number.isFinite(app.store.maxContentChars) ? app.store.maxContentChars : null,
       maxJudgedChars: MAX_JUDGED_CHARS,

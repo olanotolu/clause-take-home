@@ -37,9 +37,18 @@ export function AssistantPanel({ tab, onTab, searchSeed }: Props) {
   const current = tabs.some((t) => t.id === tab) ? tab : "search";
 
   return (
-    <aside aria-label="Assistant" className="flex min-h-0 flex-col border-l border-line bg-canvas max-[899px]:border-l-0 max-[899px]:border-t">
-      <Tabs tabs={tabs} value={current} onChange={onTab} label="Assistant sections" idPrefix="asst" className="shrink-0 border-b border-line bg-paper px-2" />
-      <div id="asst-panel" role="tabpanel" aria-labelledby={`asst-${current}`} className="min-h-0 flex-1 p-4">
+    <aside aria-label="Document assistant" className="flex min-h-0 flex-col border-l border-line bg-paper max-[899px]:border-l-0 max-[899px]:border-t">
+      <div className="shrink-0 border-b border-line px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">Document tools</p>
+            <h2 className="mt-0.5 truncate text-[16px] font-semibold tracking-[-0.02em]">{current === "assistant" ? "AI assistant" : current === "search" ? "Find in documents" : "Requirements & playbooks"}</h2>
+          </div>
+        </div>
+        {current === "assistant" && <p className="mt-1 text-[12px] text-muted">Stage suggestions, then review before applying.</p>}
+      </div>
+      <Tabs tabs={tabs} value={current} onChange={onTab} label="Document tools" idPrefix="asst" className="shrink-0 border-b border-line bg-paper px-2" />
+      <div id="asst-panel" role="tabpanel" aria-labelledby={`asst-${current}`} className="min-h-0 flex-1 overflow-y-auto bg-canvas p-3.5">
         <div className={current === "search" ? "h-full" : "hidden"}>
           <SearchPanel refreshKey={ws.refreshKey} seed={searchSeed} onResults={ws.setSearchPage} onOpen={(r) => navigate({ name: "doc", id: r.documentId, tab: "edit" })} onPick={ws.pickHit} />
         </div>

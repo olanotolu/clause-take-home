@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@keyframes palette-backdrop-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes palette-backdrop-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes palette-dialog-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(.985) } to { opacity: 1; transform: translate(-50%, -50%) scale(1) } }
+@keyframes palette-dialog-out { from { opacity: 1; transform: translate(-50%, -50%) scale(1) } to { opacity: 0; transform: translate(-50%, calc(-50% + 7px)) scale(.99) } }
+@keyframes palette-result-in { from { opacity: 0; transform: translateY(5px) } to { opacity: 1; transform: translateY(0) } }
+
+.palette-overlay[data-state="open"] { animation: palette-backdrop-in 160ms ease-out both; }
+.palette-overlay[data-state="closed"] { animation: palette-backdrop-out 120ms ease-in both; }
+.palette-dialog[data-state="open"] { animation: palette-dialog-in 260ms cubic-bezier(.16,1,.3,1) both; transform-origin: center; }
+.palette-dialog[data-state="closed"] { animation: palette-dialog-out 160ms cubic-bezier(.7,0,.84,0) both; transform-origin: center; }
+.palette-result { animation: palette-result-in 180ms cubic-bezier(.2,.8,.2,1) both; }
+.palette-result:nth-child(1) { animation-delay: 20ms; }
+.palette-result:nth-child(2) { animation-delay: 35ms; }
+.palette-result:nth-child(3) { animation-delay: 50ms; }
+.palette-result:nth-child(4) { animation-delay: 65ms; }
+.palette-result:nth-child(5) { animation-delay: 80ms; }
+.palette-result:nth-child(6) { animation-delay: 95ms; }
+.palette-result:nth-child(7) { animation-delay: 110ms; }
+.palette-result:nth-child(8) { animation-delay: 125ms; }
+@media (prefers-reduced-motion: reduce) {
+  .palette-overlay, .palette-dialog, .palette-result { animation: none !important; }
+  .palette-dialog[data-state="open"], .palette-dialog[data-state="closed"] { transform: translate(-50%, -50%); }
+}
+
 /*
  * CLAUSE design tokens, in the product register: chroma-0 neutrals (no warm cast, so signals read as signals), hairline
  * borders at 6% ink, one blue accent for actions, selection and focus, and status pairs that always carry an icon and
@@ -155,6 +179,33 @@ input[type="date"] { min-height: 2.25rem; }
 .redline .del { text-decoration: none; background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 58%; animation: strike 340ms 60ms var(--ease-out) both; }
 .redline .ins { animation: fade-up 260ms 160ms var(--ease-out) both; }
 .skeleton { background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in oklab, var(--color-line) 45%, var(--color-paper)) 50%, var(--color-line) 75%) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 6px; }
+
+/* Settings: a calm control room with clear section landmarks and quiet, tactile controls. */
+.settings-page { background-image: radial-gradient(ellipse at 82% 0%, color-mix(in oklab, var(--color-accent) 5%, transparent), transparent 42%); }
+.settings-columns { display: grid; min-width: 0; gap: 1rem; }
+.settings-card { scroll-margin-top: 150px; box-shadow: var(--shadow-soft); transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms var(--ease-out); }
+.settings-card:hover { border-color: color-mix(in oklab, var(--color-accent) 16%, var(--color-line)); box-shadow: 0 3px 14px rgb(20 20 22 / 0.045), 0 0 0 1px color-mix(in oklab, var(--color-accent) 5%, transparent); }
+.settings-card-icon { border: 1px solid color-mix(in oklab, var(--color-accent) 12%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.78), 0 1px 2px rgb(20 20 22 / 0.035); background-image: linear-gradient(145deg, color-mix(in oklab, var(--color-accent) 8%, var(--color-paper)), color-mix(in oklab, var(--color-accent) 2%, var(--color-paper))); transition: transform 220ms var(--ease-out), background-color 180ms ease, box-shadow 180ms ease; }
+.settings-card:hover .settings-card-icon { transform: translateY(-1px) rotate(-3deg); background-color: color-mix(in oklab, var(--color-accent) 14%, var(--color-paper)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.88), 0 3px 8px color-mix(in oklab, var(--color-accent) 10%, transparent); }
+.settings-nav-item svg { transition: transform 180ms var(--ease-out), color 180ms ease; }
+.settings-nav-item:hover svg { transform: scale(1.08); }
+.settings-search input::-webkit-search-cancel-button { cursor: pointer; }
+.settings-control select:focus-visible { outline-offset: 3px; }
+.settings-toggle:active span { width: 22px; }
+.settings-note-card { box-shadow: var(--shadow-soft); background-image: linear-gradient(145deg, color-mix(in oklab, var(--color-accent) 4%, var(--color-paper)), var(--color-paper) 48%); }
+.settings-secondary > section { transition: border-color 180ms ease, box-shadow 180ms ease; }
+.settings-secondary > section:hover { border-color: color-mix(in oklab, var(--color-accent) 14%, var(--color-line)); box-shadow: var(--shadow-soft); }
+
+@media (min-width: 1180px) {
+  .settings-columns { grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.88fr); align-items: start; gap: 1.25rem; }
+  .settings-secondary { position: sticky; top: 118px; }
+}
+
+@media (max-width: 899px) {
+  .settings-header { position: relative; top: auto; }
+  .settings-nav { scrollbar-width: none; }
+  .settings-nav::-webkit-scrollbar { display: none; }
+}
 
 /* Native dialogs: scale in from slightly smaller, never from nothing. */
 dialog[open] { animation: rise 180ms var(--ease-out) both; }

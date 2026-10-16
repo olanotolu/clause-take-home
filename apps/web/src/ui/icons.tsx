@@ -9,37 +9,42 @@ import {
   ArrowCounterClockwise,
   ArrowRight as PArrowRight,
   BookBookmark,
+  Brain as PBrain,
+  Buildings as PBuildings,
   CalendarBlank,
   CaretDown,
   CaretRight,
   CaretUp,
   Check as PCheck,
   CheckCircle,
+  Clock as PClock,
   CircleNotch,
   DownloadSimple,
   FilePlus,
   FileText as PFileText,
-  GearSix,
+  GearSix as PGearSix,
   GitDiff,
+  MagnifyingGlass as PMagnifyingGlass,
   Info as PInfo,
   Kanban,
   Layout,
   ListBullets,
   ListChecks as PListChecks,
   Lock as PLock,
-  MagnifyingGlass,
   MinusCircle,
   PencilSimple,
+  Plug,
   PlusCircle as PPlusCircle,
   Play as PPlay,
   Plus as PPlus,
   Prohibit,
   Pulse,
+  Palette as PPalette,
   Question,
   Quotes,
   ShieldCheck as PShieldCheck,
   ShieldWarning,
-  Sparkle,
+  Sparkle as PSparkle,
   SquaresFour,
   Trash,
   Warning,
@@ -66,9 +71,12 @@ export const TriangleAlert = make(Warning, "fill");
 export const ArrowRight = make(PArrowRight);
 export const Ban = make(Prohibit);
 export const BookOpenCheck = make(BookBookmark);
+export const Brain = make(PBrain);
+export const Buildings = make(PBuildings);
 export const CalendarDays = make(CalendarBlank);
 export const Check = make(PCheck, "bold");
 export const CheckCircle2 = make(CheckCircle, "fill");
+export const Clock = make(PClock);
 export const ChevronDown = make(CaretDown, "bold");
 export const ChevronRight = make(CaretRight, "bold");
 export const ChevronUp = make(CaretUp, "bold");
@@ -86,15 +94,20 @@ export const List = make(ListBullets);
 export const ListChecks = make(PListChecks);
 export const Loader2 = make(CircleNotch, "bold");
 export const Lock = make(PLock);
+export const MagnifyingGlass = make(PMagnifyingGlass);
+export const Palette = make(PPalette);
 export const Pencil = make(PencilSimple);
 export const Play = make(PPlay, "fill");
+export const PlugIcon = make(Plug);
 export const Plus = make(PPlus, "bold");
 export const PlusCircle = make(PPlusCircle, "fill");
-export const Search = make(MagnifyingGlass);
-export const Settings = make(GearSix);
+export const Search = make(PMagnifyingGlass);
+export const Settings = make(PGearSix);
 export const ShieldAlert = make(ShieldWarning);
 export const ShieldCheck = make(PShieldCheck);
-export const Sparkles = make(Sparkle, "fill");
+export const Sparkles = make(PSparkle, "fill");
+export const Sparkle = make(PSparkle);
+export const GearSix = make(PGearSix);
 export const TextSelect = make(Quotes);
 export const Trash2 = make(Trash);
 export const Undo2 = make(ArrowCounterClockwise);

@@ -111,6 +111,10 @@ export const DocumentOut = z.object({
   contentHash: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  templateProvenance: z.object({
+    templateId: z.string(), title: z.string(), source: z.string(), attribution: z.string(), sourceUrl: z.string(),
+    sourceVersion: z.string(), license: z.string(), jurisdictionNote: z.string(),
+  }).optional(),
 });
 
 export const DocumentSummaryOut = DocumentOut.omit({ content: true }).extend({ size: z.number().int() });
@@ -256,6 +260,7 @@ export const SettingsStatusOut = z.object({
   ai: z.object({
     judges: z.array(z.string()).meta({ description: "Model ids that judge semantic requirements. Empty when none is configured." }),
     suggestions: z.boolean(),
+    suggestionModel: z.string().nullable(),
     strictnessOptions: z.array(z.enum(["balanced", "strict"])),
   }),
   limits: z.object({
@@ -270,9 +275,21 @@ export const SettingsStatusOut = z.object({
 export const TemplateOut = z.object({
   id: z.string(),
   title: z.string(),
-  category: z.enum(["NDA", "Commercial", "Employment", "Data & Privacy"]),
+  description: z.string(),
+  category: z.enum(["NDA", "Commercial", "Data & Privacy", "Vendor & Services", "Employment"]),
   content: z.string(),
+  source: z.string(), attribution: z.string(), sourceUrl: z.string(), sourceVersion: z.string(), license: z.string(),
+  jurisdictionNote: z.string(), featured: z.boolean(),
+  variables: z.array(z.object({ id: z.string(), label: z.string(), required: z.boolean(), placeholder: z.string(), helpText: z.string() })),
+  suggestedRequirements: z.array(z.object({ id: z.string(), title: z.string(), kind: RequirementKindSchema, text: z.string() })),
 });
+
+export const CreateTemplateBody = z.strictObject({
+  title: z.string().trim().min(1).max(300).optional(),
+  values: z.record(z.string(), z.string().max(4000)),
+  selectedRequirementIds: z.array(z.string()).max(8),
+});
+export const TemplateIdParams = z.strictObject({ id: z.string().min(1).max(100) });
 
 // ---------------------------------------------------------------- requests (units of legal work)
 

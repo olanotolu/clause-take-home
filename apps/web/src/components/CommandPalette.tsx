@@ -1,16 +1,16 @@
 import { Command } from "cmdk";
-import { FileText, Search as SearchIcon, TextSelect } from "../ui/icons.tsx";
+import { FileText, Loader2, Search as SearchIcon, TextSelect } from "../ui/icons.tsx";
 import { useEffect, useRef, useState } from "react";
 import { api, type DocResult, type Hit } from "../lib/api.ts";
 import { navigate } from "../lib/router.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Kbd } from "../ui/bits.tsx";
 
-const item = "flex cursor-pointer items-start gap-3 rounded-control px-3 py-2 data-[selected=true]:bg-accent-soft";
+const item = "palette-result flex cursor-pointer items-start gap-3 rounded-control px-3 py-2.5 transition-colors duration-150 data-[selected=true]:bg-accent-soft data-[selected=true]:shadow-[inset_2px_0_0_var(--color-accent)]";
 
 /**
  * ⌘K. cmdk owns focus, arrow keys, Enter and the listbox semantics; results come from the real search API, so cmdk's own
- * filtering is off. It opens and closes with no animation on purpose: it is a keyboard action people repeat all day.
+ * filtering is off. The CSS motion stays short so repeated keyboard use still feels immediate.
  */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ws = useWorkspace();
@@ -53,16 +53,16 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       onOpenChange={(o) => { if (!o) onClose(); }}
       label="Search documents and clauses"
       shouldFilter={false}
-      overlayClassName="fixed inset-0 z-40 bg-black/40"
-      contentClassName="fixed left-1/2 top-[12vh] z-50 w-[min(640px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-[20px] bg-paper text-ink shadow-lift"
+      overlayClassName="palette-overlay fixed inset-0 z-40 bg-black/40 backdrop-blur-[3px]"
+      contentClassName="palette-dialog fixed left-1/2 top-1/2 z-50 w-[min(760px,calc(100vw-28px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[22px] border border-line bg-paper text-ink shadow-lift"
     >
-      <div className="flex items-center gap-2.5 border-b border-line px-4">
-        <SearchIcon size={16} className="text-muted" aria-hidden />
-        <Command.Input value={q} onValueChange={setQ} placeholder="Search documents and clauses…" className="h-12 min-w-0 flex-1 bg-transparent text-[15px] outline-none" />
+      <div className="flex items-center gap-3 border-b border-line bg-paper px-5 py-4 max-[520px]:px-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><SearchIcon size={18} aria-hidden /></span>
+        <Command.Input value={q} onValueChange={setQ} placeholder="Search documents and clauses…" className="h-11 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted/75" />
         <Kbd>esc</Kbd>
       </div>
-      <Command.List className="max-h-[50vh] overflow-y-auto p-2">
-        <Command.Empty className="px-3 py-6 text-center text-sm text-muted">{searching ? "Searching…" : q.trim().length < 2 ? "Type at least two characters to search clause text." : "No matches."}</Command.Empty>
+      <Command.List className="max-h-[min(56vh,520px)] min-h-28 overflow-y-auto p-3 max-[520px]:p-2">
+        <Command.Empty className="px-3 py-8 text-center text-sm text-muted">{searching ? <span className="inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-accent" aria-hidden /> Searching clauses…</span> : q.trim().length < 2 ? "Type at least two characters to search clause text." : "No matches. Try different wording."}</Command.Empty>
         {docs.length > 0 && (
           <Command.Group heading={needle ? "Documents" : "Recent documents"} className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted">
             {docs.map((d) => (
@@ -92,7 +92,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           </Command.Group>
         )}
       </Command.List>
-      <p className="border-t border-line px-4 py-2 text-xs text-muted">Enter opens. Clause results select the exact passage.</p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line bg-canvas/70 px-4 py-2.5 text-[11px] text-muted"><span>Clause results jump to the exact passage.</span><span className="flex items-center gap-3"><span><Kbd>↑↓</Kbd> Navigate</span><span><Kbd>↵</Kbd> Open</span></span></div>
     </Command.Dialog>
   );
 }

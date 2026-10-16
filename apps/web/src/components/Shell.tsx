@@ -1,7 +1,7 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Num } from "../ui/Num.tsx";
 import { motion } from "motion/react";
-import { Activity, BookOpenCheck, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, Plus, Search, Settings } from "../ui/icons.tsx";
+import { Activity, BookOpenCheck, ChevronDown, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, Plus, PlugIcon, Search, Settings } from "../ui/icons.tsx";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { api, type SettingsStatus } from "../lib/api.ts";
@@ -10,6 +10,7 @@ import { navigate, useRoute, type Route } from "../lib/router.ts";
 import { useSettings } from "../lib/settings.tsx";
 import { kb } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
+import { useAuth } from "../lib/auth.tsx";
 import { Button } from "../ui/Button.tsx";
 import { Kbd } from "../ui/bits.tsx";
 import { CommandPalette } from "./CommandPalette.tsx";
@@ -34,7 +35,7 @@ const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
     ],
   },
   { label: "Library", items: [{ key: "playbooks", label: "Playbooks", icon: BookOpenCheck, route: { name: "playbooks" } }, { key: "templates", label: "Templates", icon: LayoutTemplate, route: { name: "templates" } }] },
-  { label: "System", items: [{ key: "activity", label: "Activity", icon: Activity, route: { name: "activity" } }, { key: "settings", label: "Settings", icon: Settings, route: { name: "settings" } }] },
+  { label: "System", items: [{ key: "activity", label: "Activity", icon: Activity, route: { name: "activity" } }, { key: "integrations", label: "Integrations", icon: PlugIcon, route: { name: "integrations" } }, { key: "settings", label: "Settings", icon: Settings, route: { name: "settings" } }] },
 ];
 const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
@@ -42,13 +43,15 @@ function activeKey(route: Route): string {
   return route.name === "doc" ? "documents" : route.name;
 }
 
-const CRUMB: Partial<Record<Route["name"], string>> = { home: "Workspace", documents: "Documents", playbooks: "Playbooks", activity: "Activity", templates: "Templates", settings: "Settings" };
+const CRUMB: Partial<Record<Route["name"], string>> = { home: "Workspace", documents: "Documents", playbooks: "Playbooks", activity: "Activity", integrations: "Integrations", templates: "Templates", settings: "Settings" };
 
 export function Shell({ children }: { children: ReactNode }) {
   const route = useRoute();
   const ws = useWorkspace();
+  const auth = useAuth();
   const { settings } = useSettings();
   const [palette, setPalette] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [status, setStatus] = useState<SettingsStatus | null>(null);
   const [docList] = useAutoAnimate<HTMLElement>({ duration: 180, easing: "ease-out" });
 
@@ -136,11 +139,25 @@ export function Shell({ children }: { children: ReactNode }) {
           </nav>
         </div>
 
-        <div className="mt-auto px-6 py-4 text-xs text-rail-muted max-[1279px]:hidden">
-          <p className="tnum">{ws.docs.length} document{ws.docs.length === 1 ? "" : "s"} · {kb(totalBytes)}</p>
-          <p className="mt-0.5">
-            Open workspace{status ? ` · ${status.storage === "postgres" ? "Postgres" : "SQLite"}` : ""}{status && status.version !== "dev" ? ` · ${status.version}` : ""}
-          </p>
+        <div className="mt-auto space-y-2 border-t border-line px-3 py-3 max-[1279px]:hidden">
+          <div className="relative">
+            <button aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)} className="flex w-full items-center gap-2.5 rounded-[12px] bg-paper/70 px-2.5 py-2 text-left hover:bg-paper">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper">AC</span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-rail-ink">Acme Inc.</span><span className="block truncate text-xs text-rail-muted">Legal Team</span></span>
+              <ChevronDown size={15} aria-hidden className="text-rail-muted" />
+            </button>
+            {accountOpen && <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[12px] border border-line bg-paper p-3 shadow-soft">
+              <p className="truncate text-xs font-medium text-rail-ink">{auth.user?.name || auth.user?.email || "Workspace profile"}</p>
+              {auth.user?.email && <p className="mt-0.5 truncate text-[11px] text-rail-muted">{auth.user.email}</p>}
+              {auth.user && <button onClick={() => { void auth.signOut(); setAccountOpen(false); }} className="mt-2 w-full rounded-control px-2 py-1.5 text-left text-xs text-rail-muted hover:bg-rail-hi hover:text-rail-ink">Sign out</button>}
+            </div>}
+          </div>
+          <div className="rounded-[12px] bg-paper/70 px-3 py-2.5">
+            <div className="flex items-center justify-between text-xs"><span className="font-medium text-rail-ink">Usage</span><span className="text-[10px] text-rail-muted">Sample</span></div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/15"><div className="h-full w-[24%] rounded-full bg-accent" /></div>
+            <p className="tnum mt-1.5 text-xs text-rail-ink">2.4 GB <span className="text-rail-muted">/ 10 GB</span></p>
+          </div>
+          <p className="px-1 text-[10px] text-rail-muted">{ws.docs.length} document{ws.docs.length === 1 ? "" : "s"} · {kb(totalBytes)} · {status ? (status.storage === "postgres" ? "Postgres" : "SQLite") : "Workspace"}</p>
         </div>
       </aside>
 

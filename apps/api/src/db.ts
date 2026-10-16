@@ -110,6 +110,25 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX playbook_rules_idx ON playbook_rules (playbook_id, seq);
   `,
+  `
+  CREATE TABLE integration_connections (
+    provider TEXT PRIMARY KEY,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT,
+    expires_at TEXT,
+    account_name TEXT,
+    connected_at TEXT NOT NULL
+  );
+  CREATE TABLE integration_imports (
+    provider TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    imported_at TEXT NOT NULL,
+    PRIMARY KEY (provider, file_id)
+  );
+  CREATE INDEX integration_imports_document_idx ON integration_imports (document_id);
+  `,
+  `ALTER TABLE documents ADD COLUMN template_provenance TEXT;`,
 ];
 
 export function openDb(path: string): Db {

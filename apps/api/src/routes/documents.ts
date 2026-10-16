@@ -16,6 +16,7 @@ const present = (d: DocumentRecord) => ({
   contentHash: d.contentHash,
   createdAt: d.createdAt,
   updatedAt: d.updatedAt,
+  ...(d.templateProvenance ? { templateProvenance: d.templateProvenance } : {}),
 });
 
 export function registerDocumentRoutes(app: App): void {

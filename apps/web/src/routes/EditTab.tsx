@@ -28,14 +28,14 @@ export function EditTab() {
   }, [doc.version]);
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] max-[899px]:grid-cols-1 max-[899px]:overflow-y-auto min-[900px]:overflow-hidden">
-      <div className="flex min-h-0 min-w-0 flex-col max-[899px]:min-h-[75vh]">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(320px,360px)] max-[899px]:grid-cols-1 max-[899px]:overflow-y-auto min-[900px]:overflow-hidden min-[1280px]:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="flex min-h-0 min-w-0 flex-col max-[899px]:min-h-[72vh]">
         {redlineSpans && (
           <p role="status" className="shrink-0 border-b border-line bg-pass-bg px-6 py-2 text-sm text-ink/80 max-[640px]:px-3">
             Redline preview of {redlineSpans.length} staged change{redlineSpans.length === 1 ? "" : "s"}: <span className="del px-0.5">removed</span> <span className="ins px-0.5">added</span>. Nothing is saved until you Apply.
           </p>
         )}
-        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-4 max-[640px]:px-2">
+        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-5 py-1 max-[640px]:px-2">
           <DocPane content={doc.content} hits={ws.hits} selection={ws.selection} redline={redlineSpans} flash={flash} onSelect={ws.setSelection} />
           {ws.selection && !redlineSpans && (
             <SelectionToolbar

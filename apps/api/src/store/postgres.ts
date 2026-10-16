@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import pg from "pg";
 import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
-import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
+import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store, type IntegrationConnection, type IntegrationProvider } from "./types.ts";
 
 /**
  * A tsvector may not exceed ~1 MB, and the generated column indexes the whole text, so a hosted document is capped.
@@ -104,6 +104,25 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX playbook_rules_idx ON playbook_rules (playbook_id, seq);
   `,
+  `
+  CREATE TABLE integration_connections (
+    provider TEXT PRIMARY KEY,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT,
+    expires_at TEXT,
+    account_name TEXT,
+    connected_at TEXT NOT NULL
+  );
+  CREATE TABLE integration_imports (
+    provider TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    imported_at TEXT NOT NULL,
+    PRIMARY KEY (provider, file_id)
+  );
+  CREATE INDEX integration_imports_document_idx ON integration_imports (document_id);
+  `,
+  `ALTER TABLE documents ADD COLUMN template_provenance TEXT;`,
 ];
 
 interface Row {
@@ -114,6 +133,7 @@ interface Row {
   content_hash: string;
   created_at: string;
   updated_at: string;
+  template_provenance?: string | null;
 }
 
 const toRecord = (r: Row): DocumentRecord => ({
@@ -124,9 +144,10 @@ const toRecord = (r: Row): DocumentRecord => ({
   contentHash: r.content_hash,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
+  ...(r.template_provenance ? { templateProvenance: typeof r.template_provenance === "string" ? JSON.parse(r.template_provenance) : r.template_provenance } : {}),
 });
 
-const DOC_COLUMNS = "id, title, content, version, content_hash, created_at, updated_at";
+const DOC_COLUMNS = "id, title, content, version, content_hash, created_at, updated_at, template_provenance";
 
 /**
  * Plain text -> tsquery text. Every word is emitted as a quoted literal and a "quoted phrase" becomes a `<->`
@@ -188,13 +209,13 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
   opts.onPool?.(pool);
   await migrate(pool);
 
-  async function insertWith(c: pg.PoolClient, input: { title: string; content: string }): Promise<DocumentRecord> {
+  async function insertWith(c: pg.PoolClient, input: { title: string; content: string; templateProvenance?: import("./types.ts").TemplateProvenance }): Promise<DocumentRecord> {
     const now = new Date().toISOString();
     const id = `doc_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
     const hash = sha256(input.content);
-    await c.query("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at) VALUES ($1, $2, $3, 1, $4, $5, $5)", [id, input.title, input.content, hash, now]);
+    await c.query("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at, template_provenance) VALUES ($1, $2, $3, 1, $4, $5, $5, $6)", [id, input.title, input.content, hash, now, input.templateProvenance ? JSON.stringify(input.templateProvenance) : null]);
     await c.query("INSERT INTO revisions (document_id, version, content, content_hash, summary, created_at) VALUES ($1, 1, $2, $3, $4, $5)", [id, input.content, hash, JSON.stringify([{ created: true }]), now]);
-    return { id, title: input.title, content: input.content, version: 1, contentHash: hash, createdAt: now, updatedAt: now };
+    return { id, title: input.title, content: input.content, version: 1, contentHash: hash, createdAt: now, updatedAt: now, ...(input.templateProvenance ? { templateProvenance: input.templateProvenance } : {}) };
   }
 
   /** Runs `fn` on one connection inside a transaction. */
@@ -221,6 +242,44 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
 
     async insertDocument(input) {
       return tx((c) => insertWith(c, input));
+    },
+
+    async insertImportedDocument(input) {
+      return tx(async (c) => {
+        const lock = `${input.provider}:${input.fileId}`;
+        await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [lock]);
+        const prior = (await c.query<{ id: string }>("SELECT d.id FROM integration_imports i JOIN documents d ON d.id = i.document_id WHERE i.provider = $1 AND i.file_id = $2", [input.provider, input.fileId])).rows[0];
+        if (prior) {
+          const r = (await c.query<Row>(`SELECT ${DOC_COLUMNS} FROM documents WHERE id = $1`, [prior.id])).rows[0]!;
+          return { doc: toRecord(r), imported: false };
+        }
+        const doc = await insertWith(c, input);
+        await c.query("INSERT INTO integration_imports (provider, file_id, document_id, imported_at) VALUES ($1, $2, $3, $4)", [input.provider, input.fileId, doc.id, new Date().toISOString()]);
+        return { doc, imported: true };
+      });
+    },
+
+    async listIntegrationConnections() {
+      const rows = await pool.query<{ provider: IntegrationProvider; expires_at: string | null; account_name: string | null; connected_at: string }>("SELECT provider, expires_at, account_name, connected_at FROM integration_connections ORDER BY provider");
+      return rows.rows.map((r) => ({ provider: r.provider, expiresAt: r.expires_at, accountName: r.account_name, connectedAt: r.connected_at }));
+    },
+
+    async getIntegrationConnection(provider) {
+      const r = (await pool.query<{ provider: IntegrationProvider; access_token: string; refresh_token: string | null; expires_at: string | null; account_name: string | null; connected_at: string }>("SELECT provider, access_token, refresh_token, expires_at, account_name, connected_at FROM integration_connections WHERE provider = $1", [provider])).rows[0];
+      return r && { provider: r.provider, accessToken: r.access_token, refreshToken: r.refresh_token, expiresAt: r.expires_at, accountName: r.account_name, connectedAt: r.connected_at };
+    },
+
+    async saveIntegrationConnection(c) {
+      await pool.query("INSERT INTO integration_connections (provider, access_token, refresh_token, expires_at, account_name, connected_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT(provider) DO UPDATE SET access_token = excluded.access_token, refresh_token = excluded.refresh_token, expires_at = excluded.expires_at, account_name = excluded.account_name, connected_at = excluded.connected_at", [c.provider, c.accessToken, c.refreshToken, c.expiresAt, c.accountName, c.connectedAt]);
+    },
+
+    async deleteIntegrationConnection(provider) {
+      await pool.query("DELETE FROM integration_connections WHERE provider = $1", [provider]);
+    },
+
+    async getIntegrationImport(provider, fileId) {
+      const r = (await pool.query<{ provider: IntegrationProvider; file_id: string; document_id: string; imported_at: string }>("SELECT provider, file_id, document_id, imported_at FROM integration_imports WHERE provider = $1 AND file_id = $2", [provider, fileId])).rows[0];
+      return r && { provider: r.provider, fileId: r.file_id, documentId: r.document_id, importedAt: r.imported_at };
     },
 
     async getDocument(id) {

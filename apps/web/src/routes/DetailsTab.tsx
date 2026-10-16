@@ -46,6 +46,15 @@ export function DetailsTab() {
               <dd className={`tnum min-w-0 break-all ${k.startsWith("SHA") || k === "Document id" ? "font-mono text-[13px]" : ""}`}>{v}</dd>
             </div>
           ))}
+          {doc.templateProvenance && <>
+            <div className="border-t border-line px-4 py-3">
+              <dt className="mb-1 text-sm text-muted">Created from template</dt>
+              <dd className="text-sm font-medium">{doc.templateProvenance.title} · {doc.templateProvenance.sourceVersion}</dd>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{doc.templateProvenance.attribution}</p>
+              <p className="mt-1 text-xs text-muted">{doc.templateProvenance.license}</p>
+              {doc.templateProvenance.sourceUrl && <a className="mt-1 inline-block text-xs text-accent underline underline-offset-2" href={doc.templateProvenance.sourceUrl} target="_blank" rel="noreferrer">View source</a>}
+            </div>
+          </>}
         </dl>
         <section aria-labelledby="det-req" className="mt-6">
           <h3 id="det-req" className="mb-2 text-sm font-semibold">Requests for this document</h3>

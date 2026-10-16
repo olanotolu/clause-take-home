@@ -9,6 +9,7 @@ import { PlaybooksView } from "./routes/PlaybooksView.tsx";
 import { ActivityView } from "./routes/ActivityView.tsx";
 import { RequestDialog } from "./components/RequestDialog.tsx";
 import { TemplatesView } from "./routes/TemplatesView.tsx";
+import { IntegrationsView } from "./routes/IntegrationsView.tsx";
 
 function Routes() {
   const route = useRoute();
@@ -21,6 +22,7 @@ function Routes() {
       {route.name === "documents" && <DocumentsView onNew={() => ws.setNewDocOpen(true)} />}
       {route.name === "playbooks" && <PlaybooksView id={route.id} />}
       {route.name === "activity" && <ActivityView />}
+      {route.name === "integrations" && <IntegrationsView />}
       {route.name === "doc" && <DocumentView id={route.id} tab={route.tab} />}
       {route.name === "templates" && <TemplatesView />}
       {route.name === "settings" && <SettingsView />}

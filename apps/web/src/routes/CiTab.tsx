@@ -1,5 +1,5 @@
 import { Num } from "../ui/Num.tsx";
-import { AlertTriangle, ArrowRight, Ban, Check, CheckCircle2, CircleSlash, Lock, ListChecks, Play, ShieldAlert, Sparkles, XCircle } from "../ui/icons.tsx";
+import { Activity, AlertTriangle, ArrowRight, Ban, Check, CheckCircle2, CircleSlash, Clock, Lock, ListChecks, Play, ShieldAlert, Sparkles, XCircle } from "../ui/icons.tsx";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Applied, CheckOutcome, Delta, Evidence, RequirementKind, RequirementReport, Verdict } from "../lib/api.ts";
 import { cn } from "../lib/cn.ts";
@@ -58,6 +58,11 @@ function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: Require
   const holding = reqs.filter((r) => r.after.verdict === "PASS").length;
   const broken = reqs.filter((r) => r.delta === "regressed").length;
   const attention = reqs.length - holding;
+  const failed = reqs.filter((r) => r.after.verdict === "FAIL").length;
+  const needsReview = reqs.filter((r) => r.after.verdict === "NEEDS_REVIEW").length;
+  const unavailable = reqs.filter((r) => r.after.verdict === "UNAVAILABLE").length;
+  const statusTone: Tone = reqs.length === 0 ? "neutral" : attention === 0 ? "pass" : failed > 0 ? "fail" : "review";
+  const statusLabel = reqs.length === 0 ? "No requirements configured" : attention === 0 ? "All requirements hold" : broken > 0 ? `${broken} broken by this edit` : failed > 0 ? `${failed} requirements fail` : "Review needed";
   const segs: { n: number; cls: string; label: string }[] = [
     { n: holding, cls: "bg-pass", label: "hold" },
     { n: reqs.filter((r) => r.after.verdict === "NEEDS_REVIEW").length, cls: "bg-review", label: "need review" },
@@ -65,24 +70,47 @@ function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: Require
     { n: reqs.filter((r) => r.after.verdict === "UNAVAILABLE").length, cls: "bg-line-strong", label: "not checked" },
   ];
   return (
-    <section aria-label="Summary" className="rounded-card border border-line bg-paper p-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        {attention === 0 ? <CheckCircle2 size={22} className="text-pass" aria-hidden /> : broken > 0 ? <ShieldAlert size={22} className="text-fail" aria-hidden /> : <AlertTriangle size={22} className="text-review" aria-hidden />}
-        <h2 className="font-display text-xl font-semibold">
-          <span className="tnum"><Num value={holding} /> of {reqs.length}</span> requirement{reqs.length === 1 ? "" : "s"} hold{reqs.length === 1 ? "s" : ""}{hasEdit ? " after this edit" : " in the current text"}
-        </h2>
-        {broken > 0 && <StatusPill tone="fail">{broken} broken by this edit</StatusPill>}
+    <section aria-label="Clause CI results summary" className="overflow-hidden rounded-card border border-line bg-paper">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
+          {reqs.length === 0 ? <ListChecks size={21} className="shrink-0 text-muted" aria-hidden /> : attention === 0 ? <CheckCircle2 size={21} className="shrink-0 text-pass" aria-hidden /> : failed > 0 ? <ShieldAlert size={21} className="shrink-0 text-fail" aria-hidden /> : <AlertTriangle size={21} className="shrink-0 text-review" aria-hidden />}
+          <div className="min-w-0">
+            <h2 className="text-[16px] font-semibold tracking-[-0.02em]">Clause CI results</h2>
+            <p className="text-xs text-muted">Checked {hasEdit ? "the proposed changes" : "current text"} against v{version}{strict ? " · strict sensitivity" : ""}</p>
+          </div>
+        </div>
+        <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
+      </header>
+
+      <div className="grid grid-cols-2 divide-x divide-y divide-line sm:grid-cols-4 sm:divide-y-0">
+        <div className="px-4 py-3.5 sm:px-5">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><CheckCircle2 size={13} aria-hidden />Requirements hold</p>
+          <p className="tnum mt-1 text-[20px] font-semibold leading-none"><Num value={holding} /><span className="ml-1 text-[13px] font-normal text-muted">/ {reqs.length}</span></p>
+        </div>
+        <div className="px-4 py-3.5 sm:px-5">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><AlertTriangle size={13} aria-hidden />Need attention</p>
+          <p className="tnum mt-1 text-[20px] font-semibold leading-none">{attention}</p>
+          {(needsReview > 0 || unavailable > 0) && <p className="mt-1 text-[10px] text-muted">{[needsReview && `${needsReview} review`, unavailable && `${unavailable} not checked`].filter(Boolean).join(" · ")}</p>}
+        </div>
+        <div className="px-4 py-3.5 sm:px-5">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><ListChecks size={13} aria-hidden />Requirements checked</p>
+          <p className="tnum mt-1 text-[20px] font-semibold leading-none">{reqs.length}</p>
+        </div>
+        <div className="px-4 py-3.5 sm:px-5">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><Clock size={13} aria-hidden />Analysis time</p>
+          <p className="tnum mt-1 text-[20px] font-semibold leading-none">{(ms / 1000).toFixed(1)}<span className="ml-1 text-[13px] font-normal text-muted">s</span></p>
+        </div>
       </div>
-      <div role="img" aria-label={segs.filter((s) => s.n).map((s) => `${s.n} ${s.label}`).join(", ")} className="mt-3 flex h-2 overflow-hidden rounded-full bg-line">
+
+      <div className="border-t border-line px-4 py-3 sm:px-5">
+        <div role="img" aria-label={segs.filter((s) => s.n).map((s) => `${s.n} ${s.label}`).join(", ") || "No requirements were checked"} className="flex h-1.5 overflow-hidden rounded-full bg-line">
         {segs.filter((s) => s.n).map((s, i) => <div key={s.label} className={cn("grow-x", s.cls)} style={{ flex: s.n, animationDelay: `${i * 90}ms` }} />)}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-[11px] text-muted">{reqs.length === 0 ? "Add requirements to check this document." : "Exact checks use literal matching. AI judgments are advisory and cite document evidence."}</p>
+          <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted"><Activity size={13} aria-hidden />Configured judges: {judges.length ? judges.map((j) => <Pill key={j}>{shortModel(j)}</Pill>) : "none · exact checks only"}</p>
+        </div>
       </div>
-      <p className="tnum mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <span>Checked against v{version}</span>
-        <span>{(ms / 1000).toFixed(1)} s</span>
-        {strict && <span>Strict mode</span>}
-        <span className="flex flex-wrap items-center gap-1.5">Judges: {judges.length ? judges.map((j) => <Pill key={j}>{shortModel(j)}</Pill>) : "none (exact checks only)"}</span>
-      </p>
-      <p className="mt-2 text-xs text-muted">Exact checks are proven by literal matching. AI judgments are advisory, not legal conclusions, and a clean report is not a review.</p>
     </section>
   );
 }
@@ -110,8 +138,8 @@ function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { 
   const p1 = r.after.judges?.find((j) => j.probability !== undefined)?.probability;
   const callout = r.after.verdict === "PASS" ? "bg-pass-bg text-ink" : r.after.verdict === "FAIL" ? "bg-fail-bg text-ink" : r.after.verdict === "NEEDS_REVIEW" ? "bg-review-bg text-ink" : "bg-line/60 text-ink";
   return (
-    <article key={r.id} aria-labelledby="ci-detail-h" className="fade-up min-w-0 space-y-4 rounded-card border border-line bg-paper p-5">
-      <header>
+    <article key={r.id} aria-labelledby="ci-detail-h" className="fade-up min-w-0 space-y-4 rounded-card border border-line bg-paper p-4 sm:p-5">
+      <header className="border-b border-line pb-3">
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
           <span className="inline-flex items-center gap-1 font-medium">{KIND_ICON[r.kind]}{KIND_WORD[r.kind]}</span>
           <StatusPill tone={VERDICT_TONE[r.after.verdict]}>{VERDICT_WORD[r.after.verdict]}</StatusPill>
@@ -127,16 +155,16 @@ function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { 
         {r.touchedBy.length > 0 && <p className="mt-1 text-xs text-muted">Overlapped by {r.touchedBy.length === 1 ? "change" : "changes"} {r.touchedBy.map((i) => `#${i + 1}`).join(", ")}.</p>}
       </div>
 
-      <section aria-label="Analysis" className="grid gap-4 min-[760px]:grid-cols-2">
-        <div className="min-w-0 rounded-control border border-line bg-canvas p-3">
-          <h4 className="mb-1.5 flex items-center justify-between gap-2 text-xs font-medium text-muted">
-            <span>Original (v{version})</span>
+      <section aria-label="Evidence comparison" className="grid gap-3 min-[760px]:grid-cols-2">
+        <div className="min-w-0 rounded-control border border-line bg-canvas p-3.5">
+          <h4 className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold">
+            <span>Original <span className="font-normal text-muted">· v{version}</span></span>
             {jumpable && <button onClick={() => onJump(jumpable)} className="font-medium text-accent underline underline-offset-2">Show in document</button>}
           </h4>
           <Excerpt text={original} evidence={r.before.evidence} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
         </div>
-        <div className="min-w-0 rounded-control border border-line bg-canvas p-3">
-          <h4 className="mb-1.5 text-xs font-medium text-muted">{hasEdit ? `Proposed (v${version + 1})` : "No edit proposed"}</h4>
+        <div className="min-w-0 rounded-control border border-line bg-canvas p-3.5">
+          <h4 className="mb-2 text-xs font-semibold">{hasEdit ? <>Proposed <span className="font-normal text-muted">· v{version + 1}</span></> : "Current text"}</h4>
           {hasEdit ? (
             <>
               <Excerpt text={proposed} evidence={r.after.evidence} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
@@ -188,10 +216,11 @@ export function CiTab() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-canvas">
-      <div className="mx-auto max-w-6xl space-y-5 p-6 max-[640px]:p-3">
-        <section aria-label="Run" className="flex flex-wrap items-end gap-x-6 gap-y-3">
+      <div className="mx-auto max-w-[1440px] space-y-4 p-6 max-[640px]:p-3">
+        <section aria-label="Run" className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="min-w-0 flex-1 basis-80">
-            <h2 className="font-display text-xl font-semibold">Clause CI</h2>
+            <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">Document review</p>
+            <h2 className="font-display text-[21px] font-semibold">Clause CI</h2>
             <p className="text-sm text-muted">
               {hasEdit ? `Checks this document's requirements against your ${plural(ws.staged.length, "staged change")}.` : "Checks this document's requirements against the current text. Stage a change to see what it would break."}
             </p>
@@ -208,10 +237,13 @@ export function CiTab() {
         </section>
 
         {ws.ci.status === "idle" && (
-          <div className="py-2">
-            <EmptyState icon={<ListChecks size={26} aria-hidden />} title="No report for this version yet" action={<Button variant="secondary" onClick={() => navigate({ name: "doc", id: doc.id, tab: "edit" })}>Back to the document</Button>}>
-              Add requirements from the Rules tab (select a clause and choose Protect), then run Clause CI. A report only describes the exact text and edit it ran on, so it disappears when either changes.
-            </EmptyState>
+          <div className="grid min-h-[48vh] place-items-center py-5">
+            <section className="w-full max-w-xl rounded-card border border-line bg-paper p-5 sm:p-6">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">Ready to review</p>
+              <EmptyState icon={<ListChecks size={26} aria-hidden />} title="No report for this version yet" action={<Button variant="secondary" onClick={() => navigate({ name: "doc", id: doc.id, tab: "edit" })}>Back to the document</Button>}>
+                Add requirements from the Rules tab (select a clause and choose Protect), then run Clause CI. A report only describes the exact text and edit it ran on, so it disappears when either changes.
+              </EmptyState>
+            </section>
           </div>
         )}
         {ws.ci.status === "loading" && (
@@ -225,13 +257,12 @@ export function CiTab() {
 
         {report && (
           <>
-            <div className="rounded-control bg-canvas px-0 text-sm"><p className="flex items-center gap-2 text-muted"><CheckCircle2 size={15} className="text-pass" aria-hidden /> Edit mechanics: {report.mechanical.changes === 0 ? "no edit proposed" : `${plural(report.mechanical.changes, "change")} validated by the engine (target, version, no overlaps). Proven, not judged.`}</p></div>
+            <div className="flex items-start gap-2 rounded-control border border-line bg-paper px-3.5 py-2.5 text-[12px] text-muted"><CheckCircle2 size={15} className="mt-0.5 shrink-0 text-pass" aria-hidden /><p><span className="font-semibold text-ink">Edit mechanics:</span> {report.mechanical.changes === 0 ? "no edit proposed" : `${plural(report.mechanical.changes, "change")} validated by the engine (target, version, no overlaps). Proven, not judged.`}</p></div>
+            <Summary reqs={report.requirements} ms={report.elapsedMs} judges={report.judges} version={report.version} strict={settings.strictness === "strict"} hasEdit={hasEdit} />
             {report.requirements.length === 0 ? (
               <div className="py-2"><EmptyState icon={<ListChecks size={26} aria-hidden />} title="This document has no requirements yet">Select a clause in the document and choose Protect, or add a statement in the Rules tab, then run again.</EmptyState></div>
             ) : (
-              <>
-                <Summary reqs={report.requirements} ms={report.elapsedMs} judges={report.judges} version={report.version} strict={settings.strictness === "strict"} hasEdit={hasEdit} />
-                <div className="grid items-start gap-4 min-[900px]:grid-cols-[320px_minmax(0,1fr)]">
+                <div className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] min-[1280px]:gap-5">
                   <section aria-label="Requirements" className="space-y-2">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold">Requirements <span className="tnum font-normal text-muted">{report.requirements.length}</span></h3>
@@ -256,7 +287,6 @@ export function CiTab() {
                   </section>
                   {current && <Detail r={current} original={doc.content} proposed={ws.proposedText} hasEdit={hasEdit} version={report.version} applied={ws.preview.status === "valid" ? ws.preview.data.applied : []} onJump={(e) => { ws.showEvidence(e); navigate({ name: "doc", id: doc.id, tab: "edit" }); }} />}
                 </div>
-              </>
             )}
           </>
         )}
