@@ -43,6 +43,10 @@ export interface RequirementReport {
   before: Check;
   after: Check;
   delta: Delta;
+  /** "exact": decided by literal text matching, no model involved. "model": a judge's opinion, advisory. */
+  method: "exact" | "model";
+  /** The judges that actually answered (not merely configured). Always empty for exact checks. */
+  answeredBy: string[];
   /** For `unchanged`: indices (request order) of the applied changes that overlap the passage. */
   touchedBy: number[];
 }

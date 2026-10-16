@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type SettingsStatus } from "../../lib/api.ts";
 import { useSettings } from "../../lib/settings.tsx";
-import { Card, Fact, Planned, Row, Select, SettingsSectionIcon, Toggle } from "./parts.tsx";
+import { Card, Fact, Row, Select, SettingsSectionIcon, Toggle } from "./parts.tsx";
 import { motion } from "motion/react";
 import { SiAnthropic, SiGoogle } from "@icons-pack/react-simple-icons";
 import { Brain, MagnifyingGlass } from "../../ui/icons.tsx";
@@ -13,9 +13,7 @@ const SECTIONS = [
   ["ai", "AI & Models", "How the AI checks behave. Models themselves are set on the server."],
   ["editing", "Document & Editing", "How staged changes are reviewed and applied."],
   ["security", "Security & Privacy", "What this deployment does with your documents."],
-  ["appearance", "Appearance", "Theme."],
   ["usage", "Usage & Limits", "Live numbers from the server."],
-  ["planned", "Planned", "Shown in the product design; not built in this prototype."],
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number][0];
@@ -23,7 +21,6 @@ type SectionId = (typeof SECTIONS)[number][0];
 function ModelProviderIcon({ model }: { model: string }) {
   const provider = model.split("/")[0]?.toLowerCase() ?? "";
   if (provider === "anthropic") return <SiAnthropic size={19} color="#d97757" aria-hidden="true" title="" />;
-  if (provider === "typesafe-ai") return <img src="/typesafe-ai.png" alt="" aria-hidden="true" className="size-[24px] object-contain" />;
   if (provider === "openai") return <span aria-hidden="true" className="grid size-[22px] place-items-center rounded-md bg-emerald-50 text-emerald-700"><Brain size={16} weight="duotone" /></span>;
   if (provider === "google") return <SiGoogle size={18} color="#4285f4" aria-hidden="true" title="" />;
   return <span aria-hidden="true" className="grid size-[22px] place-items-center rounded-md bg-accent-soft text-accent"><Brain size={16} weight="duotone" /></span>;
@@ -32,7 +29,6 @@ function ModelProviderIcon({ model }: { model: string }) {
 function modelProviderName(model: string) {
   const provider = model.split("/")[0]?.toLowerCase() ?? "";
   if (provider === "anthropic") return "Anthropic";
-  if (provider === "typesafe-ai") return "Typesafe AI";
   if (provider === "openai") return "OpenAI";
   if (provider === "google") return "Google";
   return provider ? provider[0]!.toUpperCase() + provider.slice(1) : "Model provider";
@@ -75,12 +71,10 @@ function scrollToSection(id: SectionId, behavior: ScrollBehavior) {
 /** What each section contains, as searchable text (the page filters sections by this). */
 const KEYWORDS: Record<SectionId, string> = {
   general: "date format language workspace time zone export",
-  ai: "ai model judge risk sensitivity strict balanced suggestions jev claude",
+  ai: "ai model judge risk sensitivity strict balanced suggestions claude",
   editing: "apply confirm redline hash sha256 auto",
   security: "privacy retention sso audit open access data stored openrouter",
-  appearance: "theme dark light system",
   usage: "limits rate documents storage postgres sqlite caps",
-  planned: "integrations slack drive microsoft github sso billing team playbooks templates",
 };
 
 export function SettingsView() {
@@ -183,8 +177,6 @@ export function SettingsView() {
               <Row label="Date format" htmlFor="s-date" note="Used in the document header and the Activity tab.">
                 <Select id="s-date" value={settings.dateFormat} onChange={(v) => set("dateFormat", v)} options={[["locale", "Browser default"], ["iso", "2026-10-05 14:07"], ["us", "10/05/2026 14:07"], ["eu", "05/10/2026 14:07"]]} />
               </Row>
-              <Planned label="Workspace name, logo and description" note="There are no accounts or workspaces yet." />
-              <Planned label="Default language and time zone" />
             </Card>
           )}
 
@@ -197,7 +189,6 @@ export function SettingsView() {
               <Row label="Show the AI tab" htmlFor="s-ai" note="Hides the suggestions tab on this screen. Does not change the server.">
                 <Toggle id="s-ai" checked={settings.aiTab} onChange={(v) => set("aiTab", v)} />
               </Row>
-              <Planned label="Choose primary and secondary model" note="Model choice stays on the server." />
             </Card>
           )}
 
@@ -212,32 +203,21 @@ export function SettingsView() {
               <Row label="Show SHA-256 in the document header" htmlFor="s-hash">
                 <Toggle id="s-hash" checked={settings.showHash} onChange={(v) => set("showHash", v)} />
               </Row>
-              <Planned label="Templates and playbooks" />
             </Card>
           )}
 
           {show("security") && (
             <Card id="security" title="Security & Privacy" subtitle={SECTIONS[3][2]}>
-              <Fact label="Access" note="No sign-in. Anyone with the link can read and edit." value={status?.access === "open" ? "Open demo" : failed ? "Unavailable" : "Loading…"} />
+              <Fact label="Access" note="No sign-in. Anyone with the link can read, and edit or delete their own documents. The five sample contracts are read-only; copy one to edit it." value={status?.access === "open" ? "Open demo" : failed ? "Unavailable" : "Loading…"} />
               <Fact label="What is stored" value="Document text, every version, requirements, content hashes" />
               <Fact label="AI checks send document text to" note="Only when you run a check or ask for a suggestion." value="OpenRouter, then the model provider" />
               <Fact label="Retention" value="Kept until deleted by the operator" />
-              <Planned label="SSO / SAML" />
-              <Planned label="Audit logs" />
-              <Planned label="SOC 2 / GDPR attestations" note="Not claimed; see INFRA.md for the design." />
-            </Card>
-          )}
-
-          {show("appearance") && (
-            <Card id="appearance" title="Appearance" subtitle={SECTIONS[4][2]}>
-              <Row label="Theme" htmlFor="s-theme">
-                <Select id="s-theme" value={settings.theme} onChange={(v) => set("theme", v)} options={[["system", "Match system"], ["light", "Light"], ["dark", "Dark"]]} />
-              </Row>
+              <Fact label="Compliance attestations" note="See INFRA.md for the design." value="None claimed" />
             </Card>
           )}
 
           {show("usage") && (
-            <Card id="usage" title="Usage & Limits" subtitle={SECTIONS[5][2]}>
+            <Card id="usage" title="Usage & Limits" subtitle={SECTIONS[4][2]}>
               {failed && <p role="alert" className="py-3 text-sm text-del">Could not reach the server for its status.</p>}
               {status && (
                 <>
@@ -250,17 +230,9 @@ export function SettingsView() {
                   <Fact label="Build" value={<code>{status.version}</code>} />
                 </>
               )}
-              <Planned label="Plan, billing and upgrade" />
             </Card>
           )}
 
-          {show("planned") && (
-            <Card id="planned" title="Planned" subtitle={SECTIONS[6][2]}>
-              <Planned label="Integrations: Google Drive, Microsoft 365, Slack, GitHub" />
-              <Planned label="Team members and roles" />
-              <Planned label="Playbooks and custom organisation rules" />
-            </Card>
-          )}
           <div className="flex justify-end pt-1">
             <button type="button" onClick={reset} className="rounded-lg border border-line-strong bg-paper px-3.5 py-2 text-[13px] font-medium text-muted transition-colors hover:border-fail/30 hover:bg-fail-bg hover:text-fail">Reset my preferences</button>
           </div>

@@ -14,6 +14,9 @@ import { EmptyState, Pill, Skeleton, StatusPill, type Tone } from "../ui/bits.ts
 
 const VERDICT_TONE: Record<Verdict, Tone> = { PASS: "pass", FAIL: "fail", NEEDS_REVIEW: "review", UNAVAILABLE: "neutral" };
 const VERDICT_WORD: Record<Verdict, string> = { PASS: "Holds", FAIL: "Fails", NEEDS_REVIEW: "Needs review", UNAVAILABLE: "Not checked" };
+/** A model's PASS is an opinion, so it never reads as the exact check's "Holds". */
+const verdictWord = (v: Verdict, method: "exact" | "model") => (method === "model" && v === "PASS" ? "Supported by model" : method === "model" && v === "FAIL" ? "Fails (model)" : VERDICT_WORD[v]);
+const verdictTone = (v: Verdict, method: "exact" | "model"): Tone => (method === "model" && v === "PASS" ? "info" : VERDICT_TONE[v]);
 const DELTA_WORD: Record<Delta, string> = { held: "Held", regressed: "Broken by this edit", achieved: "Newly satisfied", still_failing: "Still failing", uncertain: "Uncertain" };
 const DELTA_TONE: Record<Delta, Tone> = { held: "neutral", regressed: "fail", achieved: "pass", still_failing: "review", uncertain: "review" };
 const KIND_WORD: Record<RequirementKind | "goal", string> = { goal: "Goal for this edit", unchanged: "Keep verbatim", present: "Must contain", absent: "Must not contain", semantic: "Statement (AI-judged)" };
@@ -21,7 +24,8 @@ const KIND_ICON: Record<RequirementKind | "goal", ReactNode> = {
   goal: <Sparkles size={13} aria-hidden />, unchanged: <Lock size={13} aria-hidden />, present: <Check size={13} aria-hidden />, absent: <Ban size={13} aria-hidden />, semantic: <Sparkles size={13} aria-hidden />,
 };
 
-function VerdictIcon({ v, size = 18 }: { v: Verdict; size?: number }) {
+function VerdictIcon({ v, method, size = 18 }: { v: Verdict; method: "exact" | "model"; size?: number }) {
+  if (v === "PASS" && method === "model") return <Sparkles size={size} className="shrink-0 text-accent" aria-label="Supported by a model, advisory" />;
   if (v === "PASS") return <CheckCircle2 size={size} className="shrink-0 text-pass" aria-label="Holds" />;
   if (v === "FAIL") return <XCircle size={size} className="shrink-0 text-fail" aria-label="Fails" />;
   if (v === "NEEDS_REVIEW") return <AlertTriangle size={size} className="shrink-0 text-review" aria-label="Needs review" />;
@@ -29,7 +33,7 @@ function VerdictIcon({ v, size = 18 }: { v: Verdict; size?: number }) {
 }
 
 /** A readable window of `text` around an evidence span, with the span itself marked. Defensive: only marks what really matches. */
-function Excerpt({ text, evidence, empty }: { text: string; evidence: Evidence[]; empty: string }) {
+function Excerpt({ text, evidence, empty, method }: { text: string; evidence: Evidence[]; empty: string; method: "exact" | "model" }) {
   const ev = evidence.find((e) => e.verified && text.slice(e.start, e.end) === e.quote);
   if (!ev) {
     const loose = evidence[0];
@@ -50,19 +54,25 @@ function Excerpt({ text, evidence, empty }: { text: string; evidence: Evidence[]
       <span className="ev">{text.slice(ev.start, ev.end)}</span>
       {text.slice(ev.end, to)}
       {to < text.length && " …"}
+      {method === "model" && <span className="mt-1 block font-sans text-[11px] text-muted">A model quoted this passage. It is confirmed to be in the document; that does not by itself show it supports the model's conclusion.</span>}
     </p>
   );
 }
 
 function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: RequirementReport[]; ms: number; judges: string[]; version: number; strict: boolean; hasEdit: boolean }) {
   const holding = reqs.filter((r) => r.after.verdict === "PASS").length;
+  const exact = reqs.filter((r) => r.method === "exact");
+  const modelled = reqs.filter((r) => r.method === "model");
+  const exactHold = exact.filter((r) => r.after.verdict === "PASS").length;
+  const modelHold = modelled.filter((r) => r.after.verdict === "PASS").length;
+  const answeredBy = [...new Set(reqs.flatMap((r) => r.answeredBy))];
   const broken = reqs.filter((r) => r.delta === "regressed").length;
   const attention = reqs.length - holding;
   const failed = reqs.filter((r) => r.after.verdict === "FAIL").length;
   const needsReview = reqs.filter((r) => r.after.verdict === "NEEDS_REVIEW").length;
   const unavailable = reqs.filter((r) => r.after.verdict === "UNAVAILABLE").length;
   const statusTone: Tone = reqs.length === 0 ? "neutral" : attention === 0 ? "pass" : failed > 0 ? "fail" : "review";
-  const statusLabel = reqs.length === 0 ? "No requirements configured" : attention === 0 ? "All requirements hold" : broken > 0 ? `${broken} broken by this edit` : failed > 0 ? `${failed} requirements fail` : "Review needed";
+  const statusLabel = reqs.length === 0 ? "No requirements configured" : attention === 0 ? (modelled.length > 0 ? "All hold · model checks advisory" : "All requirements hold") : broken > 0 ? `${broken} broken by this edit` : failed > 0 ? `${failed} requirements fail` : "Review needed";
   const segs: { n: number; cls: string; label: string }[] = [
     { n: holding, cls: "bg-pass", label: "hold" },
     { n: reqs.filter((r) => r.after.verdict === "NEEDS_REVIEW").length, cls: "bg-review", label: "need review" },
@@ -84,8 +94,9 @@ function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: Require
 
       <div className="grid grid-cols-2 divide-x divide-y divide-line sm:grid-cols-4 sm:divide-y-0">
         <div className="px-4 py-3.5 sm:px-5">
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><CheckCircle2 size={13} aria-hidden />Requirements hold</p>
-          <p className="tnum mt-1 text-[20px] font-semibold leading-none"><Num value={holding} /><span className="ml-1 text-[13px] font-normal text-muted">/ {reqs.length}</span></p>
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><CheckCircle2 size={13} aria-hidden />Verified by exact checks</p>
+          <p className="tnum mt-1 text-[20px] font-semibold leading-none"><Num value={exactHold} /><span className="ml-1 text-[13px] font-normal text-muted">/ {exact.length}</span></p>
+          {modelled.length > 0 && <p className="mt-1 text-[10px] text-muted">Model-supported: {modelHold} / {modelled.length} (advisory)</p>}
         </div>
         <div className="px-4 py-3.5 sm:px-5">
           <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted"><AlertTriangle size={13} aria-hidden />Need attention</p>
@@ -107,8 +118,8 @@ function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: Require
         {segs.filter((s) => s.n).map((s, i) => <div key={s.label} className={cn("grow-x", s.cls)} style={{ flex: s.n, animationDelay: `${i * 90}ms` }} />)}
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <p className="text-[11px] text-muted">{reqs.length === 0 ? "Add requirements to check this document." : "Exact checks use literal matching. AI judgments are advisory and cite document evidence."}</p>
-          <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted"><Activity size={13} aria-hidden />Configured judges: {judges.length ? judges.map((j) => <Pill key={j}>{shortModel(j)}</Pill>) : "none · exact checks only"}</p>
+          <p className="text-[11px] text-muted">{reqs.length === 0 ? "Add requirements to check this document." : "Exact checks use literal matching. Model judgments are advisory: a quoted passage is confirmed to exist in the document, not to support the conclusion."}</p>
+          <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted"><Activity size={13} aria-hidden />{modelled.length === 0 ? "No model checks requested" : answeredBy.length ? "Answered by:" : "No model answered:"} {answeredBy.map((j) => <Pill key={j}>{shortModel(j)}</Pill>)}{modelled.length > 0 && answeredBy.length === 0 && (judges.length ? "judges were configured but none returned an answer" : "none configured")}</p>
         </div>
       </div>
     </section>
@@ -142,7 +153,7 @@ function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { 
       <header className="border-b border-line pb-3">
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
           <span className="inline-flex items-center gap-1 font-medium">{KIND_ICON[r.kind]}{KIND_WORD[r.kind]}</span>
-          <StatusPill tone={VERDICT_TONE[r.after.verdict]}>{VERDICT_WORD[r.after.verdict]}</StatusPill>
+          <StatusPill tone={verdictTone(r.after.verdict, r.method)}>{verdictWord(r.after.verdict, r.method)}</StatusPill>
           <StatusPill tone={DELTA_TONE[r.delta]} icon={false}>{DELTA_WORD[r.delta]}</StatusPill>
         </p>
         <h3 id="ci-detail-h" className="font-display mt-2 text-xl font-semibold leading-snug">{r.text.length > 240 ? `${r.text.slice(0, 240)}…` : r.text}</h3>
@@ -161,13 +172,13 @@ function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { 
             <span>Original <span className="font-normal text-muted">· v{version}</span></span>
             {jumpable && <button type="button" onClick={() => onJump(jumpable)} className="font-medium text-accent underline underline-offset-2">Show in document</button>}
           </h4>
-          <Excerpt text={original} evidence={r.before.evidence} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
+          <Excerpt text={original} evidence={r.before.evidence} method={r.method} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
         </div>
         <div className="min-w-0 rounded-control border border-line bg-canvas p-3.5">
           <h4 className="mb-2 text-xs font-semibold">{hasEdit ? <>Proposed <span className="font-normal text-muted">· v{version + 1}</span></> : "Current text"}</h4>
           {hasEdit ? (
             <>
-              <Excerpt text={proposed} evidence={r.after.evidence} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
+              <Excerpt text={proposed} evidence={r.after.evidence} method={r.method} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
               {r.touchedBy.length > 0 && r.after.evidence.length === 0 && (
                 <p className="mt-2 text-[13px] text-muted">
                   It was replaced by{" "}
@@ -257,7 +268,7 @@ export function CiTab() {
 
         {report && (
           <>
-            <div className="flex items-start gap-2 rounded-control border border-line bg-paper px-3.5 py-2.5 text-[12px] text-muted"><CheckCircle2 size={15} className="mt-0.5 shrink-0 text-pass" aria-hidden /><p><span className="font-semibold text-ink">Edit mechanics:</span> {report.mechanical.changes === 0 ? "no edit proposed" : `${plural(report.mechanical.changes, "change")} validated by the engine (target, version, no overlaps). Proven, not judged.`}</p></div>
+            <div className="flex items-start gap-2 rounded-control border border-line bg-paper px-3.5 py-2.5 text-[12px] text-muted"><Lock size={15} className="mt-0.5 shrink-0 text-muted" aria-hidden /><p><span className="font-semibold text-ink">Edit mechanics (not the requirement results below):</span> {report.mechanical.changes === 0 ? "no edit proposed" : `${plural(report.mechanical.changes, "change")} validated by the engine (target, version, no overlaps). Proven, not judged.`}</p></div>
             <Summary reqs={report.requirements} ms={report.elapsedMs} judges={report.judges} version={report.version} strict={settings.strictness === "strict"} hasEdit={hasEdit} />
             {report.requirements.length === 0 ? (
               <div className="py-2"><EmptyState icon={<ListChecks size={26} aria-hidden />} title="This document has no requirements yet">Select a clause in the document and choose Protect, or add a statement in the Rules tab, then run again.</EmptyState></div>
@@ -274,7 +285,7 @@ export function CiTab() {
                       {list.map((r, i) => (
                         <li key={r.id} className="stagger" style={{ "--i": i } as React.CSSProperties}>
                           <button type="button" onClick={() => setSelected(r.id)} aria-current={selected === r.id} className={`flex w-full items-start gap-3 rounded-control border px-3 py-2.5 text-left transition-colors ${selected === r.id ? "border-accent bg-accent-soft" : "border-line bg-paper hover:bg-canvas"}`}>
-                            <span className="mt-0.5"><VerdictIcon v={r.after.verdict} /></span>
+                            <span className="mt-0.5"><VerdictIcon v={r.after.verdict} method={r.method} /></span>
                             <span className="min-w-0 flex-1">
                               <span className="line-clamp-2 text-sm font-medium leading-snug">{r.text}</span>
                               <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted"><span className="inline-flex items-center gap-1">{KIND_ICON[r.kind]}{KIND_WORD[r.kind]}</span><span className={r.delta === "regressed" ? "font-semibold text-fail" : ""}>{DELTA_WORD[r.delta]}</span></span>

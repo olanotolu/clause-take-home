@@ -42,6 +42,10 @@ export const RevertBody = z.strictObject({
   expectedVersion: z.number().int().min(1).optional().meta({ description: "Reject with 409 unless the document is exactly at this version." }),
 });
 
+export const CopyBody = z.strictObject({
+  title: text().pipe(z.string().min(1).max(300)).optional(),
+});
+
 export const CreateBody = z.strictObject({
   title: text().pipe(z.string().min(1).max(300)),
   content: text(),
@@ -111,6 +115,7 @@ export const DocumentOut = z.object({
   contentHash: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  sample: z.boolean().optional().meta({ description: "True for the shared sample contracts: read-only through the API; POST /documents/{id}/copy makes an editable copy." }),
   templateProvenance: z.object({
     templateId: z.string(), title: z.string(), source: z.string(), attribution: z.string(), sourceUrl: z.string(),
     sourceVersion: z.string(), license: z.string(), jurisdictionNote: z.string(),
@@ -132,7 +137,7 @@ export const AppliedOut = z.object({
 export const ReceiptOut = z.object({
   id: z.string(),
   title: z.string(),
-  content: z.string().meta({ description: "The full updated document text." }),
+  content: z.string().optional().meta({ description: "The full updated document text. Omitted when the request sent `Prefer: return=minimal`." }),
   previousVersion: z.number().int(),
   version: z.number().int(),
   changed: z.boolean().meta({ description: "False for a no-op (identical text): no new revision is created." }),
@@ -224,6 +229,8 @@ export const RequirementReportOut = z.object({
   before: CheckOutcome.meta({ description: "Result on the current version. Evidence offsets index the current text." }),
   after: CheckOutcome.meta({ description: "Result on the proposed text. Evidence offsets index the proposed text." }),
   delta: z.enum(["held", "regressed", "achieved", "still_failing", "uncertain"]),
+  method: z.enum(["exact", "model"]).meta({ description: "exact = literal text matching, no model. model = a judge's opinion: advisory, and its quotes show only that the text exists, not that it supports the conclusion." }),
+  answeredBy: z.array(z.string()).meta({ description: "Judges that actually answered; empty for exact checks and when no judge could." }),
   touchedBy: z.array(z.number().int()),
 });
 
@@ -283,6 +290,9 @@ export const TemplateOut = z.object({
   variables: z.array(z.object({ id: z.string(), label: z.string(), required: z.boolean(), placeholder: z.string(), helpText: z.string() })),
   suggestedRequirements: z.array(z.object({ id: z.string(), title: z.string(), kind: RequirementKindSchema, text: z.string() })),
 });
+
+/** The catalog list: everything but the (up to ~80 KB) text, which GET /templates/:id returns. */
+export const TemplateSummaryOut = TemplateOut.omit({ content: true }).extend({ size: z.number().int().meta({ description: "Length of the full text in characters." }) });
 
 export const CreateTemplateBody = z.strictObject({
   title: z.string().trim().min(1).max(300).optional(),

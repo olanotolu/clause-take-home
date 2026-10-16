@@ -97,13 +97,13 @@ describe("combineJudges (the policy, as a table)", () => {
 
   it("judges that disagree -> NEEDS_REVIEW showing both, with no tie-break or averaging", () => {
     const c = combineJudges(NDA, [
-      { judgeId: "jev", answer: ans("entailed", [REAL]) },
+      { judgeId: "judge-b", answer: ans("entailed", [REAL]) },
       { judgeId: "llm", answer: ans("not_mentioned") },
     ]);
     expect(c.verdict).toBe("NEEDS_REVIEW");
-    expect(c.detail).toContain("jev: the document satisfies it");
+    expect(c.detail).toContain("judge-b: the document satisfies it");
     expect(c.detail).toContain("llm: the document does not address it");
-    expect(c.judges!.map((j) => j.id)).toEqual(["jev", "llm"]);
+    expect(c.judges!.map((j) => j.id)).toEqual(["judge-b", "llm"]);
   });
 
   it("two judges agreeing on PASS still need verified evidence from somewhere", () => {
@@ -116,10 +116,10 @@ describe("combineJudges (the policy, as a table)", () => {
   });
 
   it("a failed judge is named; the other decides; none left is UNAVAILABLE", () => {
-    const one = combineJudges(NDA, [{ judgeId: "jev" }, { judgeId: "llm", answer: ans("entailed", [REAL]) }]);
+    const one = combineJudges(NDA, [{ judgeId: "judge-b" }, { judgeId: "llm", answer: ans("entailed", [REAL]) }]);
     expect(one.verdict).toBe("PASS");
     expect(one.detail).toContain("Only llm answered");
-    expect(combineJudges(NDA, [{ judgeId: "jev" }, { judgeId: "llm" }])).toMatchObject({ verdict: "UNAVAILABLE", judges: [] });
+    expect(combineJudges(NDA, [{ judgeId: "judge-b" }, { judgeId: "llm" }])).toMatchObject({ verdict: "UNAVAILABLE", judges: [] });
     expect(combineJudges(NDA, []).verdict).toBe("UNAVAILABLE");
   });
 });

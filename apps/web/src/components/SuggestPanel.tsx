@@ -45,7 +45,8 @@ export function SuggestPanel({ docId, docVersion, onStage, onOpenCi }: Props) {
     );
   };
 
-  const verified = data?.ci ? data.ci.requirements.flatMap((r) => [...r.before.evidence, ...r.after.evidence]) : [];
+  // Only model quotes need verifying: exact checks quote the text itself, so counting them would overstate the evidence.
+  const verified = data?.ci ? data.ci.requirements.filter((r) => r.method === "model").flatMap((r) => [...r.before.evidence, ...r.after.evidence]) : [];
   const verifiedCount = verified.filter((e) => e.verified).length;
 
   return (
@@ -96,7 +97,7 @@ export function SuggestPanel({ docId, docVersion, onStage, onOpenCi }: Props) {
                 </ul>
                 {data.ci && !stale && (
                   <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
-                    {data.ci.summary.regressed > 0 ? <StatusPill tone="fail">{data.ci.summary.regressed} requirement{data.ci.summary.regressed === 1 ? "" : "s"} would break</StatusPill> : data.ci.requirements.length > 0 ? <StatusPill tone="pass">No requirement breaks</StatusPill> : <StatusPill tone="neutral">No requirements to check</StatusPill>}
+                    {data.ci.summary.regressed > 0 ? <StatusPill tone="fail">{data.ci.summary.regressed} requirement{data.ci.summary.regressed === 1 ? "" : "s"} would break</StatusPill> : data.ci.requirements.length > 0 ? (data.ci.summary.uncertain > 0 ? <StatusPill tone="review">{data.ci.summary.uncertain} uncertain, none shown to break</StatusPill> : <StatusPill tone="pass">No requirement breaks</StatusPill>) : <StatusPill tone="neutral">No requirements to check</StatusPill>}
                     {data.ci.requirements.length > 0 && <button type="button" onClick={() => { stage(); onOpenCi(); }} className="font-medium text-accent underline underline-offset-2">Stage and open the report</button>}
                   </p>
                 )}
@@ -114,7 +115,7 @@ export function SuggestPanel({ docId, docVersion, onStage, onOpenCi }: Props) {
 
             <p className="mt-3 border-t border-line pt-2 text-xs text-muted">
               {data.provider === "live" ? "Live model" : <strong className="text-review">FIXTURE, not a live model</strong>} · {shortModel(data.model)} · checked against v{data.documentVersion}
-              {verified.length > 0 && <> · evidence verified {verifiedCount}/{verified.length}</>}
+              {verified.length > 0 && <> · model quotes found in the document {verifiedCount}/{verified.length}</>}
             </p>
           </section>
         )}

@@ -82,8 +82,8 @@ describe.skipIf(!usingPostgres)("Postgres backend", () => {
     await boot.end();
     const opts = { connectionString: TEST_PG_URL!, schema: name, max: 2 };
     const stores = await Promise.all([createPostgresStore(opts), createPostgresStore(opts), createPostgresStore(opts), createPostgresStore(opts)]);
-    const inserted = await Promise.all(stores.map((s) => s.seedIfEmpty(SEED_DOCUMENTS)));
-    expect(inserted.sort()).toEqual([0, 0, 0, 5]); // one winner, three no-ops
+    const inserted = await Promise.all(stores.map((s) => s.ensureSamples(SEED_DOCUMENTS)));
+    expect(inserted.sort()).toEqual([0, 0, 0, 5]); // one winner, three no-ops (the advisory lock and the unique sample key)
     expect((await stores[0]!.listDocuments(50, 0)).total).toBe(5);
     await Promise.all(stores.map((s) => s.close()));
     const cleaner = await createPostgresStore({ ...opts, dropSchemaOnClose: true });

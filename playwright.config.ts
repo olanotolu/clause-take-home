@@ -24,7 +24,7 @@ export default defineConfig({
       command: "node apps/api/src/server.ts",
       url: `http://127.0.0.1:${API_PORT}/health`,
       reuseExistingServer: !process.env.CI,
-      env: { PORT: String(API_PORT), CLAUSE_DB: ":memory:", CLAUSE_SEED: "1", OPENROUTER_API_KEY: "", AI_GATEWAY_API_KEY: "" },
+      env: { PORT: String(API_PORT), CLAUSE_DB: ":memory:", CLAUSE_SEED: "1", CLAUSE_CREATE_PER_HOUR: "10000", OPENROUTER_API_KEY: "", AI_GATEWAY_API_KEY: "" },
     },
     {
       command: `pnpm --filter @clause/web exec vite build && pnpm --filter @clause/web exec vite preview --host 127.0.0.1 --port ${WEB_PORT} --strictPort`,

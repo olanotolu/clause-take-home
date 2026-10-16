@@ -26,7 +26,7 @@ One open, shared workspace on a public URL with no sign-in. SQLite locally, Post
 
 Real: documents, versions and restore, word and exact search with verified offsets, redline preview, Word tracked-changes export, AI suggestions (proposal only), CLAUSE CI requirements and reports, requests (a board of legal work tracked per document, with a Clause CI audit), playbooks (reusable requirement sets), cross-document activity, templates, read-only server status, per-browser settings.
 
-Not built, must not be depicted as working: assignees, teams and roles, comments, notifications, billing and storage plans, Jev results (the Jev judge exists but was never measured). Depicted only as labelled demos: the Integrations page (sample files; real OAuth connectors exist but are unconfigured and admin-only) and the sidebar usage meter ("Sample"). The sidebar identity chip shows only what the session provides: "Open workspace" when nobody is signed in, the signed-in user's own name and role otherwise. Authentication exists only as an optional admin sign-in for the integrations routes.
+Not built, must not be depicted as working: assignees, teams and roles, comments, notifications, billing and storage plans. Depicted only as labelled demos: the Integrations page (sample files; real OAuth connectors exist but are unconfigured and admin-only). The sidebar identity chip shows only what the session provides: "Open workspace" when nobody is signed in, the signed-in user's own name and role otherwise. Authentication exists only as an optional admin sign-in for the integrations routes.
 
 ## Brand Commitments
 
@@ -34,7 +34,7 @@ Name CLAUSE; use the logo mark in the repository; "CLAUSE CI" for the checking f
 
 ## Evidence on Hand
 
-Five fictional sample contracts in fixtures/. A ContractNLI benchmark in bench/ci/RESULTS.md (n=60 documents, 30 edit pairs; Claude Sonnet 5.5 at 80% three-way accuracy vs a 40% keyword baseline). A sample Word redline in samples/. Absent and not to be fabricated: customers, usage counts, team members, model confidence beyond the measured benchmark, Jev numbers.
+Five fictional sample contracts in fixtures/. A ContractNLI benchmark in bench/ci/RESULTS.md (n=60 documents, 30 edit pairs; Claude Sonnet 5.5 at 80% three-way accuracy vs a 40% keyword baseline). A sample Word redline in samples/. Absent and not to be fabricated: customers, usage counts, team members, model confidence beyond the measured benchmark.
 
 ## Product Principles
 
@@ -46,4 +46,4 @@ Five fictional sample contracts in fixtures/. A ContractNLI benchmark in bench/c
 
 ## Accessibility & Inclusion
 
-Keyboard operable throughout, WCAG AA contrast in light and dark themes, reduced motion respected, status never conveyed by colour alone (icon plus words).
+Keyboard operable throughout, WCAG AA contrast, reduced motion respected, status never conveyed by colour alone (icon plus words).

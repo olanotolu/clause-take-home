@@ -115,7 +115,7 @@ export function RequestPanel({ request, open, onClose }: { request: WorkRequest;
           ) : (
             <ul className="space-y-1.5">
               {request.ci?.goal && (
-                <li className="flex items-start gap-2.5 rounded-control border border-line px-3 py-2 text-sm"><VerdictIcon v={request.ci.goal} /><span className="min-w-0"><span className="text-xs font-medium text-muted">Requested outcome · {request.ci.goal === "PASS" ? "already true in the current text" : request.ci.goal === "FAIL" ? "not true yet" : request.ci.goal === "NEEDS_REVIEW" ? "a judge was unsure" : "not judged (no AI judge)"}</span><br />{request.goal}</span></li>
+                <li className="flex items-start gap-2.5 rounded-control border border-line px-3 py-2 text-sm"><VerdictIcon v={request.ci.goal} /><span className="min-w-0"><span className="text-xs font-medium text-muted">Requested outcome (a model's opinion) · {request.ci.goal === "PASS" ? "a model says it is already true" : request.ci.goal === "FAIL" ? "a model says it is not true yet" : request.ci.goal === "NEEDS_REVIEW" ? "needs a person: the model was unsure, the judges disagreed, or it cited nothing checkable" : "not judged: no AI judge answered"}</span><br />{request.goal}</span></li>
               )}
               {rules.map((r) => (
                 <li key={r.id} className="flex items-start gap-2.5 rounded-control border border-line px-3 py-2 text-sm"><VerdictIcon v={verdictOf(r.text)} /><span className="min-w-0 break-words">{r.text.length > 140 ? `${r.text.slice(0, 140)}…` : r.text}</span></li>

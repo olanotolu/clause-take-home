@@ -49,7 +49,7 @@ export function lazyStore(info: { kind: Store["kind"]; maxContentChars: number }
     deletePlaybookRule: (p, r) => get().then((s) => s.deletePlaybookRule(p, r)),
     seedPlaybooksIfEmpty: (i) => get().then((s) => s.seedPlaybooksIfEmpty(i)),
     seedRequestsIfEmpty: (i) => get().then((s) => s.seedRequestsIfEmpty(i)),
-    seedIfEmpty: (items) => get().then((s) => s.seedIfEmpty(items)),
+    ensureSamples: (items) => get().then((s) => s.ensureSamples(items)),
     close: async () => {
       if (pending) await (await pending).close();
     },

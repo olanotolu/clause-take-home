@@ -35,12 +35,12 @@ import { lazyStore } from "../src/store/lazy.ts";
 import { SEED_DOCUMENTS } from "../src/seed-data.ts";
 import { testStore } from "./helpers.ts";
 
-describe("seedIfEmpty (runs on whichever backend the suite is using)", () => {
-  it("fills an empty database once and never touches a non-empty one", async () => {
+describe("ensureSamples (runs on whichever backend the suite is using)", () => {
+  it("fills an empty database once and is a no-op after that", async () => {
     const store = await testStore();
-    expect(await store.seedIfEmpty(SEED_DOCUMENTS)).toBe(5);
+    expect(await store.ensureSamples(SEED_DOCUMENTS)).toBe(5);
     expect((await store.listDocuments(50, 0)).total).toBe(5);
-    expect(await store.seedIfEmpty(SEED_DOCUMENTS)).toBe(0); // second call: already populated
+    expect(await store.ensureSamples(SEED_DOCUMENTS)).toBe(0); // second call: already there
     expect((await store.listDocuments(50, 0)).total).toBe(5);
     // seeded documents are real documents: version 1, searchable, with a history row
     const found = (await store.wordsPage("confidentiality", { limit: 100, offset: 0 })).items;
@@ -49,11 +49,14 @@ describe("seedIfEmpty (runs on whichever backend the suite is using)", () => {
     await store.close();
   });
 
-  it("does not seed a database that already has user data", async () => {
+  it("adds the samples to a database that already has user data, without touching that data", async () => {
     const store = await testStore();
-    await store.insertDocument({ title: "mine", content: "my own contract" });
-    expect(await store.seedIfEmpty(SEED_DOCUMENTS)).toBe(0);
-    expect((await store.listDocuments(50, 0)).total).toBe(1);
+    const mine = await store.insertDocument({ title: "mine", content: "my own contract" });
+    expect(await store.ensureSamples(SEED_DOCUMENTS)).toBe(5);
+    const { total, items } = await store.listDocuments(50, 0);
+    expect(total).toBe(6);
+    expect(items.find((d) => d.id === mine.id)).toMatchObject({ title: "mine", version: 1 });
+    expect((await store.getDocument(mine.id))?.content).toBe("my own contract");
     await store.close();
   });
 });

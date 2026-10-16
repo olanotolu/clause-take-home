@@ -5,9 +5,7 @@
   "files": {
     "includes": [
       "**/*.ts", "**/*.tsx",
-      "!**/node_modules", "!**/dist", "!**/coverage", "!**/test-results", "!**/playwright-report",
-      // Being redesigned in uncommitted work by the owner; lint it once that lands rather than edit it underneath them.
-      "!apps/web/src/components/CommandPalette.tsx"
+      "!**/node_modules", "!**/dist", "!**/coverage", "!**/test-results", "!**/playwright-report"
     ]
   },
   // Lint only: the repo's dense one-line style is deliberate, so no formatter and no import sorting.

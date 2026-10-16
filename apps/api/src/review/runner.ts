@@ -69,12 +69,12 @@ export async function runCi(store: Store, id: string, req: CheckRequest, semanti
     items.map(async (item): Promise<RequirementReport> => {
       if (item.kind === "present" || item.kind === "absent" || item.kind === "unchanged") {
         const d = evaluateDeterministic(item.kind, item.text, doc.content, result.content, result.applied);
-        return { id: item.id, kind: item.kind, text: item.text, before: d.before, after: d.after, delta: deltaOf(d.before.verdict, d.after.verdict), touchedBy: d.touchedBy };
+        return { id: item.id, kind: item.kind, text: item.text, before: d.before, after: d.after, delta: deltaOf(d.before.verdict, d.after.verdict), method: "exact", answeredBy: [], touchedBy: d.touchedBy };
       }
       const index = semanticItems.indexOf(item);
       const before = applyStrictness(beforeChecks[index]!, req.strictness);
       const after = applyStrictness(afterChecks[index]!, req.strictness);
-      return { id: item.id, kind: item.kind, text: item.text, before, after, delta: deltaOf(before.verdict, after.verdict), touchedBy: [] };
+      return { id: item.id, kind: item.kind, text: item.text, before, after, delta: deltaOf(before.verdict, after.verdict), method: "model", answeredBy: [...new Set([...(before.judges ?? []), ...(after.judges ?? [])].map((j) => j.id))], touchedBy: [] };
     }),
   );
 

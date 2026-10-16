@@ -4,6 +4,7 @@ import type { EditError } from "@clause/core";
 export type DomainError =
   | EditError
   | { type: "DOCUMENT_NOT_FOUND"; id: string }
+  | { type: "SAMPLE_READ_ONLY"; id: string }
   | { type: "REVISION_NOT_FOUND"; id: string; version: number }
   | { type: "INVALID_VERSION_RANGE"; from: number; to: number }
   | { type: "TOO_LARGE_TO_EXPORT"; chars: number; max: number }
@@ -38,6 +39,8 @@ export function toHttp(e: DomainError): HttpError {
   switch (e.type) {
     case "DOCUMENT_NOT_FOUND":
       return { status: 404, type: e.type, error: `Document ${e.id} not found` };
+    case "SAMPLE_READ_ONLY":
+      return { status: 403, type: e.type, error: "This is a shared sample contract and is read-only. Make a copy to edit it.", details: { id: e.id, copy: `/documents/${e.id}/copy` } };
     case "REVISION_NOT_FOUND":
       return { status: 404, type: e.type, error: `Document ${e.id} has no version ${e.version}`, details: { version: e.version } };
     case "INVALID_VERSION_RANGE":

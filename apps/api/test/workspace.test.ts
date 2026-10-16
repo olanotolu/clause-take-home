@@ -205,7 +205,7 @@ describe("sample workspace seeding (runs on whichever backend the suite uses)", 
   it("fills empty playbook and request tables once, skips requests whose document is missing, and never touches existing rows", async () => {
     const store = await testStore();
     try {
-      await store.seedIfEmpty([{ title: "Mutual NDA - Acme Corp", content: "text" }]);
+      await store.ensureSamples([{ title: "Mutual NDA - Acme Corp", content: "text" }]);
       expect(await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS)).toBe(SEED_PLAYBOOKS.length);
       expect(await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS)).toBe(0);
       expect((await store.listPlaybooks()).map((p) => p.ruleCount)).toEqual(SEED_PLAYBOOKS.map((p) => p.rules.length));
@@ -225,7 +225,7 @@ describe("seedDemoRequirements", () => {
     const store = await testStore();
     try {
       expect(await seedDemoRequirements(store)).toBe(0); // no document, no playbook yet
-      await store.seedIfEmpty([{ title: DEMO_DOCUMENT_TITLE, content: "text" }, { title: "Other", content: "text" }]);
+      await store.ensureSamples([{ title: DEMO_DOCUMENT_TITLE, content: "text" }, { title: "Other", content: "text" }]);
       expect(await seedDemoRequirements(store)).toBe(0); // no playbook yet
       await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS);
       const nda = SEED_PLAYBOOKS.find((p) => p.name === "NDA Playbook")!;

@@ -1,16 +1,15 @@
 /**
  * Runs the judges over bench/ci/cases.json and records every raw answer (resumable) in bench/ci/results/.
  *
- *   pnpm bench:ci                 # heuristic + LLM (needs OPENROUTER_API_KEY), Jev too if the gateway allows it
+ *   pnpm bench:ci                 # heuristic + LLM (needs OPENROUTER_API_KEY), 
  *   pnpm bench:ci -- --only llm   # one judge
  *
- * It exercises the PRODUCTION judges (createLlmJudge / createJevJudge), so what is measured is what ships.
+ * It exercises the PRODUCTION judges (createLlmJudge), so what is measured is what ships.
  * Nothing here is tuned: thresholds come from config.json, which was frozen before this ran.
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { applyChanges, type Change } from "../../packages/core/src/index.ts";
-import { createJevJudge, gatewayDecide } from "../../apps/api/src/review/judges/jev.ts";
 import { createLlmJudge, openRouterGenerate } from "../../apps/api/src/review/judges/llm.ts";
 import type { Judge, JudgeAnswer } from "../../apps/api/src/review/judges/types.ts";
 import type { CasesFile } from "./build-cases.ts";
@@ -81,9 +80,6 @@ async function main() {
     const key = process.env.OPENROUTER_API_KEY;
     arms.push({ id: config.llmModel, file: "raw-llm.jsonl", concurrency: 4, make: (u) => createLlmJudge({ id: config.llmModel, generate: openRouterGenerate(key, config.llmModel, (x) => { u.in = x.inputTokens; u.out = x.outputTokens; }) }) });
   } else console.log("no OPENROUTER_API_KEY: skipping the LLM arm");
-  if ((process.env.CLAUSE_JEV === "on" || process.argv.includes("--jev")) && (process.env.VERCEL_OIDC_TOKEN || process.env.AI_GATEWAY_API_KEY)) {
-    arms.push({ id: config.jevModel, file: "raw-jev.jsonl", concurrency: 4, make: () => createJevJudge({ id: config.jevModel, decide: gatewayDecide }) });
-  } else console.log("Jev arm not requested (needs CLAUSE_JEV=on or --jev, and gateway credentials)");
 
   for (const arm of arms.filter((a) => !only || a.file.includes(only))) {
     const file = join(resultsDir, arm.file);

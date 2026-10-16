@@ -1,6 +1,5 @@
 /** Per-browser preferences. Pure (no React, no DOM) so it can be tested; the hook lives in settings.tsx. */
 export interface Settings {
-  theme: "system" | "light" | "dark";
   dateFormat: "locale" | "iso" | "us" | "eu";
   /** Show the AI tab (suggestions). Hiding it changes the screen only; the server route is unaffected. */
   aiTab: boolean;
@@ -12,12 +11,11 @@ export interface Settings {
   autoRedline: boolean;
 }
 
-export const DEFAULTS: Settings = { theme: "system", dateFormat: "locale", aiTab: true, strictness: "balanced", confirmApply: false, showHash: false, autoRedline: false };
+export const DEFAULTS: Settings = { dateFormat: "locale", aiTab: true, strictness: "balanced", confirmApply: false, showHash: false, autoRedline: false };
 
 export const STORAGE_KEY = "clause.settings.v1";
 
 const CHOICES = {
-  theme: ["system", "light", "dark"],
   dateFormat: ["locale", "iso", "us", "eu"],
   strictness: ["balanced", "strict"],
 } as const;
@@ -34,7 +32,6 @@ export function parseSettings(raw: string | null | undefined): Settings {
   const pick = <K extends keyof typeof CHOICES>(k: K): Settings[K] => ((CHOICES[k] as readonly unknown[]).includes(obj[k]) ? (obj[k] as Settings[K]) : DEFAULTS[k]);
   const flag = (k: "aiTab" | "confirmApply" | "showHash" | "autoRedline") => (typeof obj[k] === "boolean" ? (obj[k] as boolean) : DEFAULTS[k]);
   return {
-    theme: pick("theme"),
     dateFormat: pick("dateFormat"),
     strictness: pick("strictness"),
     aiTab: flag("aiTab"),

@@ -113,34 +113,6 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --color-canvas: #0b0b0c;
-  --color-paper: #141416;
-  --color-ink: #f2f2f4;
-  --color-muted: #9b9ea8;
-  --color-line: rgb(255 255 255 / 0.07);
-  --color-line-strong: rgb(255 255 255 / 0.16);
-  --color-rail: #09090a;
-  --color-rail-hi: rgb(255 255 255 / 0.07);
-  --color-rail-ink: #f2f2f4;
-  --color-rail-muted: #9b9ea8;
-  --color-accent: #7fb0ec;
-  --color-accent-ink: #08111d;
-  --color-accent-soft: rgb(127 176 236 / 0.13);
-  --color-pass: #5fd69c;
-  --color-pass-bg: rgb(36 164 107 / 0.18);
-  --color-fail: #ff8f84;
-  --color-fail-bg: rgb(214 69 55 / 0.2);
-  --color-review: #f0bd62;
-  --color-review-bg: rgb(214 150 20 / 0.2);
-  --color-hit: rgb(250 204 21 / 0.28);
-  --color-shell: #060607;
-  --color-lane: rgb(255 255 255 / 0.035);
-  --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.06);
-  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 16px 40px -16px rgb(0 0 0 / 0.7);
-}
-
 html, body, #root { height: 100%; }
 body {
   background: var(--color-shell);

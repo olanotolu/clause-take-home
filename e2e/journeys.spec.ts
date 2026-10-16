@@ -185,3 +185,23 @@ test("a deep link on a first visit goes straight to the page, with no intro", as
   await expect(page.getByRole("heading", { level: 1, name: "Documents" })).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Welcome to CLAUSE" })).toBeHidden();
 });
+
+test("a sample is read-only, and applying an edit to it lands on your own copy", async ({ page, request }) => {
+  // Samples are pinned first and carry a "Sample" tag; earlier runs may have left "(copy)" documents with the same prefix.
+  await page.goto("/#/documents");
+  await page.getByRole("link", { name: /^Mutual NDA - Acme Corp\s*Sample$/ }).click();
+  await expect(page.getByText("Sample · read-only")).toBeVisible();
+  await expectAccessible(page);
+  await stageReplacement(page, "five (5) years", "seven (7) years");
+  await expect(page.getByRole("button", { name: "Apply to a copy" })).toBeVisible();
+  await page.getByRole("button", { name: "Apply to a copy" }).click();
+
+  // We end on a different document: a normal one at v2, while the sample is exactly as it was.
+  await expect(page.getByRole("heading", { level: 1, name: /Mutual NDA - Acme Corp \(copy\)/ })).toBeVisible();
+  await expect(page.getByText("Sample · read-only")).toBeHidden();
+  const list = (await (await request.get("/api/documents?limit=100")).json()) as { items: { id: string; title: string; version: number; sample?: boolean }[] };
+  expect(list.items.find((d) => d.sample && d.title === "Mutual NDA - Acme Corp")?.version).toBe(1);
+  expect(list.items.find((d) => d.title === "Mutual NDA - Acme Corp (copy)")).toMatchObject({ version: 2 });
+  const sample = list.items.find((d) => d.sample && d.title === "Mutual NDA - Acme Corp")!;
+  expect((await request.patch(`/api/documents/${sample.id}`, { data: { expectedVersion: 1, changes: [{ operation: "replace", target: { quote: { exact: "five (5) years" } }, replacement: "x" }] } })).status()).toBe(403);
+});

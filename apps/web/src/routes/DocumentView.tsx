@@ -60,6 +60,7 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
             <div className="flex min-w-0 items-center gap-2.5">
               <h1 className="font-display truncate text-[23px] leading-tight max-[640px]:text-xl" title={doc.title}>{doc.title}</h1>
               <span className="tnum inline-flex shrink-0 items-center rounded-md border border-line bg-canvas px-2 py-0.5 text-xs font-semibold text-muted">v<Num value={doc.version} /></span>
+              {doc.sample && <span className="inline-flex shrink-0 items-center rounded-md bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent" title="A shared sample contract. It cannot be changed; make a copy to edit it.">Sample · read-only</span>}
             </div>
             <p className="tnum mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted">
               <span>{kb(new TextEncoder().encode(doc.content).length)}</span>
@@ -69,6 +70,7 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 max-[640px]:gap-1.5">
+            {doc.sample && <Button variant="secondary" onClick={() => void ws.copyDoc()} title="Make your own editable copy of this sample">Make a copy</Button>}
             {tab === "edit" && (
               <Segmented
                 value={ws.redline ? "redline" : "original"}

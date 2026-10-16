@@ -121,6 +121,7 @@ export async function apply(store: Store, id: string, req: ChangeRequest): Promi
   const p = await preview(store, id, req);
   if (!p.ok) return p;
   const { doc, result } = p.value;
+  if (doc.sample) return fail({ type: "SAMPLE_READ_ONLY", id });
 
   if (!result.changed) {
     return {
@@ -156,6 +157,7 @@ export interface RevertRequest {
 export async function revert(store: Store, id: string, req: RevertRequest): Promise<Result<Receipt, DomainError>> {
   const doc = await store.getDocument(id);
   if (!doc) return fail({ type: "DOCUMENT_NOT_FOUND", id });
+  if (doc.sample) return fail({ type: "SAMPLE_READ_ONLY", id });
   const pre = checkPreconditions(doc, req);
   if (pre) return fail(pre);
   const target = await store.getRevision(id, req.toVersion);

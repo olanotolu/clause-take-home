@@ -1,6 +1,4 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
-import { jwtVerify, createRemoteJWKSet } from "jose";
-import mammoth from "mammoth";
 import type { IntegrationConnection, IntegrationProvider, Store } from "../store/types.ts";
 import { providerById, providerConfig, PROVIDERS } from "./providers.ts";
 
@@ -58,13 +56,14 @@ export async function readLimitedResponse(response: Response, limit = MAX_IMPORT
 
 export interface AuthUser { id: string; email: string; name: string; role: string }
 const authBase = () => (process.env.NEON_AUTH_BASE_URL ?? process.env.VITE_NEON_AUTH_URL ?? "").replace(/\/$/, "");
-let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
+let jwks: ReturnType<typeof import("jose").createRemoteJWKSet> | undefined;
 
 export async function authenticateAdmin(header?: string): Promise<AuthUser> {
   if (!header?.startsWith("Bearer ")) throw new IntegrationError(401, "AUTH_REQUIRED", "Sign in to manage integrations.");
   const base = authBase();
   if (!base) throw new IntegrationError(503, "AUTH_UNAVAILABLE", "Neon Auth is not configured for this deployment.");
   try {
+    const { jwtVerify, createRemoteJWKSet } = await import("jose"); // loaded on first sign-in, not on every cold start
     jwks ??= createRemoteJWKSet(new URL(`${base}/jwt`));
     const { payload } = await jwtVerify(header.slice(7), jwks);
     const user = { id: String(payload.sub ?? ""), email: String(payload.email ?? ""), name: String(payload.name ?? ""), role: String(payload.role ?? "") };
@@ -329,6 +328,7 @@ export async function extractText(store: Store, provider: IntegrationProvider, f
   const ext = file.name.toLowerCase().split(".").pop();
   if (mimeType.startsWith("text/") || ext === "txt") return bytes.toString("utf8").replace(/^\uFEFF/, "");
   if (mimeType.includes("wordprocessingml") || ext === "docx") {
+    const { default: mammoth } = await import("mammoth"); // 2 MB of parsing code, only when a .docx is imported
     const result = await mammoth.extractRawText({ buffer: bytes });
     return result.value.trim();
   }

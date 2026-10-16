@@ -1,8 +1,8 @@
 import type { Target } from "@clause/engine";
 
 export interface TemplateProvenance { templateId: string; title: string; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string }
-export interface Doc { id: string; title: string; content: string; version: number; contentHash: string; createdAt: string; updatedAt: string; templateProvenance?: TemplateProvenance }
-export interface DocSummary { id: string; title: string; version: number; size: number; updatedAt: string }
+export interface Doc { id: string; title: string; content: string; version: number; contentHash: string; createdAt: string; updatedAt: string; templateProvenance?: TemplateProvenance; sample?: boolean }
+export interface DocSummary { id: string; title: string; version: number; size: number; updatedAt: string; sample?: boolean }
 export interface Applied { index: number; start: number; end: number; before: string; after: string; newStart: number; newEnd: number }
 export interface Segment { text: string; match: boolean }
 export interface Hit { snippet: Segment[]; start?: number; end?: number; target?: Target }
@@ -31,7 +31,7 @@ export type Delta = "held" | "regressed" | "achieved" | "still_failing" | "uncer
 export interface Evidence { start: number; end: number; quote: string; verified: boolean }
 export interface JudgeDetail { id: string; label: string; probability?: number; rationale?: string }
 export interface CheckOutcome { verdict: Verdict; detail: string; evidence: Evidence[]; judges?: JudgeDetail[] }
-export interface RequirementReport { id: string; kind: RequirementKind | "goal"; text: string; before: CheckOutcome; after: CheckOutcome; delta: Delta; touchedBy: number[] }
+export interface RequirementReport { id: string; kind: RequirementKind | "goal"; text: string; before: CheckOutcome; after: CheckOutcome; delta: Delta; method: "exact" | "model"; answeredBy: string[]; touchedBy: number[] }
 export interface CiReport {
   documentId: string;
   version: number;
@@ -88,7 +88,8 @@ export interface ActivityItem { documentId: string; title: string; version: numb
 export type TemplateCategory = "NDA" | "Commercial" | "Data & Privacy" | "Vendor & Services" | "Employment";
 export interface TemplateVariable { id: string; label: string; required: boolean; placeholder: string; helpText: string }
 export interface TemplateSuggestion { id: string; title: string; kind: RequirementKind; text: string }
-export interface Template { id: string; title: string; description: string; category: TemplateCategory; content: string; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string; featured: boolean; variables: TemplateVariable[]; suggestedRequirements: TemplateSuggestion[] }
+export interface Template { id: string; title: string; description: string; category: TemplateCategory; size: number; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string; featured: boolean; variables: TemplateVariable[]; suggestedRequirements: TemplateSuggestion[] }
+export interface TemplateFull extends Omit<Template, "size"> { content: string }
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -112,6 +113,7 @@ export const api = {
   list: () => call<{ items: DocSummary[]; total: number }>("GET", "/documents?limit=100"),
   get: (id: string) => call<Doc>("GET", `/documents/${id}`),
   create: (title: string, content: string) => call<Doc>("POST", "/documents", { title, content }),
+  copy: (id: string, title?: string) => call<Doc>("POST", `/documents/${encodeURIComponent(id)}/copy`, title ? { title } : {}),
   revisions: (id: string) => call<{ items: Revision[] }>("GET", `/documents/${id}/revisions`),
   search: (q: string, mode: string) => call<SearchPage>("GET", `/documents/search?q=${encodeURIComponent(q)}&mode=${mode}&limit=20`),
   preview: (id: string, expectedVersion: number, changes: Change[]) =>
@@ -136,6 +138,7 @@ export const api = {
   deleteRule: (id: string, rid: string) => call<undefined>("DELETE", `/playbooks/${id}/rules/${rid}`),
   applyPlaybook: (docId: string, playbookId: string) => call<ApplyResult>("POST", `/documents/${docId}/apply-playbook`, { playbookId }),
   activity: (limit = 60) => call<{ items: ActivityItem[] }>("GET", `/activity?limit=${limit}`),
+  template: (id: string) => call<TemplateFull>("GET", `/templates/${encodeURIComponent(id)}`),
   templates: () => call<{ items: Template[] }>("GET", "/templates"),
   createFromTemplate: (id: string, values: Record<string, string>, selectedRequirementIds: string[], title?: string) =>
     call<{ document: Doc; attachedRequirements: Requirement[]; attachmentError?: string }>("POST", `/templates/${encodeURIComponent(id)}/create`, { values, selectedRequirementIds, ...(title ? { title } : {}) }),

@@ -82,11 +82,11 @@ describe("GET /templates", () => {
     app = await testApp();
     const r = await app.inject({ method: "GET", url: "/templates" });
     expect(r.statusCode).toBe(200);
-    const { items } = r.json() as { items: { id: string; title: string; category: string; content: string }[] };
+    const { items } = r.json() as { items: { id: string; title: string; category: string }[] };
     expect(items.length).toBeGreaterThanOrEqual(5);
     expect(new Set(items.map((i) => i.id)).size).toBe(items.length);
     expect(items.find((i) => i.title.startsWith("Mutual NDA"))?.category).toBe("NDA");
-    const t = items[0]!;
+    const t = (await app.inject({ method: "GET", url: `/templates/${items[0]!.id}` })).json() as { title: string; content: string };
     const created = await app.inject({ method: "POST", url: "/documents", payload: { title: t.title, content: t.content } });
     expect(created.statusCode).toBe(201);
     expect(created.json().content).toBe(t.content);
