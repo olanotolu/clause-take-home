@@ -275,7 +275,7 @@ export default function App() {
             />
           )}
           {tab === "rules" && doc && <RequirementsPanel key={doc.id} docId={doc.id} selectedText={selection ? doc.content.slice(selection.start, selection.end) : ""} onChanged={() => setCi({ status: "idle" })} />}
-          {tab === "ai" && doc && <SuggestPanel key={doc.id} docId={doc.id} docVersion={doc.version} onStage={stageSuggested} />}
+          {tab === "ai" && doc && <SuggestPanel key={doc.id} docId={doc.id} docVersion={doc.version} onStage={stageSuggested} onShowEvidence={showEvidence} />}
           {tab === "history" && doc && <HistoryPanel docId={doc.id} version={doc.version} onRestore={(v) => void restore(v)} />}
         </div>
       </aside>

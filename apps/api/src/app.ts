@@ -116,6 +116,6 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   registerSearchRoutes(typed);
   registerRequirementRoutes(typed);
   registerCheckRoutes(typed, opts.semanticEvaluator ?? noSemanticEvaluator, opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" });
-  registerSuggestRoutes(typed, opts.suggestionProvider, opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" });
+  registerSuggestRoutes(typed, opts.suggestionProvider, opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" }, opts.semanticEvaluator ?? noSemanticEvaluator);
   return app;
 }

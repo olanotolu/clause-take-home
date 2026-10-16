@@ -2,13 +2,15 @@ import { createPatch } from "diff";
 import { z } from "zod";
 import * as docs from "../documents.ts";
 import { toHttp } from "../errors.ts";
+import { runCi } from "../review/runner.ts";
+import type { SemanticEvaluator } from "../review/types.ts";
 import { IdParams, SuggestOut, errors } from "../schemas.ts";
 import { MAX_DOCUMENT_CHARS_FOR_SUGGESTION, scopeViolation, toChanges, type EditSuggestionProvider } from "../suggest.ts";
 import type { App } from "../types.ts";
 
 const Body = z.strictObject({ instruction: z.string().min(1).max(2000) });
 
-export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider | undefined, limit: { max: number; timeWindow: string }): void {
+export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider | undefined, limit: { max: number; timeWindow: string }, semantic: SemanticEvaluator): void {
   /**
    * Proposes an edit. NEVER applies it: the response says `applied: false`, carries the
    * document version it was validated against, and the client commits through the normal
@@ -61,6 +63,10 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
       return { ...base, validation: { valid: false as const, error } };
     }
     const { result } = p.value;
+
+    // The proposal is tested before a human reads it: the user's own instruction is the goal, and the document's saved
+    // requirements are the regression suite. A failure here only means "no report", never a failed suggestion.
+    const ci = await runCi(app.store, doc.id, { expectedVersion: doc.version, changes: base.changes, goal: req.body.instruction }, semantic).catch(() => undefined);
     return {
       ...base,
       validation: {
@@ -68,6 +74,7 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
         applied: result.applied,
         diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }),
       },
+      ci: ci?.ok ? ci.value : null,
     };
   });
 }

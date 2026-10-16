@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { api, type ApiError, type SuggestResponse } from "../lib/api.ts";
+import { api, type ApiError, type Evidence, type SuggestResponse } from "../lib/api.ts";
+import { CiReportCard } from "./CiReport.tsx";
 import type { Staged } from "./ChangePanel.tsx";
 
 type State = { status: "idle" } | { status: "loading" } | { status: "error"; error: ApiError } | { status: "done"; data: SuggestResponse };
@@ -9,9 +10,10 @@ interface Props {
   docVersion: number;
   /** Hands validated proposal changes to the normal staging flow. The AI never writes anything itself. */
   onStage: (items: Omit<Staged, "id">[]) => void;
+  onShowEvidence: (e: Evidence) => void;
 }
 
-export function SuggestPanel({ docId, docVersion, onStage }: Props) {
+export function SuggestPanel({ docId, docVersion, onStage, onShowEvidence }: Props) {
   const [instruction, setInstruction] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
 
@@ -84,6 +86,7 @@ export function SuggestPanel({ docId, docVersion, onStage }: Props) {
                     </li>
                   ))}
                 </ul>
+                {data.ci && !stale && <div className="mt-3"><CiReportCard report={data.ci} onShowEvidence={onShowEvidence} /></div>}
                 {stale && <p role="alert" className="mt-2 text-[13px] text-del">The document changed since this was checked (v{data.documentVersion} → v{docVersion}). Ask again.</p>}
                 <button disabled={stale} onClick={stage} className="mt-3 w-full rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-30">
                   Stage {data.validation.applied.length} change{data.validation.applied.length === 1 ? "" : "s"} for review

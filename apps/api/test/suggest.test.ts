@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
+import type { SemanticEvaluator } from "../src/review/types.ts";
 import { buildPrompt, DEFAULT_GATEWAY_MODEL, DEFAULT_OPENROUTER_MODEL, MAX_DOCUMENT_CHARS_FOR_SUGGESTION, providerFromEnv, type EditSuggestionProvider, type Proposal, type SuggestionInput } from "../src/suggest.ts";
 import { createDoc, NDA, patch, testApp } from "./helpers.ts";
 
@@ -166,5 +167,58 @@ describe("rate limiting (the AI route is the only one that spends money)", () =>
     expect((await as("203.0.113.1")).statusCode).toBe(200);
     expect((await as("203.0.113.1")).statusCode).toBe(429);
     expect((await as("203.0.113.2")).statusCode).toBe(200); // a different client is unaffected
+  });
+});
+
+describe("AI proposals are tested by CLAUSE CI before a human sees them", () => {
+  const judgeSaying = (verdict: "PASS" | "FAIL", calls: string[] = []): SemanticEvaluator => ({
+    models: ["stub-judge"],
+    async evaluate({ requirement, isGoal }) {
+      calls.push(`${isGoal ? "goal" : "req"}:${requirement}`);
+      return { verdict, detail: "stubbed", evidence: [] };
+    },
+  });
+  const proposal = (replacement: string): Proposal => ({ changes: [{ exact: "Trade Secrets", replacement }], rationale: "Edits the category." });
+
+  it("attaches a report: the user's instruction is the goal and saved requirements are the regression suite", async () => {
+    const calls: string[] = [];
+    app = await testApp({ suggestionProvider: stub(proposal("Know-How")), semanticEvaluator: judgeSaying("PASS", calls) });
+    const d = await createDoc(app, "NDA", NDA);
+    await app.inject({ method: "POST", url: `/documents/${d.id}/requirements`, payload: { kind: "present", text: "Trade Secrets" } });
+    const body = (await suggest(d.id, "Rename the trade secrets category")).json();
+    expect(body.validation.valid).toBe(true);
+    expect(body.ci).toMatchObject({ version: 1, judges: ["stub-judge"], mechanical: { valid: true } });
+    expect(calls.filter((c) => c.startsWith("goal:")).every((c) => c === "goal:Rename the trade secrets category")).toBe(true);
+    const present = body.ci.requirements.find((r: { kind: string }) => r.kind === "present");
+    expect(present).toMatchObject({ delta: "regressed", before: { verdict: "PASS" }, after: { verdict: "FAIL" } }); // the proposal removed "Trade Secrets"
+    expect(body.ci.requirements.find((r: { kind: string }) => r.kind === "goal")).toMatchObject({ delta: "held" });
+    expect(await version(d.id)).toBe(1); // still only a proposal
+  });
+
+  it("an invalid proposal gets no report (it never reached the engine's approval)", async () => {
+    app = await testApp({ suggestionProvider: stub({ changes: [{ exact: "no such text anywhere", replacement: "x" }], rationale: "n/a" }), semanticEvaluator: judgeSaying("PASS") });
+    const d = await createDoc(app, "NDA", NDA);
+    const body = (await suggest(d.id)).json();
+    expect(body.validation.valid).toBe(false);
+    expect(body.ci ?? null).toBeNull();
+  });
+
+  it("a judge that fails degrades the report to UNAVAILABLE, and the proposal itself is unaffected", async () => {
+    const throwing: SemanticEvaluator = { models: ["x"], evaluate: async () => Promise.reject(new Error("boom")) };
+    app = await testApp({ suggestionProvider: stub(proposal("Know-How")), semanticEvaluator: throwing });
+    const d = await createDoc(app, "NDA", NDA);
+    const res = await suggest(d.id, "Rename it");
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.validation.valid).toBe(true);
+    expect(body.ci.requirements[0]).toMatchObject({ kind: "goal", delta: "uncertain", after: { verdict: "UNAVAILABLE" } });
+  });
+
+  it("with no judges configured the goal row says so instead of guessing", async () => {
+    app = await testApp({ suggestionProvider: stub(proposal("Know-How")) });
+    const d = await createDoc(app, "NDA", NDA);
+    const body = (await suggest(d.id, "Rename it")).json();
+    expect(body.ci.requirements[0]).toMatchObject({ kind: "goal", before: { verdict: "UNAVAILABLE" } });
+    expect(body.ci.judges).toEqual([]);
   });
 });

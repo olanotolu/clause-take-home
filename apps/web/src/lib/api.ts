@@ -20,6 +20,7 @@ export interface SuggestResponse {
   documentVersion: number;
   rationale: string;
   changes: Change[];
+  ci?: CiReport | null;
   validation: { valid: true; applied: Applied[]; diff: string } | { valid: false; error: { type: string; error: string; details?: ApiError["details"] } };
 }
 export type RequirementKind = "present" | "absent" | "unchanged" | "semantic";

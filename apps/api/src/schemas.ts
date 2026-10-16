@@ -186,19 +186,6 @@ export const ScopedSearchOut = z.object({
   result: DocumentResultOut.nullable(),
 });
 
-export const SuggestOut = z.object({
-  status: z.literal("proposal"),
-  applied: z.literal(false).meta({ description: "A suggestion is never applied. Commit it through PATCH." }),
-  provider: z.enum(["live", "fixture"]),
-  model: z.string(),
-  documentVersion: z.number().int(),
-  rationale: z.string(),
-  changes: z.array(ChangeSchema),
-  validation: z.union([
-    z.object({ valid: z.literal(true), applied: z.array(AppliedOut), diff: z.string() }),
-    z.object({ valid: z.literal(false), error: z.object({ type: z.string(), error: z.string(), details: z.record(z.string(), z.unknown()).optional() }) }),
-  ]),
-});
 
 // ---------------------------------------------------------------- requirements and CI checks
 
@@ -242,4 +229,20 @@ export const CiReportOut = z.object({
   summary: z.object({ held: z.number().int(), regressed: z.number().int(), achieved: z.number().int(), still_failing: z.number().int(), uncertain: z.number().int() }),
   judges: z.array(z.string()),
   elapsedMs: z.number().int(),
+});
+
+// Defined last: it embeds CiReportOut.
+export const SuggestOut = z.object({
+  status: z.literal("proposal"),
+  applied: z.literal(false).meta({ description: "A suggestion is never applied. Commit it through PATCH." }),
+  provider: z.enum(["live", "fixture"]),
+  model: z.string(),
+  documentVersion: z.number().int(),
+  rationale: z.string(),
+  changes: z.array(ChangeSchema),
+  ci: CiReportOut.nullable().optional().meta({ description: "CLAUSE CI report for a valid proposal: the instruction as the goal plus the document's saved requirements. Null when it could not be produced." }),
+  validation: z.union([
+    z.object({ valid: z.literal(true), applied: z.array(AppliedOut), diff: z.string() }),
+    z.object({ valid: z.literal(false), error: z.object({ type: z.string(), error: z.string(), details: z.record(z.string(), z.unknown()).optional() }) }),
+  ]),
 });
