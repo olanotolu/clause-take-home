@@ -168,7 +168,8 @@ describe("POST /documents/:id/changes/check (deterministic requirements)", () =>
     expect((await check(d.id, { expectedVersion: 7, changes: [quote("MUTUAL NDA", "x")] })).json().type).toBe("VERSION_CONFLICT");
     expect((await check(d.id, { changes: [quote("not in the doc", "x")] })).json().type).toBe("TARGET_NOT_FOUND");
     expect((await check("doc_nope", { changes: [quote("a", "b")] })).statusCode).toBe(404);
-    expect((await check(d.id, { changes: [] })).statusCode).toBe(400);
+    // an empty batch is no longer an error here: it means "audit the current text" (see settings.test.ts); PATCH and preview still reject it
+    expect((await check(d.id, { changes: [] })).statusCode).toBe(200);
   });
 
   it("a semantic requirement or goal with no judge configured is UNAVAILABLE and uncertain, never pass or fail", async () => {

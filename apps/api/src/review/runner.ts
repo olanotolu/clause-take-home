@@ -1,5 +1,5 @@
 import type { Result } from "@clause/core";
-import { preview, type ChangeRequest } from "../documents.ts";
+import { previewOrCurrent, type ChangeRequest } from "../documents.ts";
 import type { DomainError } from "../errors.ts";
 import type { Store } from "../store/types.ts";
 import { applyStrictness, type Strictness } from "./ensemble.ts";
@@ -40,7 +40,7 @@ async function safely(semantic: SemanticEvaluator, args: { requirement: string; 
  */
 export async function runCi(store: Store, id: string, req: CheckRequest, semantic: SemanticEvaluator = noSemanticEvaluator): Promise<Result<CiReport, DomainError>> {
   const started = performance.now();
-  const p = await preview(store, id, req);
+  const p = await previewOrCurrent(store, id, req);
   if (!p.ok) return p;
   const { doc, result } = p.value;
   const requirements = await store.listRequirements(id);

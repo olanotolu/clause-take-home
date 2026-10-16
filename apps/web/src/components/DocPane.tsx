@@ -58,7 +58,7 @@ export function DocPane({ content, hits, selection, redline, onSelect }: Props) 
     <div
       ref={ref}
       onMouseUp={handleMouseUp}
-      className="doc mx-auto max-w-[760px] px-10 py-10 select-text"
+      className="doc mx-auto my-6 max-w-[780px] select-text rounded-card border border-line bg-paper px-12 py-10 max-[640px]:my-3 max-[640px]:px-5 max-[640px]:py-6"
       aria-label="Document text"
       data-testid="doc-text"
     >

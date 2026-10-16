@@ -11,6 +11,7 @@ import { registerCheckRoutes } from "./routes/check.ts";
 import { registerDocumentRoutes } from "./routes/documents.ts";
 import { registerRequirementRoutes } from "./routes/requirements.ts";
 import { registerSettingsRoutes } from "./routes/settings.ts";
+import { registerTemplateRoutes } from "./routes/templates.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
 import { registerSuggestRoutes } from "./routes/suggest.ts";
 import { noSemanticEvaluator } from "./review/runner.ts";
@@ -121,6 +122,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   const semantic = opts.semanticEvaluator ?? noSemanticEvaluator;
   registerCheckRoutes(typed, semantic, checkLimit);
   registerSuggestRoutes(typed, opts.suggestionProvider, suggestLimit, semantic);
+  registerTemplateRoutes(typed);
   registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev" });
   return app;
 }

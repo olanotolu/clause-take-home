@@ -98,6 +98,20 @@ export async function preview(store: Store, id: string, req: ChangeRequest): Pro
 }
 
 /**
+ * Like `preview`, but an EMPTY change list means "no edit": the result is the current text, unchanged. Used only by
+ * CLAUSE CI to audit a document against its requirements without proposing anything. The engine itself still rejects
+ * an empty batch (EMPTY_BATCH), and PATCH / preview never call this.
+ */
+export async function previewOrCurrent(store: Store, id: string, req: ChangeRequest): Promise<Result<{ doc: DocumentRecord; result: EditResult }, DomainError>> {
+  if (req.changes.length > 0) return preview(store, id, req);
+  const doc = await store.getDocument(id);
+  if (!doc) return fail({ type: "DOCUMENT_NOT_FOUND", id });
+  const pre = checkPreconditions(doc, req);
+  if (pre) return fail(pre);
+  return { ok: true, value: { doc, result: { content: doc.content, changed: false, applied: [] } } };
+}
+
+/**
  * Apply = preview + compare-and-swap commit. The same engine call decides what
  * would change, so a successful preview and the commit cannot disagree. If a
  * writer sneaks in between our read and our commit, the CAS fails and we report

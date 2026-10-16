@@ -88,7 +88,7 @@ export function SettingsView() {
         <div className="space-y-5">
           {show("general") && (
             <Card id="general" title="General" subtitle={SECTIONS[0][2]}>
-              <Row label="Date format" htmlFor="s-date" note="Used in the History tab.">
+              <Row label="Date format" htmlFor="s-date" note="Used in the document header and the Activity tab.">
                 <Select id="s-date" value={settings.dateFormat} onChange={(v) => set("dateFormat", v)} options={[["locale", "Browser default"], ["iso", "2026-10-05 14:07"], ["us", "10/05/2026 14:07"], ["eu", "05/10/2026 14:07"]]} />
               </Row>
               <Planned label="Workspace name, logo and description" note="There are no accounts or workspaces yet." />

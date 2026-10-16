@@ -47,6 +47,7 @@ export interface SettingsStatus {
   ai: { judges: string[]; suggestions: boolean; strictnessOptions: ("balanced" | "strict")[] };
   limits: { maxDocumentChars: number | null; maxJudgedChars: number; maxRequirementsPerDocument: number; checkPerHour: number; suggestPerHour: number };
 }
+export interface Template { id: string; title: string; category: "NDA" | "Commercial" | "Employment" | "Data & Privacy"; content: string }
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -80,6 +81,7 @@ export const api = {
   deleteRequirement: (id: string, rid: string) => call<undefined>("DELETE", `/documents/${id}/requirements/${rid}`),
   check: (id: string, expectedVersion: number, changes: Change[], goal?: string, strictness?: "balanced" | "strict") =>
     call<CiReport>("POST", `/documents/${id}/changes/check`, { expectedVersion, changes, ...(goal ? { goal } : {}), ...(strictness === "strict" ? { strictness } : {}) }),
+  templates: () => call<{ items: Template[] }>("GET", "/templates"),
   settingsStatus: () => call<SettingsStatus>("GET", "/settings/status"),
   suggest: (id: string, instruction: string) => call<SuggestResponse>("POST", `/documents/${id}/suggest`, { instruction }),
   apply: (id: string, expectedVersion: number, changes: Change[]) => call<Receipt>("PATCH", `/documents/${id}`, { expectedVersion, changes }),

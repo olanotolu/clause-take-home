@@ -73,3 +73,49 @@ describe("GET /settings/status", () => {
     expect(r.statusCode).toBe(400);
   });
 });
+
+describe("GET /templates", () => {
+  let app: FastifyInstance;
+  afterEach(async () => app?.close());
+
+  it("lists the sample contracts with a category, and 'using' one is an ordinary create", async () => {
+    app = await testApp();
+    const r = await app.inject({ method: "GET", url: "/templates" });
+    expect(r.statusCode).toBe(200);
+    const { items } = r.json() as { items: { id: string; title: string; category: string; content: string }[] };
+    expect(items.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(items.map((i) => i.id)).size).toBe(items.length);
+    expect(items.find((i) => i.title.startsWith("Mutual NDA"))?.category).toBe("NDA");
+    const t = items[0]!;
+    const created = await app.inject({ method: "POST", url: "/documents", payload: { title: t.title, content: t.content } });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().content).toBe(t.content);
+  });
+});
+
+describe("POST /documents/:id/changes/check with no changes", () => {
+  let app: FastifyInstance;
+  afterEach(async () => app?.close());
+
+  it("checks the current text against the requirements and proposes nothing", async () => {
+    app = await testApp();
+    const doc = (await app.inject({ method: "POST", url: "/documents", payload: { title: "t", content: "The Receiving Party shall not disclose Confidential Information." } })).json();
+    await app.inject({ method: "POST", url: `/documents/${doc.id}/requirements`, payload: { kind: "present", text: "shall not disclose" } });
+    await app.inject({ method: "POST", url: `/documents/${doc.id}/requirements`, payload: { kind: "absent", text: "indemnify" } });
+    const r = await app.inject({ method: "POST", url: `/documents/${doc.id}/changes/check`, payload: { expectedVersion: 1, changes: [] } });
+    expect(r.statusCode).toBe(200);
+    const body = r.json();
+    expect(body.mechanical).toEqual({ valid: true, wouldChange: false, changes: 0 });
+    expect(body.requirements).toHaveLength(2);
+    expect(body.requirements.every((q: { before: { verdict: string }; after: { verdict: string }; delta: string }) => q.before.verdict === "PASS" && q.after.verdict === "PASS" && q.delta === "held")).toBe(true);
+    // nothing was written
+    expect((await app.inject({ method: "GET", url: `/documents/${doc.id}` })).json().version).toBe(1);
+  });
+
+  it("still requires at least one change for PATCH and preview", async () => {
+    app = await testApp();
+    const doc = (await app.inject({ method: "POST", url: "/documents", payload: { title: "t", content: "hello there world" } })).json();
+    expect((await app.inject({ method: "PATCH", url: `/documents/${doc.id}`, payload: { changes: [] } })).statusCode).toBe(400);
+    expect((await app.inject({ method: "POST", url: `/documents/${doc.id}/changes/preview`, payload: { changes: [] } })).statusCode).toBe(400);
+  });
+});

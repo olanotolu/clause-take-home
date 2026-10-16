@@ -203,6 +203,7 @@ export const RequirementIdParams = IdParams.extend({ rid: z.string().min(1).max(
 export const RequirementOut = z.object({ id: z.string(), documentId: z.string(), kind: RequirementKindSchema, text: z.string(), createdAt: z.string() });
 
 export const CheckBody = ChangesBody.extend({
+  changes: z.array(ChangeSchema).max(5000).meta({ description: "Empty means: check the CURRENT text against the requirements (no edit proposed)." }),
   goal: text().pipe(z.string().min(1).max(500)).optional().meta({ description: "What the edit is meant to achieve, in plain words. Judged like a requirement that should become true." }),
   strictness: z.enum(["balanced", "strict"]).optional().meta({ description: "strict: a semantic PASS needs every judge to be at least 80% sure, otherwise NEEDS_REVIEW. Default balanced." }),
 });
@@ -264,4 +265,11 @@ export const SettingsStatusOut = z.object({
     checkPerHour: z.number().int(),
     suggestPerHour: z.number().int(),
   }),
+});
+
+export const TemplateOut = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.enum(["NDA", "Commercial", "Employment", "Data & Privacy"]),
+  content: z.string(),
 });
