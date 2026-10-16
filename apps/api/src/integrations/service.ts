@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import mammoth from "mammoth";
 import type { IntegrationConnection, IntegrationProvider, Store } from "../store/types.ts";
@@ -11,6 +11,20 @@ export class IntegrationError extends Error {
 }
 
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+const REQUEST_TIMEOUT_MS = 15_000;
+const DOWNLOAD_TIMEOUT_MS = 30_000;
+
+/** A dead or slow provider must come back as a clear 5xx, not hang the function or surface as an unhandled 500. */
+function networkError(error: unknown): IntegrationError {
+  if (error instanceof IntegrationError) return error;
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) return new IntegrationError(504, "PROVIDER_TIMEOUT", "The provider took too long to respond. Try again.");
+  return new IntegrationError(502, "PROVIDER_UNREACHABLE", "Could not reach the provider. Try again.");
+}
+
+async function providerFetch(url: string, init: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  try { return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) }); }
+  catch (error) { throw networkError(error); }
+}
 
 /** Read a provider response without buffering more than the import limit in memory. */
 export async function readLimitedResponse(response: Response, limit = MAX_IMPORT_BYTES): Promise<Buffer> {
@@ -27,7 +41,7 @@ export async function readLimitedResponse(response: Response, limit = MAX_IMPORT
   let total = 0;
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await reader.read().catch((error) => { throw networkError(error); });
       if (done) break;
       total += value.byteLength;
       if (total > limit) {
@@ -69,13 +83,17 @@ function encryptionKey(): Buffer {
   if (key.length !== 32) throw new IntegrationError(503, "INTEGRATION_KEY_MISSING", "Connector encryption is not configured on the server.");
   return key;
 }
-function encrypt(value: string): string {
+/** Sub-keys are derived per purpose so the OAuth-state HMAC never uses the same key bytes as token encryption. */
+function derivedKey(purpose: string): Buffer {
+  return Buffer.from(hkdfSync("sha256", encryptionKey(), Buffer.alloc(0), `clause:${purpose}`, 32));
+}
+export function encrypt(value: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const data = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
   return [iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), data.toString("base64url")].join(".");
 }
-function decrypt(value: string): string {
+export function decrypt(value: string): string {
   try {
     const [iv, tag, data] = value.split(".");
     const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(iv!, "base64url"));
@@ -87,21 +105,35 @@ function decrypt(value: string): string {
 }
 
 const b64 = (s: string) => Buffer.from(s).toString("base64url");
-function stateSecret() { return encryptionKey(); }
-function makeState(userId: string) {
-  const body = b64(JSON.stringify({ sub: userId, exp: Date.now() + 10 * 60_000, nonce: randomBytes(18).toString("base64url") }));
-  const signature = createHmac("sha256", stateSecret()).update(body).digest("base64url");
+const sha256 = (s: string) => createHash("sha256").update(s).digest("base64url");
+const sameString = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const STATE_TTL_MS = 10 * 60_000;
+export const OAUTH_COOKIE_MAX_AGE_S = STATE_TTL_MS / 1000;
+const invalidState = () => new IntegrationError(400, "INVALID_OAUTH_STATE", "The connection request expired. Start again.");
+
+interface OAuthState { sub: string; provider: IntegrationProvider; exp: number; bind: string; verifier: string }
+
+/**
+ * The state is signed (tamper-proof) and carries three things the callback needs: who started the flow, a hash of the
+ * per-browser binding nonce (the nonce itself travels only in an HttpOnly cookie), and the PKCE verifier, encrypted so
+ * that anyone who sees the redirect URL still cannot redeem the code.
+ */
+export function makeState(userId: string, provider: IntegrationProvider, bindingNonce: string, verifier: string) {
+  const payload: OAuthState = { sub: userId, provider, exp: Date.now() + STATE_TTL_MS, bind: sha256(bindingNonce), verifier: encrypt(verifier) };
+  const body = b64(JSON.stringify(payload));
+  const signature = createHmac("sha256", derivedKey("oauth-state")).update(body).digest("base64url");
   return `${body}.${signature}`;
 }
-function readState(state: string): { sub: string } {
+export function readState(state: string): OAuthState {
   const [body, signature] = state.split(".");
-  const expected = createHmac("sha256", stateSecret()).update(body ?? "").digest("base64url");
-  if (!body || !signature || signature.length !== expected.length || !Buffer.from(signature).equals(Buffer.from(expected))) throw new IntegrationError(400, "INVALID_OAUTH_STATE", "The connection request expired. Start again.");
+  if (!body || !signature) throw invalidState();
+  const expected = createHmac("sha256", derivedKey("oauth-state")).update(body).digest("base64url");
+  if (!sameString(signature, expected)) throw invalidState();
   try {
-    const value = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as { sub: string; exp: number };
-    if (!value.sub || value.exp < Date.now()) throw new Error("expired");
-    return { sub: value.sub };
-  } catch { throw new IntegrationError(400, "INVALID_OAUTH_STATE", "The connection request expired. Start again."); }
+    const value = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as OAuthState;
+    if (!value.sub || !value.provider || !value.bind || !value.verifier || value.exp < Date.now()) throw new Error("expired");
+    return value;
+  } catch { throw invalidState(); }
 }
 
 export function listProviders(store: Store) {
@@ -112,24 +144,29 @@ export function listProviders(store: Store) {
   }));
 }
 
-export function authorizationUrl(provider: IntegrationProvider, user: AuthUser): string {
+export function authorizationUrl(provider: IntegrationProvider, user: AuthUser): { url: string; binding: string } {
   const config = providerConfig(provider);
   if (!config.configured || !config.authUrl || !config.tokenUrl || !config.apiBase) throw new IntegrationError(503, "PROVIDER_NOT_CONFIGURED", `${providerById(provider)?.name ?? provider} OAuth credentials and endpoints are not configured.`);
+  const binding = randomBytes(24).toString("base64url");
+  const verifier = randomBytes(32).toString("base64url");
   const url = new URL(config.authUrl);
   url.searchParams.set("client_id", config.clientId);
   url.searchParams.set("redirect_uri", config.redirectUri);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", config.scope);
-  url.searchParams.set("state", makeState(user.id));
+  url.searchParams.set("state", makeState(user.id, provider, binding, verifier));
+  // PKCE (RFC 7636): providers that do not support it ignore the extra parameters, as RFC 6749 requires.
+  url.searchParams.set("code_challenge", sha256(verifier));
+  url.searchParams.set("code_challenge_method", "S256");
   if (provider === "google_drive") { url.searchParams.set("access_type", "offline"); url.searchParams.set("prompt", "consent"); }
   if (provider === "dropbox") url.searchParams.set("token_access_type", "offline");
-  return url.toString();
+  return { url: url.toString(), binding };
 }
 
-async function exchange(provider: IntegrationProvider, code: string) {
+async function exchange(provider: IntegrationProvider, code: string, verifier: string) {
   const config = providerConfig(provider);
-  const body = new URLSearchParams({ grant_type: "authorization_code", code, client_id: config.clientId, client_secret: config.clientSecret, redirect_uri: config.redirectUri });
-  const response = await fetch(config.tokenUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body });
+  const body = new URLSearchParams({ grant_type: "authorization_code", code, client_id: config.clientId, client_secret: config.clientSecret, redirect_uri: config.redirectUri, code_verifier: verifier });
+  const response = await providerFetch(config.tokenUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body });
   const json = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok || typeof json.access_token !== "string") throw new IntegrationError(502, "OAUTH_EXCHANGE_FAILED", `Could not connect to ${providerById(provider)?.name ?? provider}. Check its OAuth configuration and try again.`);
   return { accessToken: json.access_token, refreshToken: typeof json.refresh_token === "string" ? json.refresh_token : null, expiresAt: typeof json.expires_in === "number" ? new Date(Date.now() + json.expires_in * 1000).toISOString() : null };
@@ -139,8 +176,8 @@ async function providerAccount(provider: IntegrationProvider, token: string): Pr
   const urls: Partial<Record<IntegrationProvider, string>> = { google_drive: "https://openidconnect.googleapis.com/v1/userinfo", onedrive: "https://graph.microsoft.com/v1.0/me", sharepoint: "https://graph.microsoft.com/v1.0/me", box: "https://api.box.com/2.0/users/me", dropbox: "https://api.dropboxapi.com/2/users/get_current_account", imanage: `${providerConfig(provider).apiBase}/users/me`, netdocuments: `${providerConfig(provider).apiBase}/users/me` };
   try {
     const response = provider === "dropbox"
-      ? await fetch(urls[provider]!, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: "{}" })
-      : await fetch(urls[provider]!, { headers: { authorization: `Bearer ${token}` } });
+      ? await providerFetch(urls[provider]!, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: "{}" })
+      : await providerFetch(urls[provider]!, { headers: { authorization: `Bearer ${token}` } });
     if (!response.ok) return null;
     const body = await response.json();
     const b = body as Record<string, unknown>;
@@ -149,33 +186,66 @@ async function providerAccount(provider: IntegrationProvider, token: string): Pr
   } catch { return null; }
 }
 
-export async function finishOAuth(store: Store, provider: IntegrationProvider, code: string, state: string): Promise<void> {
-  readState(state);
-  const tokens = await exchange(provider, code);
+export async function finishOAuth(store: Store, provider: IntegrationProvider, code: string, state: string, binding: string | undefined): Promise<void> {
+  const parsed = readState(state);
+  if (parsed.provider !== provider) throw invalidState();
+  // The callback is a top-level redirect from the provider, so it carries no Bearer token. Instead the nonce set in an
+  // HttpOnly cookie when the flow started must match the hash inside the signed state: a callback replayed or planted
+  // in a different browser is refused.
+  if (!binding || !sameString(sha256(binding), parsed.bind)) throw new IntegrationError(400, "OAUTH_BROWSER_MISMATCH", "This connection request was not started in this browser. Start again from Integrations.");
+  const tokens = await exchange(provider, code, decrypt(parsed.verifier));
   const connection: IntegrationConnection = { provider, accessToken: encrypt(tokens.accessToken), refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : null, expiresAt: tokens.expiresAt, accountName: await providerAccount(provider, tokens.accessToken), connectedAt: new Date().toISOString() };
   await store.saveIntegrationConnection(connection);
 }
 
+const REFRESH_RECHECK_MS = [150, 350];
+const refreshing = new Map<IntegrationProvider, Promise<string>>();
+const needsRefresh = (c: { expiresAt: string | null; refreshToken: string | null }) => Boolean(c.expiresAt && c.refreshToken && Date.parse(c.expiresAt) <= Date.now() + 60_000);
+
 async function accessToken(store: Store, provider: IntegrationProvider): Promise<string> {
   const stored = await store.getIntegrationConnection(provider);
   if (!stored) throw new IntegrationError(409, "PROVIDER_NOT_CONNECTED", `Connect ${providerById(provider)?.name ?? provider} first.`);
-  const access = decrypt(stored.accessToken);
-  if (!stored.expiresAt || Date.parse(stored.expiresAt) > Date.now() + 60_000 || !stored.refreshToken) return access;
+  if (!needsRefresh(stored)) return decrypt(stored.accessToken);
+  // Concurrent imports share one refresh: Box rotates refresh tokens on every use, so a second refresh with the old
+  // token would fail and could cost the user their connection.
+  const inFlight = refreshing.get(provider);
+  if (inFlight) return inFlight;
+  const refresh = refreshAccessToken(store, provider, stored).finally(() => refreshing.delete(provider));
+  refreshing.set(provider, refresh);
+  return refresh;
+}
+
+async function refreshAccessToken(store: Store, provider: IntegrationProvider, stored: IntegrationConnection): Promise<string> {
   const config = providerConfig(provider);
-  const body = new URLSearchParams({ grant_type: "refresh_token", refresh_token: decrypt(stored.refreshToken), client_id: config.clientId, client_secret: config.clientSecret });
-  const response = await fetch(config.tokenUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body });
-  const json = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok || typeof json.access_token !== "string") throw new IntegrationError(401, "PROVIDER_AUTH_EXPIRED", `Reconnect ${providerById(provider)?.name ?? provider} to continue importing.`);
-  await store.saveIntegrationConnection({ ...stored, accessToken: encrypt(json.access_token), refreshToken: typeof json.refresh_token === "string" ? encrypt(json.refresh_token) : stored.refreshToken, expiresAt: typeof json.expires_in === "number" ? new Date(Date.now() + json.expires_in * 1000).toISOString() : null });
-  return json.access_token;
+  let failure: IntegrationError | undefined;
+  try {
+    const body = new URLSearchParams({ grant_type: "refresh_token", refresh_token: decrypt(stored.refreshToken!), client_id: config.clientId, client_secret: config.clientSecret });
+    const response = await providerFetch(config.tokenUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body });
+    const json = await response.json().catch(() => ({})) as Record<string, unknown>;
+    if (response.ok && typeof json.access_token === "string") {
+      await store.saveIntegrationConnection({ ...stored, accessToken: encrypt(json.access_token), refreshToken: typeof json.refresh_token === "string" ? encrypt(json.refresh_token) : stored.refreshToken, expiresAt: typeof json.expires_in === "number" ? new Date(Date.now() + json.expires_in * 1000).toISOString() : null });
+      return json.access_token;
+    }
+  } catch (error) {
+    if (error instanceof IntegrationError && error.status !== 503) failure = error;
+    else if (error instanceof IntegrationError) throw error;
+  }
+  // The in-process guard cannot see other serverless instances. If another one refreshed first, its new token is
+  // already stored and our rejected refresh is expected; use it instead of telling the user to reconnect.
+  for (const wait of REFRESH_RECHECK_MS) {
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    const latest = await store.getIntegrationConnection(provider);
+    if (latest && latest.accessToken !== stored.accessToken && !needsRefresh(latest)) return decrypt(latest.accessToken);
+  }
+  throw failure ?? new IntegrationError(401, "PROVIDER_AUTH_EXPIRED", `Reconnect ${providerById(provider)?.name ?? provider} to continue importing.`);
 }
 
 export interface RemoteFile { id: string; name: string; mimeType: string; folder: boolean; parentId?: string; driveId?: string }
 export interface FilePage { files: RemoteFile[]; nextPageToken: string | null }
 const jsonRequest = async (url: string, token: string, init?: RequestInit) => {
-  const response = await fetch(url, { ...init, headers: { authorization: `Bearer ${token}`, ...init?.headers } });
+  const response = await providerFetch(url, { ...init, headers: { authorization: `Bearer ${token}`, ...init?.headers } });
   if (!response.ok) throw new IntegrationError(response.status === 401 ? 401 : 502, response.status === 401 ? "PROVIDER_AUTH_EXPIRED" : "PROVIDER_REQUEST_FAILED", `The provider could not complete this request (${response.status}).`);
-  return response.json() as Promise<Record<string, any>>;
+  return response.json().catch((error) => { throw networkError(error); }) as Promise<Record<string, any>>;
 };
 
 export async function browseFiles(store: Store, provider: IntegrationProvider, parentId = "", driveId = "", pageToken = ""): Promise<FilePage> {
@@ -236,19 +306,18 @@ async function downloadFile(store: Store, provider: IntegrationProvider, file: R
   let response: Response;
   if (provider === "google_drive" && file.mimeType.startsWith("application/vnd.google-apps.")) {
     if (file.mimeType !== "application/vnd.google-apps.document") throw new IntegrationError(415, "UNSUPPORTED_FILE", "Only Google Docs can be exported as text; Sheets and Slides are not supported.");
-    response = await fetch(`${config.apiBase}/files/${encodeURIComponent(file.id)}/export?mimeType=text/plain`, { headers: { authorization: `Bearer ${token}` } });
+    response = await providerFetch(`${config.apiBase}/files/${encodeURIComponent(file.id)}/export?mimeType=text/plain`, { headers: { authorization: `Bearer ${token}` } }, DOWNLOAD_TIMEOUT_MS);
   } else if (provider === "google_drive") {
-    response = await fetch(`${config.apiBase}/files/${encodeURIComponent(file.id)}?alt=media`, { headers: { authorization: `Bearer ${token}` } });
+    response = await providerFetch(`${config.apiBase}/files/${encodeURIComponent(file.id)}?alt=media`, { headers: { authorization: `Bearer ${token}` } }, DOWNLOAD_TIMEOUT_MS);
   } else if (provider === "dropbox") {
-    response = await fetch("https://content.dropboxapi.com/2/files/download", { method: "POST", headers: { authorization: `Bearer ${token}`, "Dropbox-API-Arg": JSON.stringify({ path: file.id }) } });
+    response = await providerFetch("https://content.dropboxapi.com/2/files/download", { method: "POST", headers: { authorization: `Bearer ${token}`, "Dropbox-API-Arg": JSON.stringify({ path: file.id }) } }, DOWNLOAD_TIMEOUT_MS);
   } else if (provider === "box") {
-    response = await fetch(`${config.apiBase}/files/${encodeURIComponent(file.id)}/content`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" });
+    response = await providerFetch(`${config.apiBase}/files/${encodeURIComponent(file.id)}/content`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" }, DOWNLOAD_TIMEOUT_MS);
   } else if (provider === "onedrive" || provider === "sharepoint") {
     const driveId = file.driveId || "me";
-    response = await fetch(`${config.apiBase}/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(file.id)}/content`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" });
+    response = await providerFetch(`${config.apiBase}/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(file.id)}/content`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" }, DOWNLOAD_TIMEOUT_MS);
   } else {
-    const endpoint = provider === "imanage" ? `/documents/${encodeURIComponent(file.id)}/download` : `/documents/${encodeURIComponent(file.id)}/download`;
-    response = await fetch(`${config.apiBase.replace(/\/$/, "")}${endpoint}`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" });
+    response = await providerFetch(`${config.apiBase.replace(/\/$/, "")}/documents/${encodeURIComponent(file.id)}/download`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" }, DOWNLOAD_TIMEOUT_MS);
   }
   if (!response.ok) throw new IntegrationError(response.status === 401 ? 401 : 502, response.status === 401 ? "PROVIDER_AUTH_EXPIRED" : "DOWNLOAD_FAILED", `Could not download ${file.name} (${response.status}).`);
   const bytes = await readLimitedResponse(response);
