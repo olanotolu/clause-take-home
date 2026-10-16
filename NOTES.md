@@ -239,3 +239,13 @@ The paired local SQLite 10 MiB rerun preserved the original benchmark and measur
 ### Live follow-up: editing directly from a search hit
 
 The live mobile check found a gap the initial browser journey missed. Search highlighted the correct passage, but the toolbar's child layout effect ran before its parent scroll-container ref attached on first mount. Moving that measurement to a passive effect shows the toolbar after the commit. The regression failed on desktop and mobile before the fix, then passed with a full search -> exact passage -> Replace -> Stage -> Apply journey. Production verification uses disposable documents and removes them even if the check fails.
+
+## 2026-10-16 — the intro, rebuilt after "it can be better"
+The first intro was flat hill shapes with a scroll fade; the owner said so, and they were right. Rebuilt as a sequence rather than a picture:
+- **It opens on a timed sequence**, not on scroll: the scene starts in the dark and the light comes up, the sky is at dawn (plum to rust to gold), the sun climbs, five ridges and the far buttes rise into place far to near, and the headline unmasks word by word.
+- **Scrolling moves the day on:** dawn clears to daylight over the first fifth of the scroll, the sun rises and swells, rays turn slowly, and every layer moves at its own depth (the pointer parallaxes them too). Scroll progress goes through a spring so the scene glides.
+- **Depth and light:** each ridge has a lit crest and a shaded base, a rim-light line along the crest, and atmospheric haze that thickens with distance; the far ridges and buttes sit under a slow heat-shimmer displacement; warm dust drifts through the light on a canvas (fixed seed, paused when the tab is hidden); grain over everything.
+- **Each beat shows what it claims** in a small glass card driven by the scroll: the same phrase found three times then refused (409), a history where your edit to v2 is refused because v3 landed first, and the three Clause CI verdicts with icon and words. All of it is real behaviour, not decoration.
+- **Reduced motion** removes the timed sequence, the parallax, the shimmer and the dust, and holds the sun still.
+- **Mistakes on the way:** hooks called inside loops (the linter caught it; they are components now), card contents that finished too late in each beat to be read (retimed, scroll track lengthened), and rays so strong they sat behind the headline (softened).
+
