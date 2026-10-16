@@ -11,6 +11,38 @@ export class IntegrationError extends Error {
   constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
 }
 
+const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+
+/** Read a provider response without buffering more than the import limit in memory. */
+export async function readLimitedResponse(response: Response, limit = MAX_IMPORT_BYTES): Promise<Buffer> {
+  const tooLarge = () => new IntegrationError(413, "FILE_TOO_LARGE", "Files larger than 20 MB cannot be imported.");
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength && /^\d+$/.test(declaredLength) && Number(declaredLength) > limit) {
+    await response.body?.cancel().catch(() => {});
+    throw tooLarge();
+  }
+
+  if (!response.body) return Buffer.alloc(0);
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel().catch(() => {});
+        throw tooLarge();
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
+}
+
 export interface AuthUser { id: string; email: string; name: string; role: string }
 const authBase = () => (process.env.NEON_AUTH_BASE_URL ?? process.env.VITE_NEON_AUTH_URL ?? "").replace(/\/$/, "");
 let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
@@ -220,8 +252,7 @@ async function downloadFile(store: Store, provider: IntegrationProvider, file: R
     response = await fetch(`${config.apiBase.replace(/\/$/, "")}${endpoint}`, { headers: { authorization: `Bearer ${token}` }, redirect: "follow" });
   }
   if (!response.ok) throw new IntegrationError(response.status === 401 ? 401 : 502, response.status === 401 ? "PROVIDER_AUTH_EXPIRED" : "DOWNLOAD_FAILED", `Could not download ${file.name} (${response.status}).`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length > 20 * 1024 * 1024) throw new IntegrationError(413, "FILE_TOO_LARGE", "Files larger than 20 MB cannot be imported.");
+  const bytes = await readLimitedResponse(response);
   return { bytes, mimeType: response.headers.get("content-type")?.split(";")[0] ?? file.mimeType };
 }
 

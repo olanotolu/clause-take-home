@@ -31,6 +31,10 @@ describe("source-backed template library", () => {
     const oneWay = items.find((t: { id: string }) => t.id === "one-way-nda");
     expect(oneWay.content).toContain("This One-Way Non-Disclosure Agreement");
     expect(oneWay.variables.some((v: { label: string }) => /disclosing party/i.test(v.label))).toBe(true);
+    const orderForm = items.find((t: { id: string }) => t.id === "order-form");
+    expect(orderForm.variables).toHaveLength(6);
+    expect(orderForm.variables.every((v: { label: string }) => !/drafting note|fill in|delete the/i.test(v.label))).toBe(true);
+    expect(orderForm.content).toContain("Drafting note:");
     const tos = items.find((t: { id: string }) => t.id === "terms-of-service");
     expect(tos.sourceVersion).toContain("2.1");
     expect(tos.content).toContain("INCORPORATED STANDARD TERMS");
@@ -64,6 +68,14 @@ describe("source-backed template library", () => {
     const sample = await app.inject({ method: "POST", url: "/templates/clause-sample-mutual-nda-acme/create", payload: { values: {}, selectedRequirementIds: [] } });
     expect(sample.statusCode).toBe(201);
     expect(sample.json().document.templateProvenance.source).toBe("CLAUSE sample");
+  });
+
+  it("inserts literal dollar sequences into template values", async () => {
+    app = await testApp();
+    const value = "Acme $& $$ Legal";
+    const r = await app.inject({ method: "POST", url: "/templates/cloud-service-agreement/create", payload: { values: { ...deal, provider_name: value }, selectedRequirementIds: [] } });
+    expect(r.statusCode).toBe(201);
+    expect(r.json().document.content).toContain(value);
   });
 
   it("returns a useful partial-success result if attaching a selected requirement fails", async () => {

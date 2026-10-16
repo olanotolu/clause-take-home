@@ -71,15 +71,6 @@ export const TEMPLATES = defs.map((d) => {
   let content = d.content ?? (d.slug ? source(d.slug) : sampleFor(d.id));
   content = cleanup(content);
   if (d.slug === "mutual-nda") content = content.replace(/^# Standard Terms/m, "# Mutual Non-Disclosure Agreement — Standard Terms");
-  if (!isSample) {
-    const placeholders = [...content.matchAll(/\[\[([^\]\n]{2,120})\]\]|\[([^\]\n]{2,120})\](?!\()/g)].map((m) => ({ raw: m[0], prompt: (m[1] ?? m[2] ?? "").trim() })).filter((m) => m.prompt && !/^\d+$/.test(m.prompt));
-    const prompts = [...new Set(placeholders.map((p) => p.prompt))];
-    prompts.forEach((prompt, index) => {
-      const id = `source_field_${index + 1}`;
-      fields.push({ id, label: prompt, required: !/optional|if any|if applicable/i.test(prompt), placeholder: `[${prompt}]`, helpText: "Source-form field. Complete it before using this draft." });
-      for (const occurrence of placeholders.filter((p) => p.prompt === prompt)) content = content.replaceAll(occurrence.raw, `{{${id}}}`);
-    });
-  }
   const sourceNote = isSample ? "Fictional CLAUSE sample. Not a legal standard or licensed source document." : `\n\n---\n\n**Source and attribution:** ${provenance!.attribution} Source: ${d.sourceUrl}. Licensed under CC BY 4.0. This CLAUSE copy may contain edits and added deal fields.`;
   return {
     id: d.id, title: d.title, category: d.category, description: d.description, featured: !!d.featured,
@@ -107,7 +98,10 @@ export function registerTemplateRoutes(app: App): void {
     const selectedRequirements = template.suggestedRequirements.filter((r) => selected.includes(r.id));
     if (selectedRequirements.length !== selected.length) return reply.code(400).send({ error: "Unknown Clause CI suggestion", code: 400, type: "UNKNOWN_TEMPLATE_REQUIREMENT" });
     let content = template.content;
-    for (const field of template.variables) content = content.replaceAll(`{{${field.id}}}`, (req.body.values[field.id]?.trim() || field.placeholder));
+    for (const field of template.variables) {
+      const value = req.body.values[field.id]?.trim() || field.placeholder;
+      content = content.replaceAll(`{{${field.id}}}`, () => value);
+    }
     const provenance: TemplateProvenance = {
       templateId: template.id, title: template.title, source: template.source, attribution: template.attribution,
       sourceUrl: template.sourceUrl, sourceVersion: template.sourceVersion, license: template.license, jurisdictionNote: template.jurisdictionNote,

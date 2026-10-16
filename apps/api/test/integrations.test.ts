@@ -1,11 +1,27 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { testApp, testStore } from "./helpers.ts";
+import { readLimitedResponse } from "../src/integrations/service.ts";
 
 let app: FastifyInstance | undefined;
 afterEach(async () => { await app?.close(); app = undefined; });
 
 describe("integrations", () => {
+  it("rejects an oversized declared download before reading its body", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({ cancel() { cancelled = true; } });
+    const response = new Response(body, { headers: { "content-length": "5" } });
+    await expect(readLimitedResponse(response, 4)).rejects.toMatchObject({ status: 413, code: "FILE_TOO_LARGE" });
+    expect(cancelled).toBe(true);
+  });
+
+  it("enforces the download cap while streaming when content length is absent", async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) { controller.enqueue(new Uint8Array([1, 2, 3])); controller.enqueue(new Uint8Array([4, 5])); controller.close(); },
+    });
+    await expect(readLimitedResponse(new Response(body), 4)).rejects.toMatchObject({ status: 413, code: "FILE_TOO_LARGE" });
+  });
+
   it("rejects missing or invalid sessions before returning provider state", async () => {
     app = await testApp();
     const missing = await app.inject({ method: "GET", url: "/integrations" });
