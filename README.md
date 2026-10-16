@@ -133,6 +133,19 @@ The engine is not the bottleneck (7 ms of a 713 ms edit). The time goes to updat
 
 Complexity, honestly stated: resolving k targets is up to **O(k·n)** (one scan each), *not* linear overall; rebuilding is one forward pass, O(n + total replacement length).
 
+### Under concurrent load (`pnpm load`, added 2026-10-16)
+
+The table above is one request at a time. This is 8 clients at once for 8 seconds each, against 8 documents of about 1 MB (the size `INFRA.md` plans around), one Node process, SQLite on a temp file, Apple M4. One client alone is in the last column for comparison.
+
+| Scenario | 8 clients: req/s | p50 | p95 | p99 | 1 client: p95 |
+|---|---|---|---|---|---|
+| Read a 1 MB document | 917 | 8.5 ms | 11 ms | 12 ms | 2.0 ms |
+| Search, words | 77 | 79 ms | 173 ms | 181 ms | 2.1 ms |
+| Search, exact phrase | 31 | 197 ms | **435 ms** | 450 ms | 4.6 ms |
+| Edit, one replacement in 1 MB | 16 | 401 ms | **879 ms** | 1,045 ms | 61 ms |
+
+No errors in any run. What this says, and what it doesn't: a single user sees edits in about 50 to 60 ms, but **edit throughput plateaus near 19 per second however many clients there are**, because SQLite has one writer and every edit rewrites a 1 MB row, so eight writers queue and the p95 of 879 ms **misses the 500 ms target in `INFRA.md`**. Exact search at eight clients (435 ms) also misses the 300 ms search target; the engine is single-threaded and the trigram scan is CPU-bound. The targets in `INFRA.md` are for the Postgres design (per-document row locks, chunked indexes), which I have **not** load-tested; this run only shows the prototype's limit and where it comes from.
+
 ## Trying the API
 
 ```bash
@@ -195,19 +208,37 @@ A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus
 ## How I know the tests are any good
 
 ```bash
-pnpm test             # 335 pass, 7 skipped on SQLite (the skips are Postgres-only); 341 pass on Postgres (two Word-export tests need pandoc and are skipped without it)
-pnpm typecheck        # strict TypeScript across core, API and web
+pnpm test             # 355 pass, 7 skipped on SQLite (the skips are Postgres-only); 361 pass on Postgres (two Word-export tests need pandoc and are skipped without it)
+pnpm test:coverage    # the same, and it fails if coverage falls under the floors below
+pnpm typecheck        # strict TypeScript across core, API, web and the browser tests
+pnpm lint             # Biome, type-aware: unawaited promises, a11y, correctness (fails on errors)
+pnpm test:e2e         # Playwright: three journeys in a real browser, desktop and 390px, each with an axe check
 pnpm bench            # the performance table
+pnpm load             # the concurrent-load table (see Performance)
 pnpm mutate           # bounded mutation run on the engine, about 30 s
 ./scripts/fuzz/run.sh # Schemathesis against /openapi.json on a throwaway DB (pip install schemathesis)
 CLAUSE_TEST_DATABASE_URL=postgres://… pnpm test   # same suite on Postgres
 ```
 
-CI runs the suite on Node 24 and 26 with SQLite, plus a Postgres 16 job.
+CI runs, on every push and pull request: typecheck, lint and the coverage-gated suite on Node 24 and 26 (SQLite); the suite against a Postgres 16 (gating the Postgres store's own coverage); the browser tests; and `pnpm audit --prod --audit-level=high`. A weekly job runs the API fuzz. Workflows are checked by `zizmor`, every action is pinned to a commit SHA, and pnpm refuses package versions under three days old.
+
+**Coverage, and what it can't see** (SQLite run, measured 2026-10-16; the floors that fail the build are engine 98% lines / 95% branches and API 90% / 78%):
+
+| Area | Lines | Branches |
+|---|---|---|
+| Edit engine | 100% | 98% |
+| Clause CI | 97% | 92% |
+| API routes | 99% | 85% |
+| Connectors (OAuth, providers) | 96% | 78% |
+| SQLite store | 88% | 83% |
+| Other API code | 91% | 76% |
+
+The Postgres store is gated separately on the Postgres run (98% lines). The web screens are **0%** in this report: Vitest never renders them. They are covered by the browser journeys instead, which measure behaviour, not lines. Coverage says which code ran, not whether the tests would notice a bug; that is what the mutation run is for.
 
 - **A passing test proves little if it can't fail.** So I checked: I mutated the engine one operator at a time and re-ran the tests. First run killed 52 of 70 mutants; I added tests for the survivors that mattered and got to **65/70 killed**. The last five are explained as equivalent in the notes. It's my own small harness (first-order mutants only, no equivalent-mutant detection), not Stryker.
 - **Concurrency** is tested with two separate database connections to one file, interleaved so both read v1, A commits, and B's compare-and-swap must fail. A single connection running sequentially would prove nothing.
-- **Fuzzing:** 1,650 generated cases over 11 operations, 0 failures at the last run. Not covered: `DELETE` and `/suggest` (reasons in the notes) and stateful sequences.
+- **Fuzzing:** 5,744 generated cases over every operation except `DELETE`, `/suggest` and the OAuth callback, 0 failures at the last run (2026-10-16). The first run after the newer routes were added found 26 failures, all contract problems (an over-long id got Fastify's 414 with a string `code`; the integration routes didn't document their 400s), now fixed. Not covered: stateful sequences and the exclusions, with reasons in the notes.
+- **Browser tests:** three journeys against the real built app and an in-memory API, on desktop and a 390px phone, each with an axe check for serious or critical accessibility violations: edit, check against a rule, apply, see it in Activity; a stale edit is refused and nothing is overwritten; search finds a clause and opens the document. Axe found one real defect on the first run (the document's scroll container was not keyboard-reachable), now fixed. It is three journeys, not a full UI suite, and Chromium only.
 - **The AI route** is tested with a stub provider (the safety logic) and had one live run against Sonnet 5.5: 8 of 8 checks across three scenarios, including a contract containing "ignore all previous instructions", which the model treated as text. That's one run of three cases. The route is safe because the engine validates every proposal, not because the model behaved.
 
 ## Decisions I'd defend, and what they cost
@@ -226,7 +257,7 @@ CI runs the suite on Node 24 and 26 with SQLite, plus a Postgres 16 job.
 - **No tenancy or audit log, and the demo is deliberately open.** Neon Auth is wired in as an optional admin sign-in, used only by the integrations routes; everything else, including editing and the AI routes, needs no sign-in. Rate limits exist on the two paid routes (20 suggestions and 60 checks per IP per hour) but are in-memory and per-instance: a brake, not a quota. Nothing here is SOC 2 or GDPR compliant and I don't claim it; `INFRA.md` is the design for getting there.
 - **Jev is unmeasured**, as above. The ensemble of Jev plus LLM was never evaluated.
 - **I haven't opened the Word export in Microsoft Word itself.** It round-trips under accept/reject tests that read the XML, and the tests also check it with pandoc, a separate implementation of tracked changes: reject gives the old text and accept gives the new, and the committed sample rejects back to the original NDA. That is agreement between two parsers, not proof Word renders it. Please open [`samples/mutual-nda-redline.docx`](samples/mutual-nda-redline.docx) once.
-- **The web UI has only unit tests for its pure logic** (router, due dates, filters, word counts, settings parsing). The screens themselves I drove by hand in a browser at desktop, tablet and phone widths, in light and dark. The backend is where the real tests are.
+- **The web UI has unit tests for its pure logic and three browser journeys, not a full suite.** Most screens (Playbooks, Templates, Settings, the Workspace board) are only driven by hand, at desktop, tablet and phone widths, in light and dark. The backend is where the real tests are.
 - **Requests have no owner and no notifications**, because there are no users. Status moves are manual; the only automatic move is Clause CI sending a request with failing requirements to Needs review. Activity covers edits only, not CI runs or AI suggestions.
 - **The sample requests and playbooks on the live site are fictional**, seeded once with the sample contracts.
 - **Production writes got one smoke test, on 2026-10-16.** Against the live site I created a throwaway document, found it by search at once, edited it (`200`, v2), re-sent the same edit (`409 VERSION_CONFLICT`), sent an ambiguous quote (`409 AMBIGUOUS_TARGET`) and a stale `If-Match` (`412`), asked for a missing document (`404` with `{ error, code }`), downloaded its `.docx` redline, searched for the edit, then deleted it. The five sample contracts are untouched, all still at v1. It is a smoke test of one path, not a load or soak test, and the live database is Neon Postgres, so the 10 MiB case was not run there.

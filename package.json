@@ -20,7 +20,8 @@
     "bench:ci:report": "node bench/ci/report.ts",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
-    "lint": "biome lint ."
+    "lint": "biome lint .",
+    "load": "node scripts/load.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

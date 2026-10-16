@@ -38,13 +38,13 @@ flowchart LR
 - **AuthN/Z:** SSO (OIDC/SAML) + SCIM, short-lived JWTs, RBAC per workspace/matter. **Tenant isolation in the database:** `tenant_id` on every table plus Postgres row-level security, so a forgotten `WHERE` fails closed.
 - **Encryption:** TLS 1.2+, KMS at rest, **per-tenant data keys** (crypto-shredding for erasure).
 - **Audit:** append-only log of who, what, version, before/after hashes (never the text), shipped to WORM storage; the edit receipt already carries the evidence.
-- **SOC 2 / GDPR** are controls and evidence, not an architecture. The design supports them (per-tenant retention, erasure across revisions, snapshots and backups via key shredding, EU data in an EU cell, a sub-processor list that includes the LLM provider). I wouldn't claim either until audited.
+- **SOC 2 / GDPR** are controls and evidence, not an architecture. The design supports them (per-tenant retention, erasure via key shredding, EU data in an EU cell, a sub-processor list that includes the LLM provider); I wouldn't claim either until audited.
 
 ## Scale, resilience, delivery
-- **Scale path (measure first):** replicas → read replica for search → partition `revisions`/`chunks` by tenant → then a search cluster. Edit time is index maintenance and transfer, not the engine (7 ms of ~713 ms on 10 MB), so the first optimisation is incremental chunk indexing.
+- **Scale path (measure first):** replicas → read replica for search → partition `revisions`/`chunks` by tenant → then a search cluster. Edit time is index maintenance and transfer, not the engine (7 ms of ~713 ms on 10 MB), so first comes incremental chunk indexing. Measured on the prototype (1 MB docs, one process, SQLite): one client's edit p95 is 61 ms, but throughput plateaus near 19 edits/s because writes serialise, so 8 concurrent writers see p95 879 ms and miss the 500 ms target. The SLOs above are for this Postgres design and are untested.
 - **Failover:** Multi-AZ Postgres with automatic failover (targets: RPO ≈ 0 in region, RTO minutes); PITR with a scheduled restore drill; warm DR region (RPO ≤ 5 min target). Consumers are idempotent with retry + DLQ.
-- **CI/CD:** per-PR previews → typecheck, unit + property tests, API tests on an ephemeral DB, migration check (expand → migrate → contract); scheduled mutation and OpenAPI-fuzz runs (both scripted here). Flag, progressive rollout, one-click rollback.
-- **Multi-region:** single-writer primary, **cells per region** for residency. No active-active writes: the CAS needs one writer per document, and CRDT collaboration would change that, so it's a product decision, not a refactor.
+- **CI/CD:** per-PR previews → typecheck, unit + property tests, API tests on an ephemeral DB, migration check (expand → migrate → contract); scheduled mutation and OpenAPI-fuzz runs (both scripted here). Progressive rollout, one-click rollback.
+- **Multi-region:** single-writer primary, **cells per region** for residency. No active-active writes: the CAS needs one writer per document; CRDT collaboration would change that, a product decision, not a refactor.
 
 ## Observability & cost
 - **Metrics:** edit and search latency by document-size bucket · **conflict rate** (a spike means a UX or retry bug) · index lag · queue age · AI cost per tenant. **SLOs:** edit p95 < 500 ms (≤ 1 MB), search p95 < 300 ms. Traces and logs carry IDs and hashes, never text.
