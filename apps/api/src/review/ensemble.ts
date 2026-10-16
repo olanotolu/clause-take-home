@@ -48,10 +48,12 @@ export function combineJudges(text: string, outcomes: readonly JudgeOutcome[]): 
   }
 
   const verdict = [...verdicts][0]!;
-  const lead = answered[0]!.answer;
+  // Jev returns no prose, so lead with the first judge that has something to say; otherwise use a plain sentence.
+  const lead = answered.find((o) => o.answer.rationale.trim())?.answer ?? answered[0]!.answer;
+  const said = lead.rationale.trim() || `${WORDS[lead.label][0]!.toUpperCase()}${WORDS[lead.label].slice(1)}.`;
   if (verdict === "PASS" && !verifiedAny) {
     return { verdict: "NEEDS_REVIEW", detail: `The judge${answered.length > 1 ? "s say" : " says"} this holds but cited nothing that can be found in the document, so it cannot be confirmed.${partial}`, evidence, judges };
   }
   const prefix = verdict === "PASS" ? "Holds" : verdict === "FAIL" ? (lead.label === "contradicted" ? "Contradicted" : "Not stated") : "Unclear";
-  return { verdict, detail: `${prefix}: ${lead.rationale}${partial}`, evidence, judges };
+  return { verdict, detail: `${prefix}: ${said}${partial}`, evidence, judges };
 }

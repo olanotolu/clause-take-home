@@ -1,5 +1,6 @@
 import { sha256 } from "@clause/core";
 import { combineJudges, type JudgeOutcome } from "./ensemble.ts";
+import { createJevJudge, DEFAULT_JEV_MODEL, gatewayDecide } from "./judges/jev.ts";
 import { createLlmJudge, MAX_JUDGED_CHARS, openRouterGenerate } from "./judges/llm.ts";
 import type { Judge } from "./judges/types.ts";
 import type { Check, SemanticEvaluator } from "./types.ts";
@@ -97,9 +98,20 @@ export function createSemanticEvaluator(opts: EvaluatorOptions): SemanticEvaluat
   };
 }
 
-/** Judges available from the environment. Today: one LLM through OpenRouter. Returns undefined when none are configured. */
+/**
+ * Judges available from the environment:
+ *  - An LLM through OpenRouter when OPENROUTER_API_KEY is set.
+ *  - Jev through Vercel AI Gateway ONLY when CLAUSE_JEV=on AND gateway credentials exist (an API key, OIDC, or running on
+ *    Vercel). It is opt-in because the gateway serves it only to teams with paid credits; enabling it blindly would add a
+ *    failing call to every check. Jev goes first: it is the cheap screener, the LLM supplies the verified evidence.
+ * Returns undefined when none are configured, which leaves only the exact requirement kinds.
+ */
 export function evaluatorFromEnv(env: Record<string, string | undefined>): SemanticEvaluator | undefined {
   const judges: Judge[] = [];
+  const gateway = env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN || env.VERCEL;
+  if (env.CLAUSE_JEV === "on" && gateway) {
+    judges.push(createJevJudge({ id: env.CLAUSE_JEV_MODEL ?? DEFAULT_JEV_MODEL, decide: gatewayDecide }));
+  }
   if (env.OPENROUTER_API_KEY) {
     const model = env.CLAUSE_JUDGE_MODEL ?? "anthropic/claude-sonnet-5.5";
     judges.push(createLlmJudge({ id: model, generate: openRouterGenerate(env.OPENROUTER_API_KEY, model) }));
