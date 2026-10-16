@@ -194,7 +194,7 @@ A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus
 ## How I know the tests are any good
 
 ```bash
-pnpm test             # 295 pass, 7 skipped on SQLite (the skips are Postgres-only); 301 pass on Postgres
+pnpm test             # 330 pass, 7 skipped on SQLite (the skips are Postgres-only); 336 pass on Postgres
 pnpm typecheck        # strict TypeScript across core, API and web
 pnpm bench            # the performance table
 pnpm mutate           # bounded mutation run on the engine, about 30 s
@@ -228,7 +228,7 @@ CI runs the suite on Node 24 and 26 with SQLite, plus a Postgres 16 job.
 - **Requests have no owner and no notifications**, because there are no users. Status moves are manual; the only automatic move is Clause CI sending a request with failing requirements to Needs review. Activity covers edits only, not CI runs or AI suggestions.
 - **The sample requests and playbooks on the live site are fictional**, seeded once with the sample contracts.
 - **Production writes weren't tested on the live site**: I confirmed search, the AI check and settings there, but left the sample contracts at v1 rather than editing them.
-- **Plain text only.** No Word/PDF import, no formatting. Words-mode highlights on documents over 256 KiB mark the first occurrence, not FTS5's "best window". Exact search is case-sensitive only.
+- **Plain text only.** The editor has no formatting. The repository connectors extract text from .docx and .pdf on import (formatting is dropped), but you cannot upload a file in the UI. Words-mode highlights on documents over 256 KiB mark the first occurrence, not FTS5's "best window". Exact search is case-sensitive only.
 - The benchmark is **NDAs only, English, small samples** (see its limits).
 
 ## Using AI
