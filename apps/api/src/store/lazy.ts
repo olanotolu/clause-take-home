@@ -28,6 +28,9 @@ export function lazyStore(info: { kind: Store["kind"]; maxContentChars: number }
     ...(info.kind === "sqlite" && { wordsSnippet: (id: string, q: string) => get().then((s) => s.wordsSnippet!(id, q)) }),
     getContent: (id) => get().then((s) => s.getContent(id)),
     exactCandidates: (q, ids) => get().then((s) => s.exactCandidates(q, ids)),
+    listRequirements: (d) => get().then((s) => s.listRequirements(d)),
+    addRequirement: (d, i) => get().then((s) => s.addRequirement(d, i)),
+    deleteRequirement: (d, id) => get().then((s) => s.deleteRequirement(d, id)),
     seedIfEmpty: (items) => get().then((s) => s.seedIfEmpty(items)),
     close: async () => {
       if (pending) await (await pending).close();

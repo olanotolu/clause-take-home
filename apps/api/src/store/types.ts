@@ -19,6 +19,20 @@ export interface RevisionInfo {
   summary: unknown;
 }
 
+export type RequirementKind = "present" | "absent" | "unchanged" | "semantic";
+
+/** A condition a document must satisfy, kept like a test in a suite and re-run against every proposed edit. */
+export interface Requirement {
+  id: string;
+  documentId: string;
+  kind: RequirementKind;
+  text: string;
+  createdAt: string;
+}
+
+/** Most requirements one document may carry: every check costs time and, for semantic ones, money. */
+export const MAX_REQUIREMENTS_PER_DOCUMENT = 8;
+
 export interface RankedDocument {
   id: string;
   title: string;
@@ -71,6 +85,10 @@ export interface Store {
   getContent(id: string): Promise<string | undefined>;
   /** Documents that MAY contain `query` literally and case-sensitively (callers verify by scanning the text). */
   exactCandidates(query: string, ids?: string[]): Promise<ExactCandidate[]>;
+
+  listRequirements(documentId: string): Promise<Requirement[]>;
+  addRequirement(documentId: string, input: { kind: RequirementKind; text: string }): Promise<Requirement>;
+  deleteRequirement(documentId: string, id: string): Promise<boolean>;
 
   /** Inserts `items` only if there are no documents at all, atomically (safe if several instances start at once). Returns how many were inserted. */
   seedIfEmpty(items: { title: string; content: string }[]): Promise<number>;

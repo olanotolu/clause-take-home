@@ -22,6 +22,22 @@ export interface SuggestResponse {
   changes: Change[];
   validation: { valid: true; applied: Applied[]; diff: string } | { valid: false; error: { type: string; error: string; details?: ApiError["details"] } };
 }
+export type RequirementKind = "present" | "absent" | "unchanged" | "semantic";
+export interface Requirement { id: string; documentId: string; kind: RequirementKind; text: string; createdAt: string }
+export type Verdict = "PASS" | "FAIL" | "NEEDS_REVIEW" | "UNAVAILABLE";
+export type Delta = "held" | "regressed" | "achieved" | "still_failing" | "uncertain";
+export interface Evidence { start: number; end: number; quote: string; verified: boolean }
+export interface CheckOutcome { verdict: Verdict; detail: string; evidence: Evidence[] }
+export interface RequirementReport { id: string; kind: RequirementKind | "goal"; text: string; before: CheckOutcome; after: CheckOutcome; delta: Delta; touchedBy: number[] }
+export interface CiReport {
+  documentId: string;
+  version: number;
+  mechanical: { valid: true; wouldChange: boolean; changes: number };
+  requirements: RequirementReport[];
+  summary: { held: number; regressed: number; achieved: number; still_failing: number; uncertain: number };
+  judges: string[];
+  elapsedMs: number;
+}
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -50,6 +66,11 @@ export const api = {
   preview: (id: string, expectedVersion: number, changes: Change[]) =>
     call<Preview>("POST", `/documents/${id}/changes/preview`, { expectedVersion, changes }),
   revert: (id: string, expectedVersion: number, toVersion: number) => call<Receipt>("POST", `/documents/${id}/revert`, { toVersion, expectedVersion }),
+  requirements: (id: string) => call<{ items: Requirement[]; max: number }>("GET", `/documents/${id}/requirements`),
+  addRequirement: (id: string, kind: RequirementKind, text: string) => call<Requirement>("POST", `/documents/${id}/requirements`, { kind, text }),
+  deleteRequirement: (id: string, rid: string) => call<undefined>("DELETE", `/documents/${id}/requirements/${rid}`),
+  check: (id: string, expectedVersion: number, changes: Change[], goal?: string) =>
+    call<CiReport>("POST", `/documents/${id}/changes/check`, { expectedVersion, changes, ...(goal ? { goal } : {}) }),
   suggest: (id: string, instruction: string) => call<SuggestResponse>("POST", `/documents/${id}/suggest`, { instruction }),
   apply: (id: string, expectedVersion: number, changes: Change[]) => call<Receipt>("PATCH", `/documents/${id}`, { expectedVersion, changes }),
 };

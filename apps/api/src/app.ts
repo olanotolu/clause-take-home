@@ -7,9 +7,13 @@ import { createSqliteStore } from "./store/sqlite.ts";
 import type { Store } from "./store/types.ts";
 import type { App } from "./types.ts";
 import { toHttp, type DomainError } from "./errors.ts";
+import { registerCheckRoutes } from "./routes/check.ts";
 import { registerDocumentRoutes } from "./routes/documents.ts";
+import { registerRequirementRoutes } from "./routes/requirements.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
 import { registerSuggestRoutes } from "./routes/suggest.ts";
+import { noSemanticEvaluator } from "./review/runner.ts";
+import type { SemanticEvaluator } from "./review/types.ts";
 import type { EditSuggestionProvider } from "./suggest.ts";
 
 /** Large enough for the 10 MB+ documents the service is designed for. Oversized bodies get a 413. */
@@ -26,6 +30,10 @@ export interface AppOptions {
   trustProxy?: boolean;
   /** Per-IP cap on /suggest, the only route that spends money. Per instance (in memory), so it is a brake, not a quota. */
   suggestRateLimit?: { max: number; timeWindow: string };
+  /** Judges for `semantic` requirements and goals. Omit and those answer UNAVAILABLE; exact requirements still run. */
+  semanticEvaluator?: SemanticEvaluator;
+  /** Per-IP cap on /changes/check (semantic checks cost money). */
+  checkRateLimit?: { max: number; timeWindow: string };
   /** Source of AI edit proposals. Omit to disable /suggest (503). The rest of the API never depends on it. */
   suggestionProvider?: EditSuggestionProvider;
 }
@@ -106,6 +114,8 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   const typed = app.withTypeProvider<ZodTypeProvider>() as unknown as App;
   registerDocumentRoutes(typed);
   registerSearchRoutes(typed);
+  registerRequirementRoutes(typed);
+  registerCheckRoutes(typed, opts.semanticEvaluator ?? noSemanticEvaluator, opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" });
   registerSuggestRoutes(typed, opts.suggestionProvider, opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" });
   return app;
 }

@@ -199,3 +199,46 @@ export const SuggestOut = z.object({
     z.object({ valid: z.literal(false), error: z.object({ type: z.string(), error: z.string(), details: z.record(z.string(), z.unknown()).optional() }) }),
   ]),
 });
+
+// ---------------------------------------------------------------- requirements and CI checks
+
+export const RequirementKindSchema = z.enum(["present", "absent", "unchanged", "semantic"]).meta({
+  description: "present = must contain this text · absent = must not contain it · unchanged = this passage must survive verbatim · semantic = a statement judged by AI models",
+});
+
+export const RequirementBody = z.strictObject({
+  kind: RequirementKindSchema,
+  text: text().pipe(z.string().min(1).max(2000)),
+});
+
+export const RequirementIdParams = IdParams.extend({ rid: z.string().min(1).max(64) });
+
+export const RequirementOut = z.object({ id: z.string(), documentId: z.string(), kind: RequirementKindSchema, text: z.string(), createdAt: z.string() });
+
+export const CheckBody = ChangesBody.extend({
+  goal: text().pipe(z.string().min(1).max(500)).optional().meta({ description: "What the edit is meant to achieve, in plain words. Judged like a requirement that should become true." }),
+});
+
+const VerdictSchema = z.enum(["PASS", "FAIL", "NEEDS_REVIEW", "UNAVAILABLE"]);
+const EvidenceOut = z.object({ start: z.number().int(), end: z.number().int(), quote: z.string(), verified: z.boolean() });
+const CheckOutcome = z.object({ verdict: VerdictSchema, detail: z.string(), evidence: z.array(EvidenceOut) });
+
+export const RequirementReportOut = z.object({
+  id: z.string(),
+  kind: z.union([RequirementKindSchema, z.literal("goal")]),
+  text: z.string(),
+  before: CheckOutcome.meta({ description: "Result on the current version. Evidence offsets index the current text." }),
+  after: CheckOutcome.meta({ description: "Result on the proposed text. Evidence offsets index the proposed text." }),
+  delta: z.enum(["held", "regressed", "achieved", "still_failing", "uncertain"]),
+  touchedBy: z.array(z.number().int()),
+});
+
+export const CiReportOut = z.object({
+  documentId: z.string(),
+  version: z.number().int(),
+  mechanical: z.object({ valid: z.literal(true), wouldChange: z.boolean(), changes: z.number().int() }),
+  requirements: z.array(RequirementReportOut),
+  summary: z.object({ held: z.number().int(), regressed: z.number().int(), achieved: z.number().int(), still_failing: z.number().int(), uncertain: z.number().int() }),
+  judges: z.array(z.string()),
+  elapsedMs: z.number().int(),
+});

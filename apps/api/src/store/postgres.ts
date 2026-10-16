@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import pg from "pg";
-import { ContentTooLargeError, InvalidQueryError, queryTerms, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
+import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
 
 /**
  * A tsvector may not exceed ~1 MB, and the generated column indexes the whole text, so a hosted document is capped.
@@ -55,6 +55,17 @@ const MIGRATIONS: string[] = [
     created_at   TEXT NOT NULL,
     PRIMARY KEY (document_id, version)
   );
+  `,
+  `
+  CREATE TABLE requirements (
+    id          TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    kind        TEXT NOT NULL CHECK (kind IN ('present', 'absent', 'unchanged', 'semantic')),
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    seq         BIGINT GENERATED ALWAYS AS IDENTITY
+  );
+  CREATE INDEX requirements_document_idx ON requirements (document_id, seq);
   `,
 ];
 
@@ -249,6 +260,22 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
       }
       const r = await pool.query<ExactCandidate>(`SELECT id, title, version, content FROM documents WHERE content LIKE $1 ESCAPE '\\' ${idFilter}`, params);
       return r.rows;
+    },
+
+    async listRequirements(documentId) {
+      const r = await pool.query<{ id: string; document_id: string; kind: RequirementKind; text: string; created_at: string }>("SELECT id, document_id, kind, text, created_at FROM requirements WHERE document_id = $1 ORDER BY seq", [documentId]);
+      return r.rows.map((x): Requirement => ({ id: x.id, documentId: x.document_id, kind: x.kind, text: x.text, createdAt: x.created_at }));
+    },
+
+    async addRequirement(documentId, input) {
+      const id = `req_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
+      const now = new Date().toISOString();
+      await pool.query("INSERT INTO requirements (id, document_id, kind, text, created_at) VALUES ($1, $2, $3, $4, $5)", [id, documentId, input.kind, input.text, now]);
+      return { id, documentId, kind: input.kind, text: input.text, createdAt: now };
+    },
+
+    async deleteRequirement(documentId, id) {
+      return (await pool.query("DELETE FROM requirements WHERE document_id = $1 AND id = $2", [documentId, id])).rowCount === 1;
     },
 
     /** An advisory lock makes "is it empty? then fill it" atomic across instances: exactly one cold start seeds. */

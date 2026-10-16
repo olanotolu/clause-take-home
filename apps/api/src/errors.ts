@@ -8,6 +8,8 @@ export type DomainError =
   | { type: "INVALID_VERSION_RANGE"; from: number; to: number }
   | { type: "TOO_LARGE_TO_EXPORT"; chars: number; max: number }
   | { type: "TOO_LARGE_FOR_BACKEND"; chars: number; max: number }
+  | { type: "REQUIREMENT_NOT_FOUND"; id: string }
+  | { type: "REQUIREMENT_LIMIT"; max: number }
   | { type: "VERSION_CONFLICT"; expectedVersion: number; currentVersion: number }
   | { type: "PRECONDITION_FAILED"; expected: string; current: string }
   | { type: "CONTRADICTORY_PRECONDITIONS"; ifMatchVersion: number; expectedVersion: number }
@@ -38,6 +40,10 @@ export function toHttp(e: DomainError): HttpError {
       return { status: 413, type: e.type, error: `Those versions are ${e.chars} characters; redline export is limited to ${e.max} per version`, details: { chars: e.chars, max: e.max } };
     case "TOO_LARGE_FOR_BACKEND":
       return { status: 413, type: e.type, error: `This deployment indexes documents up to ${e.max} characters; this one is ${e.chars}`, details: { chars: e.chars, max: e.max } };
+    case "REQUIREMENT_NOT_FOUND":
+      return { status: 404, type: e.type, error: `Requirement ${e.id} not found` };
+    case "REQUIREMENT_LIMIT":
+      return { status: 422, type: e.type, error: `A document can have at most ${e.max} requirements`, details: { max: e.max } };
     case "VERSION_CONFLICT":
       return {
         status: 409,

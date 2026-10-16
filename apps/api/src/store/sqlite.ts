@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import { openDb, transaction, type Db } from "../db.ts";
-import { InvalidQueryError, queryTerms, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
+import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
 
 const OPEN = "\u0002";
 const CLOSE = "\u0003";
@@ -163,6 +163,22 @@ export function sqliteStore(db: Db): Store {
               .all(`"${query.replaceAll('"', '""')}"`, ...ids)
           : db.prepare(`SELECT d.id, d.title, d.version, d.content FROM documents d WHERE instr(d.content, ?) > 0 ${idFilter}`).all(query, ...ids);
       return rows as unknown as ExactCandidate[];
+    },
+
+    async listRequirements(documentId) {
+      const rows = db.prepare("SELECT id, document_id, kind, text, created_at FROM requirements WHERE document_id = ? ORDER BY seq").all(documentId) as unknown as { id: string; document_id: string; kind: RequirementKind; text: string; created_at: string }[];
+      return rows.map((r): Requirement => ({ id: r.id, documentId: r.document_id, kind: r.kind, text: r.text, createdAt: r.created_at }));
+    },
+
+    async addRequirement(documentId, input) {
+      const id = `req_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
+      const now = new Date().toISOString();
+      db.prepare("INSERT INTO requirements (id, document_id, kind, text, created_at, seq) VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM requirements WHERE document_id = ?))").run(id, documentId, input.kind, input.text, now, documentId);
+      return { id, documentId, kind: input.kind, text: input.text, createdAt: now };
+    },
+
+    async deleteRequirement(documentId, id) {
+      return db.prepare("DELETE FROM requirements WHERE document_id = ? AND id = ?").run(documentId, id).changes === 1;
     },
 
     async seedIfEmpty(items) {

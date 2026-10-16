@@ -3,12 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChangePanel, type PreviewState, type Staged } from "./components/ChangePanel.tsx";
 import { DocPane } from "./components/DocPane.tsx";
 import { HistoryPanel } from "./components/HistoryPanel.tsx";
+import { RequirementsPanel } from "./components/RequirementsPanel.tsx";
 import { SearchPanel } from "./components/SearchPanel.tsx";
 import { SuggestPanel } from "./components/SuggestPanel.tsx";
-import { api, type Doc, type DocResult, type DocSummary, type Hit, type SearchPage } from "./lib/api.ts";
+import { api, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type SearchPage } from "./lib/api.ts";
 import type { Range } from "./lib/segments.ts";
 
-type Tab = "search" | "change" | "ai" | "history";
+type Tab = "search" | "change" | "rules" | "ai" | "history";
 
 export default function App() {
   const [docs, setDocs] = useState<DocSummary[]>([]);
@@ -24,6 +25,8 @@ export default function App() {
   const [applying, setApplying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ci, setCi] = useState<{ status: "idle" } | { status: "loading" } | { status: "done"; report: CiReport } | { status: "error"; message: string }>({ status: "idle" });
+  const [goal, setGoal] = useState("");
   const nextId = useRef(1);
 
   const refreshDocs = useCallback(async () => {
@@ -67,6 +70,17 @@ export default function App() {
       }
     });
   }, [doc, staged]);
+
+  // A report describes one exact (document version, staged batch, requirements) combination; any change makes it stale.
+  useEffect(() => setCi({ status: "idle" }), [doc, staged]);
+
+  const runCi = async () => {
+    if (!doc || staged.length === 0) return;
+    setCi({ status: "loading" });
+    const r = await api.check(doc.id, doc.version, staged.map((s) => ({ operation: "replace" as const, target: s.target, replacement: s.replacement })), goal.trim() || undefined);
+    setCi(r.ok ? { status: "done", report: r.data } : { status: "error", message: r.error.error });
+  };
+  const showEvidence = (e: Evidence) => setSelection({ start: e.start, end: e.end });
 
   // Search highlights are only valid for the exact version they were computed against.
   const hits: Range[] = useMemo(() => {
@@ -229,7 +243,7 @@ export default function App() {
 
       <aside className="flex min-h-0 flex-col border-l border-line bg-canvas max-[1100px]:col-span-2 max-[1100px]:border-l-0 max-[1100px]:border-t max-[640px]:col-span-1" aria-label="Inspector">
         <div role="tablist" className="flex border-b border-line bg-paper px-2 text-sm">
-          {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["ai", "AI"], ["history", "History"]] as const).map(([k, label]) => (
+          {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["rules", "Rules"], ["ai", "AI"], ["history", "History"]] as const).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`border-b-2 px-3 py-2.5 font-medium ${tab === k ? "border-accent text-accent" : "border-transparent text-muted"}`}>
               {label}
             </button>
@@ -248,6 +262,11 @@ export default function App() {
               preview={preview}
               conflict={conflict}
               applying={applying}
+              ci={ci}
+              goal={goal}
+              onGoal={setGoal}
+              onRunCi={() => void runCi()}
+              onShowEvidence={showEvidence}
               onStage={stage}
               onRemove={(id) => setStaged((s) => s.filter((x) => x.id !== id))}
               onApply={() => void apply()}
@@ -255,6 +274,7 @@ export default function App() {
               onClear={() => setStaged([])}
             />
           )}
+          {tab === "rules" && doc && <RequirementsPanel key={doc.id} docId={doc.id} selectedText={selection ? doc.content.slice(selection.start, selection.end) : ""} onChanged={() => setCi({ status: "idle" })} />}
           {tab === "ai" && doc && <SuggestPanel key={doc.id} docId={doc.id} docVersion={doc.version} onStage={stageSuggested} />}
           {tab === "history" && doc && <HistoryPanel docId={doc.id} version={doc.version} onRestore={(v) => void restore(v)} />}
         </div>

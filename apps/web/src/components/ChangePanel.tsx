@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { Target } from "@clause/engine";
 import { countOccurrences } from "../lib/segments.ts";
-import type { ApiError, Preview } from "../lib/api.ts";
+import type { ApiError, CiReport, Evidence, Preview } from "../lib/api.ts";
+import { CiReportCard } from "./CiReport.tsx";
 
 export interface Staged {
   id: number;
@@ -26,6 +27,11 @@ interface Props {
   preview: PreviewState;
   conflict: { currentVersion?: number | undefined } | null;
   applying: boolean;
+  ci: { status: "idle" } | { status: "loading" } | { status: "done"; report: CiReport } | { status: "error"; message: string };
+  goal: string;
+  onGoal: (goal: string) => void;
+  onRunCi: () => void;
+  onShowEvidence: (e: Evidence) => void;
   onStage: (replacement: string) => void;
   onRemove: (id: number) => void;
   onApply: () => void;
@@ -146,6 +152,17 @@ export function ChangePanel(p: Props) {
         </section>
       )}
 
+      {p.staged.length > 0 && !p.conflict && p.preview.status === "valid" && (
+        <section aria-labelledby="ci-run" className="space-y-2">
+          <label id="ci-run" htmlFor="goal" className="block text-xs font-semibold uppercase tracking-wide text-muted">What should this edit achieve? (optional)</label>
+          <input id="goal" value={p.goal} onChange={(e) => p.onGoal(e.target.value)} placeholder="e.g. Make confidentiality mutual" className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm" />
+          <button onClick={p.onRunCi} disabled={p.ci.status === "loading"} className="w-full rounded-md border border-ink px-3 py-2 text-sm font-semibold hover:bg-ink hover:text-white disabled:opacity-40">
+            {p.ci.status === "loading" ? "Running CLAUSE CI…" : "Run CLAUSE CI"}
+          </button>
+          {p.ci.status === "error" && <p role="alert" className="text-[13px] text-del">{p.ci.message}</p>}
+          {p.ci.status === "done" && <CiReportCard report={p.ci.report} onShowEvidence={p.onShowEvidence} />}
+        </section>
+      )}
       </div>
       <button
         disabled={!valid || p.applying || !!p.conflict}

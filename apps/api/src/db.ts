@@ -63,6 +63,17 @@ const MIGRATIONS: string[] = [
     INSERT INTO documents_trgm(rowid, content) VALUES (new.seq, new.content);
   END;
   `,
+  `
+  CREATE TABLE requirements (
+    id          TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    kind        TEXT NOT NULL CHECK (kind IN ('present', 'absent', 'unchanged', 'semantic')),
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    seq         INTEGER NOT NULL
+  );
+  CREATE INDEX requirements_document_idx ON requirements (document_id, seq);
+  `,
 ];
 
 export function openDb(path: string): Db {
