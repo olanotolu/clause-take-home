@@ -77,7 +77,7 @@ export default function VideoPage() {
               <a href="/video/transcript.txt" className="inline-flex min-h-11 items-center text-accent hover:underline">Read transcript</a>
               <a href="https://github.com/olanotolu/clause-take-home" className="inline-flex min-h-11 items-center text-accent hover:underline">View the code <ArrowRight size={14} className="ml-1" aria-hidden /></a>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted">Fictional contract data. AI-generated narration using Ola’s voice. Recorded against release b7ff832.</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted">The footage is the real app with fictional contract data. The narration is a synthetic voice cloned from the author’s own voice, not a live recording. Recorded against release b7ff832.</p>
           </section>
 
           <nav aria-label="Video chapters" className="rounded-2xl border border-line bg-paper p-3">
