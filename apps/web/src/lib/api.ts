@@ -88,7 +88,8 @@ export interface ActivityItem { documentId: string; title: string; version: numb
 export type TemplateCategory = "NDA" | "Commercial" | "Data & Privacy" | "Vendor & Services" | "Employment";
 export interface TemplateVariable { id: string; label: string; required: boolean; placeholder: string; helpText: string }
 export interface TemplateSuggestion { id: string; title: string; kind: RequirementKind; text: string }
-export interface Template { id: string; title: string; description: string; category: TemplateCategory; content: string; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string; featured: boolean; variables: TemplateVariable[]; suggestedRequirements: TemplateSuggestion[] }
+export interface Template { id: string; title: string; description: string; category: TemplateCategory; size: number; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string; featured: boolean; variables: TemplateVariable[]; suggestedRequirements: TemplateSuggestion[] }
+export interface TemplateFull extends Omit<Template, "size"> { content: string }
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -137,6 +138,7 @@ export const api = {
   deleteRule: (id: string, rid: string) => call<undefined>("DELETE", `/playbooks/${id}/rules/${rid}`),
   applyPlaybook: (docId: string, playbookId: string) => call<ApplyResult>("POST", `/documents/${docId}/apply-playbook`, { playbookId }),
   activity: (limit = 60) => call<{ items: ActivityItem[] }>("GET", `/activity?limit=${limit}`),
+  template: (id: string) => call<TemplateFull>("GET", `/templates/${encodeURIComponent(id)}`),
   templates: () => call<{ items: Template[] }>("GET", "/templates"),
   createFromTemplate: (id: string, values: Record<string, string>, selectedRequirementIds: string[], title?: string) =>
     call<{ document: Doc; attachedRequirements: Requirement[]; attachmentError?: string }>("POST", `/templates/${encodeURIComponent(id)}/create`, { values, selectedRequirementIds, ...(title ? { title } : {}) }),

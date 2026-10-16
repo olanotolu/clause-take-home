@@ -1,3 +1,4 @@
+import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../types.ts";
 import { sha256 } from "@clause/core";
 import { MAX_EXPORT_CHARS, redlineDocx } from "../docx.ts";
@@ -19,6 +20,14 @@ const present = (d: DocumentRecord) => ({
   ...(d.sample ? { sample: true } : {}),
   ...(d.templateProvenance ? { templateProvenance: d.templateProvenance } : {}),
 });
+
+/** RFC 7240: `Prefer: return=minimal` drops the full text from the receipt (the caller already knows the edit it sent). */
+function receiptFor<T extends { content: string }>(req: FastifyRequest, reply: FastifyReply, receipt: T): T | Omit<T, "content"> {
+  if (!/\breturn=minimal\b/.test(String(req.headers.prefer ?? ""))) return receipt;
+  reply.header("Preference-Applied", "return=minimal");
+  const { content: _content, ...rest } = receipt;
+  return rest;
+}
 
 export function registerDocumentRoutes(app: App, createLimit: { max: number; timeWindow: string }): void {
   app.post("/documents", { config: { rateLimit: createLimit }, schema: { body: CreateBody, response: { 201: DocumentOut, ...errors(400, 413, 429, 500) } } }, async (req, reply) => {
@@ -65,7 +74,7 @@ export function registerDocumentRoutes(app: App, createLimit: { max: number; tim
     if (!r.ok) return reply.problem(r.error);
     // From the receipt, never a re-read: a writer (or a delete) can land between our commit and this line.
     reply.header("ETag", docs.etagOf({ version: r.value.version, contentHash: r.value.afterHash }));
-    return r.value;
+    return receiptFor(req, reply, r.value);
   });
 
   // Dry run through the exact same engine call as PATCH. Persists nothing and
@@ -91,7 +100,7 @@ export function registerDocumentRoutes(app: App, createLimit: { max: number; tim
     const r = await docs.revert(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!r.ok) return reply.problem(r.error);
     reply.header("ETag", docs.etagOf({ version: r.value.version, contentHash: r.value.afterHash }));
-    return r.value;
+    return receiptFor(req, reply, r.value);
   });
 
   // Word redline: native tracked changes (<w:ins>/<w:del>) between two versions. Read-only.

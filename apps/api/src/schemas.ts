@@ -137,7 +137,7 @@ export const AppliedOut = z.object({
 export const ReceiptOut = z.object({
   id: z.string(),
   title: z.string(),
-  content: z.string().meta({ description: "The full updated document text." }),
+  content: z.string().optional().meta({ description: "The full updated document text. Omitted when the request sent `Prefer: return=minimal`." }),
   previousVersion: z.number().int(),
   version: z.number().int(),
   changed: z.boolean().meta({ description: "False for a no-op (identical text): no new revision is created." }),
@@ -290,6 +290,9 @@ export const TemplateOut = z.object({
   variables: z.array(z.object({ id: z.string(), label: z.string(), required: z.boolean(), placeholder: z.string(), helpText: z.string() })),
   suggestedRequirements: z.array(z.object({ id: z.string(), title: z.string(), kind: RequirementKindSchema, text: z.string() })),
 });
+
+/** The catalog list: everything but the (up to ~80 KB) text, which GET /templates/:id returns. */
+export const TemplateSummaryOut = TemplateOut.omit({ content: true }).extend({ size: z.number().int().meta({ description: "Length of the full text in characters." }) });
 
 export const CreateTemplateBody = z.strictObject({
   title: z.string().trim().min(1).max(300).optional(),

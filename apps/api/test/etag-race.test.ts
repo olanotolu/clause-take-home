@@ -85,3 +85,22 @@ describe("response ETag matches the receipt, not a re-read", () => {
     expect(res.headers.etag).toBe(expectedEtag(res.json()));
   });
 });
+
+describe("Prefer: return=minimal", () => {
+  it("omits the text from PATCH and revert receipts, keeps everything else, and says so", async () => {
+    app = await buildApp({ store: await testStore() });
+    const doc = await createDoc(app, "NDA", NDA);
+    const full = await patch(app, doc.id, { expectedVersion: 1, changes: [quote("Trade Secrets", "TS")] });
+    expect(typeof full.json().content).toBe("string");
+    expect(full.headers["preference-applied"]).toBeUndefined();
+    const min = await app.inject({ method: "PATCH", url: `/documents/${doc.id}`, headers: { prefer: "return=minimal" }, payload: { expectedVersion: 2, changes: [quote("TS", "Trade Secrets")] } });
+    expect(min.statusCode).toBe(200);
+    expect(min.headers["preference-applied"]).toBe("return=minimal");
+    expect(min.json()).not.toHaveProperty("content");
+    expect(min.json()).toMatchObject({ version: 3, changed: true });
+    expect(min.headers.etag).toBe(expectedEtag(min.json()));
+    const rev = await app.inject({ method: "POST", url: `/documents/${doc.id}/revert`, headers: { prefer: "return=minimal" }, payload: { toVersion: 1 } });
+    expect(rev.statusCode).toBe(200);
+    expect(rev.json()).not.toHaveProperty("content");
+  });
+});

@@ -17,8 +17,11 @@ describe("source-backed template library", () => {
     app = await testApp();
     const r = await app.inject({ method: "GET", url: "/templates" });
     expect(r.statusCode).toBe(200);
-    const { items } = r.json();
+    const list = r.json().items as { id: string; size: number }[];
+    expect(list.every((t) => !("content" in t) && t.size > 0)).toBe(true); // the list is metadata only
+    const items = await Promise.all(list.map(async (t) => (await app.inject({ method: "GET", url: `/templates/${t.id}` })).json()));
     expect(items).toHaveLength(21);
+    expect(items.map((t: { content: string }) => t.content.length)).toEqual(list.map((t) => t.size));
     expect(new Set(items.map((t: { id: string }) => t.id)).size).toBe(21);
     expect(items.filter((t: { source: string }) => t.source === "CLAUSE sample")).toHaveLength(5);
     for (const title of ["One-Way Non-Disclosure Agreement", "Cloud Service Agreement", "Terms of Service", "Service Level Agreement", "Data Processing Agreement", "Business Associate Agreement", "AI Addendum", "Professional Services Agreement", "Software License Agreement", "Pilot Agreement", "Partnership Agreement", "Independent Contractor Agreement", "Amendment to Agreement", "Statement of Work", "Cloud Service Order Form"]) {
@@ -48,7 +51,7 @@ describe("source-backed template library", () => {
     expect(missing.json().type).toBe("MISSING_TEMPLATE_FIELDS");
 
     const catalog = await app.inject({ method: "GET", url: "/templates" });
-    const template = catalog.json().items.find((t: { id: string }) => t.id === "cloud-service-agreement");
+    const template = (await app.inject({ method: "GET", url: "/templates/cloud-service-agreement" })).json();
     const created = await app.inject({ method: "POST", url: "/templates/cloud-service-agreement/create", payload: { values: deal, selectedRequirementIds: [template.suggestedRequirements[0].id] } });
     expect(created.statusCode).toBe(201);
     const { document, attachedRequirements } = created.json();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CreateTemplateBody, DocumentOut, RequirementOut, TemplateIdParams, TemplateOut, errors } from "../schemas.ts";
+import { CreateTemplateBody, DocumentOut, RequirementOut, TemplateIdParams, TemplateOut, TemplateSummaryOut, errors } from "../schemas.ts";
 import { SOURCE_TEXT } from "../templates/source-text.ts";
 import { SEED_DOCUMENTS } from "../seed-data.ts";
 import * as docs from "../documents.ts";
@@ -86,7 +86,13 @@ export const TEMPLATES = defs.map((d) => {
 });
 
 export function registerTemplateRoutes(app: App, createLimit: { max: number; timeWindow: string }): void {
-  app.get("/templates", { schema: { response: { 200: z.object({ items: TemplateOut.array() }), ...errors(500) } } }, async () => ({ items: TEMPLATES }));
+  app.get("/templates", { schema: { response: { 200: z.object({ items: TemplateSummaryOut.array() }), ...errors(500) } } }, async () => ({
+    items: TEMPLATES.map(({ content, ...meta }) => ({ ...meta, size: content.length })),
+  }));
+  app.get("/templates/:id", { schema: { params: TemplateIdParams, response: { 200: TemplateOut, ...errors(404, 500) } } }, async (req, reply) => {
+    const template = TEMPLATES.find((t) => t.id === req.params.id);
+    return template ?? reply.code(404).send({ error: "Template not found", code: 404, type: "TEMPLATE_NOT_FOUND" });
+  });
   app.post("/templates/:id/create", { config: { rateLimit: createLimit }, schema: { params: TemplateIdParams, body: CreateTemplateBody, response: { 201: z.object({ document: DocumentOut, attachedRequirements: RequirementOut.array(), attachmentError: z.string().optional() }), ...errors(400, 404, 413, 429, 500) } } }, async (req, reply) => {
     const template = TEMPLATES.find((t) => t.id === req.params.id);
     if (!template) return reply.code(404).send({ error: "Template not found", code: 404, type: "TEMPLATE_NOT_FOUND" });
