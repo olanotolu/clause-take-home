@@ -2,26 +2,15 @@
 
 @keyframes palette-backdrop-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes palette-backdrop-out { from { opacity: 1 } to { opacity: 0 } }
-@keyframes palette-dialog-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(.985) } to { opacity: 1; transform: translate(-50%, -50%) scale(1) } }
-@keyframes palette-dialog-out { from { opacity: 1; transform: translate(-50%, -50%) scale(1) } to { opacity: 0; transform: translate(-50%, calc(-50% + 7px)) scale(.99) } }
-@keyframes palette-result-in { from { opacity: 0; transform: translateY(5px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes palette-dialog-in { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes palette-dialog-out { from { opacity: 1; transform: translateY(0) } to { opacity: 0; transform: translateY(-4px) } }
 
-.palette-overlay[data-state="open"] { animation: palette-backdrop-in 160ms ease-out both; }
-.palette-overlay[data-state="closed"] { animation: palette-backdrop-out 120ms ease-in both; }
-.palette-dialog[data-state="open"] { animation: palette-dialog-in 260ms cubic-bezier(.16,1,.3,1) both; transform-origin: center; }
-.palette-dialog[data-state="closed"] { animation: palette-dialog-out 160ms cubic-bezier(.7,0,.84,0) both; transform-origin: center; }
-.palette-result { animation: palette-result-in 180ms cubic-bezier(.2,.8,.2,1) both; }
-.palette-result:nth-child(1) { animation-delay: 20ms; }
-.palette-result:nth-child(2) { animation-delay: 35ms; }
-.palette-result:nth-child(3) { animation-delay: 50ms; }
-.palette-result:nth-child(4) { animation-delay: 65ms; }
-.palette-result:nth-child(5) { animation-delay: 80ms; }
-.palette-result:nth-child(6) { animation-delay: 95ms; }
-.palette-result:nth-child(7) { animation-delay: 110ms; }
-.palette-result:nth-child(8) { animation-delay: 125ms; }
+.palette-overlay[data-state="open"] { animation: palette-backdrop-in 120ms ease-out both; }
+.palette-overlay[data-state="closed"] { animation: palette-backdrop-out 100ms ease-in both; }
+.palette-dialog[data-state="open"] { animation: palette-dialog-in 150ms cubic-bezier(.23,1,.32,1) both; transform-origin: top center; }
+.palette-dialog[data-state="closed"] { animation: palette-dialog-out 110ms ease-in both; transform-origin: top center; }
 @media (prefers-reduced-motion: reduce) {
-  .palette-overlay, .palette-dialog, .palette-result { animation: none !important; }
-  .palette-dialog[data-state="open"], .palette-dialog[data-state="closed"] { transform: translate(-50%, -50%); }
+  .palette-overlay, .palette-dialog { animation: none !important; }
 }
 
 @keyframes palette-mobile-in { from { opacity: 0 } to { opacity: 1 } }
@@ -37,6 +26,7 @@
     max-height: var(--palette-viewport-height, 100dvh);
     display: flex;
     flex-direction: column;
+    translate: none;
     transform: none;
     border: 0;
     border-radius: 0;

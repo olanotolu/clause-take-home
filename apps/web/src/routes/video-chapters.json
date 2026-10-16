@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0.0,
+    "title": "Introduction"
+  },
+  {
+    "start": 12.167,
+    "title": "Find and edit"
+  },
+  {
+    "start": 92.133,
+    "title": "Clause CI"
+  },
+  {
+    "start": 174.5,
+    "title": "AI proposals"
+  },
+  {
+    "start": 242.033,
+    "title": "History and search"
+  },
+  {
+    "start": 293.3,
+    "title": "Workspace extensions"
+  },
+  {
+    "start": 348.133,
+    "title": "API and architecture"
+  },
+  {
+    "start": 403.8,
+    "title": "Tests and measurements"
+  },
+  {
+    "start": 454.733,
+    "title": "Production design"
+  },
+  {
+    "start": 491.767,
+    "title": "Closing"
+  }
+]
