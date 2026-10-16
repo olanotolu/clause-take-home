@@ -132,7 +132,7 @@ export function registerDocumentRoutes(app: App, createLimit: { max: number; tim
 
   app.get("/documents/:id/revisions/:version", { schema: { params: IdParams.extend({ version: VersionParam }), response: { 200: RevisionInfoOut.extend({ content: z.string() }), ...errors(400, 404, 500) } } }, async (req, reply) => {
     const rev = (await app.store.getRevision(req.params.id, req.params.version));
-    if (!rev) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: `${req.params.id}@v${req.params.version}` });
+    if (!rev) return reply.problem((await app.store.getDocument(req.params.id)) ? { type: "REVISION_NOT_FOUND", id: req.params.id, version: req.params.version } : { type: "DOCUMENT_NOT_FOUND", id: req.params.id });
     return rev;
   });
 }

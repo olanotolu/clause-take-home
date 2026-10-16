@@ -13,13 +13,6 @@ export const DEFAULT_DB_PATH = join(import.meta.dirname, "../../../data/clause.d
 export type Backend = "sqlite" | "postgres";
 
 /**
- * Which backend to use. EXPLICIT on purpose: `vercel env pull` puts DATABASE_URL into .env.local, and a local
- * `pnpm dev`, seed or fuzz run must never silently write to the hosted database because that variable happens to exist.
- *   CLAUSE_STORAGE=postgres|sqlite   wins when set
- *   on Vercel (VERCEL is set)        postgres
- *   otherwise                        sqlite
- */
-/**
  * The build shown in Settings. Vercel only sets VERCEL_GIT_COMMIT_SHA when it can read git metadata from the deploy (it
  * arrives empty for a deploy made from a worktree), so a deploy script can pass CLAUSE_BUILD_SHA explicitly.
  */
@@ -27,6 +20,13 @@ export function buildVersion(env: Record<string, string | undefined>): string {
   return (env.CLAUSE_BUILD_SHA || env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7) || "dev";
 }
 
+/**
+ * Which backend to use. EXPLICIT on purpose: `vercel env pull` puts DATABASE_URL into .env.local, and a local
+ * `pnpm dev`, seed or fuzz run must never silently write to the hosted database because that variable happens to exist.
+ *   CLAUSE_STORAGE=postgres|sqlite   wins when set
+ *   on Vercel (VERCEL is set)        postgres
+ *   otherwise                        sqlite
+ */
 export function chooseBackend(env: Record<string, string | undefined>): Backend {
   if (env.CLAUSE_STORAGE === "postgres" || env.CLAUSE_STORAGE === "sqlite") return env.CLAUSE_STORAGE;
   if (env.CLAUSE_STORAGE) throw new Error(`CLAUSE_STORAGE must be "sqlite" or "postgres", got "${env.CLAUSE_STORAGE}"`);
@@ -45,8 +45,9 @@ export async function storeFromEnv(env: Record<string, string | undefined>, hook
 }
 
 /**
- * The store the server uses: chosen by `chooseBackend`, connected on first use. With CLAUSE_SEED=1 an EMPTY database is
- * filled with the sample contracts (once, even if several instances start together).
+ * The store the server uses: chosen by `chooseBackend`, connected on first use. With CLAUSE_SEED=1, any missing sample
+ * contract is restored (an existing copy with the canonical text is adopted, never rewritten), and the playbook and
+ * request tables are filled if empty. Each step is safe when several instances start together.
  */
 export function lazyStoreFromEnv(env: Record<string, string | undefined>, hooks: { onPool?: (pool: import("pg").Pool) => void } = {}): Store {
   const kind = chooseBackend(env);

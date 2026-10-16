@@ -197,7 +197,7 @@ async function main() {
   const jevRan = arms.some((a) => a.id === config.jevModel);
   const jevNote = jevRan
     ? `**${config.jevModel}** via Vercel AI Gateway (pinned model id).`
-    : `**${config.jevModel}: not run.** Vercel AI Gateway serves it only to teams with paid credits (the call returned HTTP 403, "Free tier users do not have access to this model"). The Jev judge is implemented and unit-tested; it has **no measured results here**, so no claim is made about it.`;
+    : `**${config.jevModel}: not run.** Vercel AI Gateway serves it only to teams with paid credits (the call returned HTTP 403, "Free tier users do not have access to this model"). It has **no measured results here**, so no claim is made about it, and it was later removed from the product.`;
 
   const md = renderMarkdown({ summaries, cases, config, prices, jevNote, generatedAt: new Date().toISOString().slice(0, 10) });
   writeFileSync(join(import.meta.dirname, "RESULTS.md"), md);

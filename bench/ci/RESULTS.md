@@ -14,7 +14,7 @@ Can a judge tell whether a contract **satisfies a requirement**, and does it not
 
 - **keyword-baseline**: no model; best-matching sentence by distinctive-word overlap (τ=0.2), negation mismatch ⇒ contradicted. Its quotes are real sentences, so they verify.
 - **anthropic/claude-sonnet-5.5**
-- **typesafe-ai/jev-1.14.0: not run.** Vercel AI Gateway serves it only to teams with paid credits (the call returned HTTP 403, "Free tier users do not have access to this model"). The Jev judge is implemented and unit-tested; it has **no measured results here**, so no claim is made about it.
+- **typesafe-ai/jev-1.14.0: not run.** Vercel AI Gateway serves it only to teams with paid credits (the call returned HTTP 403, "Free tier users do not have access to this model"). It has **no measured results here**, so no claim is made about it, and it was later removed from the product.
 
 ## Static task: three-way classification
 

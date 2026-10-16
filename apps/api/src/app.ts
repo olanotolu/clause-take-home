@@ -142,7 +142,8 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   app.get("/openapi.json", { schema: { hide: true } }, async () => app.swagger());
   app.get("/health", { schema: { hide: true } }, async () => ({ status: "ok" }));
 
-  // global:false: nothing is limited unless a route opts in (only /suggest does).
+  // global:false: nothing is limited unless a route opts in: document create/copy and template create, Clause CI checks
+  // (document and request), and suggestions. Limits are per process, not per tenant.
   await app.register(rateLimit, { global: false });
 
   const typed = app.withTypeProvider<ZodTypeProvider>() as unknown as App;

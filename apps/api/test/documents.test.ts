@@ -222,7 +222,12 @@ describe("versions and preconditions", () => {
     expect(revs.map((r: { version: number }) => r.version)).toEqual([3, 2, 1]);
     const v2 = (await app.inject({ method: "GET", url: `/documents/${doc.id}/revisions/2` })).json();
     expect(v2.content).toBe("1 two three");
-    expect((await app.inject({ method: "GET", url: `/documents/${doc.id}/revisions/9` })).statusCode).toBe(404);
+    const noVersion = await app.inject({ method: "GET", url: `/documents/${doc.id}/revisions/9` });
+    expect(noVersion.statusCode).toBe(404);
+    expect(noVersion.json()).toMatchObject({ type: "REVISION_NOT_FOUND", details: { version: 9 } });
+    const noDoc = await app.inject({ method: "GET", url: "/documents/doc_nope/revisions/1" });
+    expect(noDoc.statusCode).toBe(404);
+    expect(noDoc.json()).toMatchObject({ type: "DOCUMENT_NOT_FOUND" });
   });
 });
 
