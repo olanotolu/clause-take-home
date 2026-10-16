@@ -58,7 +58,7 @@ export function PlaybooksView({ id }: { id: string | undefined }) {
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] max-[899px]:grid-cols-1 max-[899px]:overflow-y-auto">
-      <aside aria-label="Playbooks" className="flex min-h-0 flex-col border-r border-line bg-canvas max-[899px]:border-b max-[899px]:border-r-0">
+      <aside aria-label="Playbooks" className={`flex min-h-0 flex-col border-r border-line bg-canvas max-[899px]:border-b max-[899px]:border-r-0 ${id ? "max-[899px]:hidden" : ""}`}>
         <div className="flex items-center justify-between px-5 pb-2 pt-6">
           <h1 className="font-display text-2xl">Playbooks</h1>
           <Button size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => setAdding(true)}>New</Button>
@@ -84,7 +84,8 @@ export function PlaybooksView({ id }: { id: string | undefined }) {
         </ul>
       </aside>
 
-      <div className="min-h-0 min-w-0 overflow-y-auto">
+      <div className={`min-h-0 min-w-0 overflow-y-auto ${id ? "" : "max-[899px]:hidden"}`}>
+        {id && <div className="hidden max-[899px]:block border-b border-line bg-paper px-4 py-2"><button onClick={() => navigate({ name: "playbooks" })} className="h-10 text-sm font-medium text-accent">← All playbooks</button></div>}
         {loadingDetail && !detail && <div className="space-y-3 p-8"><Skeleton className="h-8 w-64" /><Skeleton className="h-24 w-full" /></div>}
         {!selectedId && list && list.length === 0 && <EmptyState icon={<BookOpenCheck size={26} aria-hidden />} title="Select or create a playbook" />}
         {detail && selectedId === detail.id && <PlaybookEditor key={detail.id} pb={detail} onChanged={() => { void loadDetail(detail.id); void loadList(); }} onDeleted={() => { void loadList(); navigate({ name: "playbooks" }); }} />}

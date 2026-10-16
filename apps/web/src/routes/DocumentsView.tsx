@@ -48,10 +48,10 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
                 <tbody className="divide-y divide-line">
                   {rows.map((d) => (
                     <tr key={d.id} className="group cursor-pointer hover:bg-canvas" onClick={() => navigate({ name: "doc", id: d.id, tab: "edit" })}>
-                      <td className="px-4 py-3"><a href={`#/doc/${encodeURIComponent(d.id)}/edit`} className="font-medium group-hover:text-accent" onClick={(e) => e.stopPropagation()}>{d.title}</a></td>
+                      <td className="max-w-[48vw] px-4 py-3 max-[640px]:px-3"><a href={`#/doc/${encodeURIComponent(d.id)}/edit`} className="block truncate font-medium group-hover:text-accent" onClick={(e) => e.stopPropagation()}>{d.title}</a></td>
                       <td className="tnum px-3 py-3 text-muted">v{d.version}</td>
                       <td className="tnum px-3 py-3 text-muted max-[640px]:hidden">{kb(d.size)}</td>
-                      <td className="tnum px-4 py-3 text-muted">{ago(d.updatedAt)}</td>
+                      <td className="tnum whitespace-nowrap px-4 py-3 text-muted max-[640px]:px-3">{ago(d.updatedAt)}</td>
                     </tr>
                   ))}
                   {rows.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No document titled “{q}”.</td></tr>}

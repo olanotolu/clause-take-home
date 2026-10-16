@@ -1,7 +1,7 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Num } from "../ui/Num.tsx";
 import { motion } from "motion/react";
-import { Activity, BookOpenCheck, ChevronDown, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, Plus, PlugIcon, Search, Settings } from "../ui/icons.tsx";
+import { Activity, BookOpenCheck, ChevronDown, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, List, Plus, PlugIcon, Search, Settings, X } from "../ui/icons.tsx";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { api, type SettingsStatus } from "../lib/api.ts";
@@ -51,6 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const { settings } = useSettings();
   const [palette, setPalette] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [status, setStatus] = useState<SettingsStatus | null>(null);
   const [docList] = useAutoAnimate<HTMLElement>({ duration: 180, easing: "ease-out" });
@@ -189,15 +190,25 @@ export function Shell({ children }: { children: ReactNode }) {
         <main className="mb-3 min-h-0 flex-1 overflow-hidden rounded-panel bg-paper shadow-soft max-[899px]:mb-0 max-[899px]:rounded-none max-[899px]:shadow-none">{children}</main>
       </div>
 
-      <nav aria-label="Main (mobile)" className="hidden overflow-x-auto border-t border-line bg-rail text-rail-ink max-[899px]:flex">
-        {NAV.map(({ key, label, icon: Icon, route: target }) => (
-          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={cn("flex h-14 min-w-[76px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", current === key ? "text-rail-ink" : "text-rail-muted")}>
+      <nav aria-label="Main (mobile)" className="hidden h-[calc(60px+env(safe-area-inset-bottom))] shrink-0 border-t border-line bg-rail pb-[env(safe-area-inset-bottom)] text-rail-ink max-[899px]:flex">
+        {[NAV[0]!, NAV[1]!, NAV[2]!, NAV[4]!].map(({ key, label, icon: Icon, route: target }) => (
+          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={cn("flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", current === key ? "text-rail-ink" : "text-rail-muted")}>
             <Icon size={18} aria-hidden />
             {label}
           </button>
         ))}
+        <button onClick={() => setMobileMoreOpen(true)} aria-expanded={mobileMoreOpen} className="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-rail-muted"><List size={19} aria-hidden />More</button>
       </nav>
     </div>
+    {mobileMoreOpen && <div className="fixed inset-0 z-40 hidden bg-black/30 backdrop-blur-[2px] max-[899px]:block" onClick={() => setMobileMoreOpen(false)}>
+      <section role="dialog" aria-modal="true" aria-label="More navigation" className="absolute inset-x-0 bottom-0 rounded-t-[22px] border-t border-line bg-paper px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-3 shadow-lift" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line-strong" />
+        <div className="mb-2 flex items-center justify-between px-1"><h2 className="font-display text-lg font-semibold">More</h2><button onClick={() => setMobileMoreOpen(false)} aria-label="Close navigation" className="grid size-9 place-items-center rounded-full text-muted hover:bg-canvas"><X size={17} aria-hidden /></button></div>
+        <div className="grid grid-cols-2 gap-2">
+          {[NAV[3]!, NAV[5]!, NAV[6]!, NAV[7]!].map(({ key, label, icon: Icon, route: target }) => <button key={key} onClick={() => { if (target) navigate(target); setMobileMoreOpen(false); }} aria-current={current === key ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-control border px-3 text-left text-sm font-medium", current === key ? "border-accent bg-accent-soft text-ink" : "border-line bg-paper text-rail-ink hover:bg-canvas")}><Icon size={19} aria-hidden /><span>{label}</span></button>)}
+        </div>
+      </section>
+    </div>}
     <CommandPalette open={palette} onClose={() => setPalette(false)} />
     <NewDocumentDialog open={ws.newDocOpen} onClose={() => ws.setNewDocOpen(false)} />
     <Toaster position="bottom-right" theme={settings.theme} offset={16} mobileOffset={{ bottom: 76, left: 12, right: 12 }} closeButton />

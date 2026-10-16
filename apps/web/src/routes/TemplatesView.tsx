@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type Template, type TemplateCategory } from "../lib/api.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { navigate } from "../lib/router.ts";
@@ -24,6 +24,7 @@ export function TemplatesView() {
   const [pickedRules, setPickedRules] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [title, setTitle] = useState("");
+  const detailRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let live = true;
@@ -71,7 +72,12 @@ export function TemplatesView() {
 
   const setField = (id: string, value: string) => setValues((current) => ({ ...current, [id]: value }));
   const fillPlaceholder = (text: string) => text.replace(/\{\{([a-z0-9_]+)\}\}/g, (_match, id: string) => values[id]?.trim() || selected?.variables.find((v) => v.id === id)?.placeholder || `[${id}]`);
-  const setTemplate = (t: Template) => { setSelectedId(t.id); };
+  const setTemplate = (t: Template) => {
+    setSelectedId(t.id);
+    if (window.matchMedia("(max-width: 1279px)").matches) {
+      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }));
+    }
+  };
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-canvas">
@@ -110,7 +116,7 @@ export function TemplatesView() {
             </ul>}
           </div>
 
-          {selected && <aside aria-label={`${selected.title} template details`} className="min-w-0 overflow-hidden rounded-card border border-line bg-paper xl:sticky xl:top-3">
+          {selected && <aside ref={detailRef} aria-label={`${selected.title} template details`} className="min-w-0 scroll-mt-3 overflow-hidden rounded-card border border-line bg-paper xl:sticky xl:top-3">
             <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-4"><div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-2"><Pill>{selected.category}</Pill><span className="text-[11px] text-muted">{selected.source} · {selected.sourceVersion}</span></div><h2 className="font-display text-lg font-semibold leading-snug">{selected.title}</h2><p className="mt-1 text-xs leading-relaxed text-muted">{selected.description}</p></div><Button size="sm" variant="primary" onClick={() => void create()} loading={busy}>Create copy</Button></div>
             <Tabs tabs={DETAIL_TABS} value={activeTab} onChange={setActiveTab} label="Template details" idPrefix="template-detail" className="border-b border-line px-2" />
             <div id="template-detail-panel" role="tabpanel" aria-labelledby={`template-detail-${activeTab}`} className="max-h-[min(68vh,680px)] min-h-[360px] overflow-y-auto p-4">

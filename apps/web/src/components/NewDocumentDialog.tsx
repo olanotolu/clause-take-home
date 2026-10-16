@@ -34,7 +34,7 @@ export function NewDocumentDialog({ open, onClose }: { open: boolean; onClose: (
       onClose={onClose}
       onClick={(e) => { if (e.target === ref.current) onClose(); }}
       aria-labelledby="newdoc-h"
-      className="m-auto w-[min(560px,calc(100vw-24px))] rounded-2xl border border-line-strong bg-paper p-0 text-ink shadow-lift backdrop:bg-black/40"
+      className="m-auto max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))] overflow-y-auto rounded-2xl border border-line-strong bg-paper p-0 text-ink shadow-lift backdrop:bg-black/40"
     >
       <form className="space-y-4 p-5" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <div>
@@ -45,7 +45,7 @@ export function NewDocumentDialog({ open, onClose }: { open: boolean; onClose: (
           <input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} placeholder="e.g. Mutual NDA, Acme Corp" className="mt-1 h-10 w-full rounded-control border border-line-strong bg-canvas px-3 text-sm font-normal" />
         </label>
         <label className="block text-sm font-medium">Text
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={9} placeholder="Paste the contract text. Plain text only: formatting is not kept." className="mt-1 w-full rounded-control border border-line-strong bg-canvas px-3 py-2 font-doc text-[14px] font-normal" />
+          <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={9} placeholder="Paste the contract text. Plain text only: formatting is not kept." className="mt-1 max-h-[42dvh] min-h-36 w-full rounded-control border border-line-strong bg-canvas px-3 py-2 font-doc text-[14px] font-normal" />
         </label>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

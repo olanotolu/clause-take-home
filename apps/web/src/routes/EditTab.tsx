@@ -13,6 +13,7 @@ export function EditTab() {
   const scroller = useRef<HTMLDivElement>(null);
   const { settings } = useSettings();
   const [tab, setTab] = useState<AssistantTab>(settings.aiTab ? "assistant" : "search");
+  const [mobilePane, setMobilePane] = useState<"document" | "tools">("document");
   const [seed, setSeed] = useState<{ q: string; n: number } | null>(null);
   const redlineSpans = ws.redline && ws.preview.status === "valid" ? ws.preview.data.applied : null;
 
@@ -28,8 +29,11 @@ export function EditTab() {
   }, [doc.version]);
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(320px,360px)] max-[899px]:grid-cols-1 max-[899px]:overflow-y-auto min-[900px]:overflow-hidden min-[1280px]:grid-cols-[minmax(0,1fr)_390px]">
-      <div className="flex min-h-0 min-w-0 flex-col max-[899px]:min-h-[72vh]">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(320px,360px)] max-[899px]:grid-cols-1 max-[899px]:grid-rows-[auto_minmax(0,1fr)] min-[900px]:overflow-hidden min-[1280px]:grid-cols-[minmax(0,1fr)_390px]">
+      <div role="tablist" aria-label="Document view" className="hidden max-[899px]:flex border-b border-line bg-paper p-1.5">
+        {(["document", "tools"] as const).map((pane) => <button key={pane} role="tab" aria-selected={mobilePane === pane} onClick={() => setMobilePane(pane)} className={`h-10 flex-1 rounded-control text-sm font-medium capitalize transition-colors ${mobilePane === pane ? "bg-accent-soft text-ink" : "text-muted hover:bg-canvas"}`}>{pane === "tools" ? "Search & tools" : "Document"}</button>)}
+      </div>
+      <div className={`flex min-h-0 min-w-0 flex-col ${mobilePane === "document" ? "max-[899px]:flex" : "max-[899px]:hidden"}`}>
         {redlineSpans && (
           <p role="status" className="shrink-0 border-b border-line bg-pass-bg px-6 py-2 text-sm text-ink/80 max-[640px]:px-3">
             Redline preview of {redlineSpans.length} staged change{redlineSpans.length === 1 ? "" : "s"}: <span className="del px-0.5">removed</span> <span className="ins px-0.5">added</span>. Nothing is saved until you Apply.
@@ -51,7 +55,7 @@ export function EditTab() {
         </div>
         <ChangesTray />
       </div>
-      <AssistantPanel tab={tab} onTab={setTab} searchSeed={seed} />
+      <div className={`min-h-0 ${mobilePane === "tools" ? "max-[899px]:block" : "max-[899px]:hidden"}`}><AssistantPanel tab={tab} onTab={setTab} searchSeed={seed} /></div>
     </div>
   );
 }
