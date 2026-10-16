@@ -63,8 +63,9 @@ export async function stageReplacement(page: Page, passage: string, replacement:
 
 /** Fails on serious or critical accessibility violations; anything accepted must be listed in `known`, with a reason. */
 export async function expectAccessible(page: Page, known: Record<string, string> = {}) {
-  // Axe measures contrast on what is painted, so let entrance animations (opacity) finish first.
-  await page.waitForFunction(() => document.getAnimations().every((a) => a.effect?.getComputedTiming().iterations === Infinity || a.playState !== "running"));
+  // Axe measures contrast on what is painted, so let entrance animations (opacity) finish first. Scroll-linked ones (the
+  // intro) never finish by design; they are held still by not scrolling.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.timeline !== document.timeline || a.effect?.getComputedTiming().iterations === Infinity || a.playState !== "running"));
   await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   const blocking = violations.filter((v) => (v.impact === "serious" || v.impact === "critical") && !(v.id in known));
