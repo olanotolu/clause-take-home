@@ -67,6 +67,7 @@ export function SelectionToolbar({ container, content, selection, onStage, onPro
   return (
     <div className="absolute z-20 w-[min(320px,calc(100%-16px))]" style={composing ? { top: pos.bottom + 8, left: pos.left } : { top: pos.top, left: pos.left, transform: "translateY(calc(-100% - 8px))" }}>
       {composing ? (
+        // biome-ignore lint/a11y/useSemanticElements: a styled popover composer; a fieldset would bring browser borders and legend layout
         <div className="pop rounded-card bg-paper p-3 shadow-lift [--origin:top_left]" role="group" aria-label="Replace selected passage">
           <label htmlFor="replace-text" className="mb-1 block text-xs font-medium text-muted">
             Replace with <span className="font-normal">· {occurrences === 1 ? "unique in this version" : `appears ${plural(occurrences, "time")}, anchored by its context`}</span>

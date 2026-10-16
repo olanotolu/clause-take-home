@@ -19,10 +19,12 @@
     "bench:ci": "node --env-file-if-exists=.env.local bench/ci/run.ts",
     "bench:ci:report": "node bench/ci/report.ts",
     "test:e2e": "playwright test",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome lint ."
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@biomejs/biome": "^2.5.15",
     "@playwright/test": "^1.64.1",
     "@types/node": "^24",
     "@vitest/coverage-v8": "5.0.5",

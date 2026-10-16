@@ -105,7 +105,7 @@ export function buildCases(): CasesFile {
 if (import.meta.main) {
   const cases = buildCases();
   writeFileSync(join(import.meta.dirname, "cases.json"), JSON.stringify(cases, null, 1) + "\n");
-  const count = (xs: StaticCase[]) => xs.reduce<Record<string, number>>((m, x) => ((m[x.label] = (m[x.label] ?? 0) + 1), m), {});
+  const count = (xs: StaticCase[]) => xs.reduce<Record<string, number>>((m, x) => { m[x.label] = (m[x.label] ?? 0) + 1; return m; }, {});
   console.log("dev", count(cases.dev), "| static", count(cases.static), "| regression pairs", cases.regression.length);
   console.log("distinct docs: static", new Set(cases.static.map((c) => c.docId)).size, "regression", new Set(cases.regression.map((c) => c.docId)).size);
   console.log("overlap of dev docs with test docs (must be 0):", cases.dev.filter((d) => cases.static.some((s) => s.docId === d.docId)).length);

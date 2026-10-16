@@ -183,7 +183,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const patchRequest = useCallback(async (id: string, patch: RequestPatch) => {
     let before: WorkRequest | undefined;
-    setRequests((cur) => cur.map((x) => (x.id === id ? ((before = x), { ...x, ...patch, updatedAt: new Date().toISOString() }) : x)));
+    setRequests((cur) => cur.map((x) => {
+      if (x.id !== id) return x;
+      before = x;
+      return { ...x, ...patch, updatedAt: new Date().toISOString() };
+    }));
     const r = await api.patchRequest(id, patch);
     if (r.ok) setRequests((cur) => cur.map((x) => (x.id === id ? r.data : x)));
     else {

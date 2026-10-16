@@ -27,7 +27,7 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
 
   if (!doc) {
     return (
-      <div className="space-y-4 p-8" aria-busy="true" aria-label="Loading document">
+      <div className="space-y-4 p-8" role="status" aria-busy="true" aria-label="Loading document">
         <Skeleton className="h-8 w-72" />
         <Skeleton className="h-4 w-48" />
         <Skeleton className="mt-6 h-[50vh] w-full max-w-3xl" />

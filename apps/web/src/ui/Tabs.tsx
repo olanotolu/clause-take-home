@@ -41,6 +41,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label, idPrefix,
         const active = t.id === value;
         return (
           <button
+            type="button"
             key={t.id}
             ref={(el) => { if (el) refs.current.set(t.id, el); }}
             id={`${idPrefix}-${t.id}`}

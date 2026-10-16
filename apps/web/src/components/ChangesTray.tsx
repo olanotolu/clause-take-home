@@ -44,7 +44,7 @@ export function ChangesTray() {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-2.5 max-[640px]:px-3">
-        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex items-center gap-1.5 text-sm font-semibold">
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex items-center gap-1.5 text-sm font-semibold">
           {open ? <ChevronDown size={15} aria-hidden /> : <ChevronUp size={15} aria-hidden />}
           Proposed changes <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs text-accent"><Num value={staged.length} /></span>
         </button>
@@ -72,7 +72,7 @@ export function ChangesTray() {
                     {[deltaLabel(d.removed, "-"), deltaLabel(d.added, "+")].filter(Boolean).join(" ")} · anchored by {quote ? (quote.prefix || quote.suffix ? "quote and context" : "quote") : "position and expected text"}
                   </span>
                 </p>
-                <button onClick={() => ws.removeStaged(s.id)} aria-label={`Remove change: ${clip(s.text, 30)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
+                <button type="button" onClick={() => ws.removeStaged(s.id)} aria-label={`Remove change: ${clip(s.text, 30)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
               </li>
             );
           })}

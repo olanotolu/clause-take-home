@@ -95,7 +95,7 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
             </select>
             <Button size="sm" variant="primary" disabled={!pick} onClick={() => void applyPlaybook()}>Apply</Button>
           </div>
-          <button onClick={() => navigate({ name: "playbooks", ...(pick && { id: pick }) })} className="mt-2 text-xs font-medium text-accent underline underline-offset-2">Manage playbooks</button>
+          <button type="button" onClick={() => navigate({ name: "playbooks", ...(pick && { id: pick }) })} className="mt-2 text-xs font-medium text-accent underline underline-offset-2">Manage playbooks</button>
         </section>
       )}
 
@@ -111,7 +111,7 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">{BY_KIND[r.kind].icon}{BY_KIND[r.kind].label}</span>
                 <p className="doc !text-[14px] !leading-snug">{r.text.length > 160 ? `${r.text.slice(0, 160)}…` : r.text}</p>
               </div>
-              <button onClick={() => void remove(r.id)} aria-label={`Delete requirement: ${r.text.slice(0, 40)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
+              <button type="button" onClick={() => void remove(r.id)} aria-label={`Delete requirement: ${r.text.slice(0, 40)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
             </li>
           ))}
         </ul>

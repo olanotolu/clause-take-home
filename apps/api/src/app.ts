@@ -67,7 +67,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   app.removeContentTypeParser("application/json");
   app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
     if (body === "") return done(null, undefined);
-    jsonParser(req, body as string, done);
+    return jsonParser(req, body as string, done);
   });
 
   const store = opts.store ?? createSqliteStore(opts.dbPath ?? ":memory:");

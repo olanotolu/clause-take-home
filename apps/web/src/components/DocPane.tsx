@@ -21,7 +21,7 @@ const CLASS: Record<Piece["kind"], string> = { plain: "", hit: "hit", sel: "sel"
  * piece of original text is its own <span data-start>, so offset = span.start +
  * offset within that text node. Both sides are UTF-16 code units.
  */
-function boundary(container: HTMLElement, node: Node, offset: number, isEnd: boolean): number | null {
+function boundary(node: Node, offset: number, isEnd: boolean): number | null {
   if (node.nodeType === Node.TEXT_NODE) {
     const span = node.parentElement?.closest<HTMLElement>("[data-start]");
     return span?.dataset.start === undefined ? null : Number(span.dataset.start) + offset;
@@ -50,15 +50,15 @@ export function DocPane({ content, hits, selection, redline, flash = false, onSe
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const r = sel.getRangeAt(0);
     if (!ref.current.contains(r.startContainer) || !ref.current.contains(r.endContainer)) return;
-    const start = boundary(ref.current, r.startContainer, r.startOffset, false);
-    const end = boundary(ref.current, r.endContainer, r.endOffset, true);
+    const start = boundary(r.startContainer, r.startOffset, false);
+    const end = boundary(r.endContainer, r.endOffset, true);
     if (start === null || end === null || end <= start) return;
     onSelect({ start, end });
   };
 
   let focused = false;
   return (
-    <div
+    <article
       ref={ref}
       onMouseUp={handleMouseUp}
       className={cn("doc mx-auto my-6 max-w-[780px] select-text rounded-card border border-line bg-paper px-12 py-10 max-[640px]:my-3 max-[640px]:px-5 max-[640px]:py-6", redline && "redline", flash && "saved")}
@@ -77,6 +77,6 @@ export function DocPane({ content, hits, selection, redline, flash = false, onSe
           </span>
         );
       })}
-    </div>
+    </article>
   );
 }

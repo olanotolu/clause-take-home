@@ -209,7 +209,7 @@ async function accessToken(store: Store, provider: IntegrationProvider): Promise
   // Concurrent imports share one refresh: Box rotates refresh tokens on every use, so a second refresh with the old
   // token would fail and could cost the user their connection.
   const inFlight = refreshing.get(provider);
-  if (inFlight) return inFlight;
+  if (inFlight !== undefined) return inFlight;
   const refresh = refreshAccessToken(store, provider, stored).finally(() => refreshing.delete(provider));
   refreshing.set(provider, refresh);
   return refresh;

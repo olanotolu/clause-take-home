@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import pg from "pg";
 import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
-import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store, type IntegrationConnection, type IntegrationProvider } from "./types.ts";
+import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store, type IntegrationProvider } from "./types.ts";
 
 /**
  * A tsvector may not exceed ~1 MB, and the generated column indexes the whole text, so a hosted document is capped.

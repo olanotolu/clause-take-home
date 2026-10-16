@@ -15,7 +15,7 @@ import { createLlmJudge, openRouterGenerate } from "../../apps/api/src/review/ju
 import type { Judge, JudgeAnswer } from "../../apps/api/src/review/judges/types.ts";
 import type { CasesFile } from "./build-cases.ts";
 import config from "./config.json" with { type: "json" };
-import { annotationsOf, loadSplit, type NliDocument } from "./dataset.ts";
+import { loadSplit, type NliDocument } from "./dataset.ts";
 import { createHeuristicJudge } from "./heuristic.ts";
 
 export type CallKind = "static" | "before" | "after_pos" | "after_ctrl";

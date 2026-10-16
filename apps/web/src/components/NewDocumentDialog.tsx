@@ -29,6 +29,7 @@ export function NewDocumentDialog({ open, onClose }: { open: boolean; onClose: (
   };
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: a backdrop click is a pointer shortcut; Esc already closes a native dialog
     <dialog
       ref={ref}
       onClose={onClose}

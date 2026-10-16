@@ -236,7 +236,7 @@ describe("integrations", () => {
         const seen: string[] = [];
         vi.stubGlobal("fetch", vi.fn(async (url: string | URL, init?: RequestInit) => {
           if (String(url) === tokenUrl()) { refreshes++; await delay(40); return json({ access_token: "access-2", refresh_token: "refresh-2", expires_in: 3600 }); }
-          seen.push(String((init?.headers as Record<string, string>).authorization));
+          seen.push(String((init?.headers as Record<string, string> | undefined)?.authorization));
           return json({ files: [] });
         }));
         await Promise.all([browseFiles(store, "google_drive"), browseFiles(store, "google_drive"), browseFiles(store, "google_drive")]);
@@ -256,7 +256,7 @@ describe("integrations", () => {
             await connect(store, { accessToken: "rotated", refreshToken: "refresh-rotated", expiresAt: new Date(Date.now() + 3_600_000).toISOString() });
             return json({ error: "invalid_grant" }, 400);
           }
-          expect((init?.headers as Record<string, string>).authorization).toBe("Bearer rotated");
+          expect((init?.headers as Record<string, string> | undefined)?.authorization).toBe("Bearer rotated");
           return json({ files: [] });
         }));
         await expect(browseFiles(store, "google_drive")).resolves.toEqual({ files: [], nextPageToken: null });

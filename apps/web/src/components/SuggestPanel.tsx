@@ -35,7 +35,7 @@ export function SuggestPanel({ docId, docVersion, onStage, onOpenCi }: Props) {
   const stale = data !== null && data.documentVersion !== docVersion;
 
   const stage = () => {
-    if (!data || !data.validation.valid) return;
+    if (!data?.validation.valid) return;
     onStage(
       data.validation.applied.flatMap((a) => {
         const change = data.changes[a.index];
@@ -97,7 +97,7 @@ export function SuggestPanel({ docId, docVersion, onStage, onOpenCi }: Props) {
                 {data.ci && !stale && (
                   <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
                     {data.ci.summary.regressed > 0 ? <StatusPill tone="fail">{data.ci.summary.regressed} requirement{data.ci.summary.regressed === 1 ? "" : "s"} would break</StatusPill> : data.ci.requirements.length > 0 ? <StatusPill tone="pass">No requirement breaks</StatusPill> : <StatusPill tone="neutral">No requirements to check</StatusPill>}
-                    {data.ci.requirements.length > 0 && <button onClick={() => { stage(); onOpenCi(); }} className="font-medium text-accent underline underline-offset-2">Stage and open the report</button>}
+                    {data.ci.requirements.length > 0 && <button type="button" onClick={() => { stage(); onOpenCi(); }} className="font-medium text-accent underline underline-offset-2">Stage and open the report</button>}
                   </p>
                 )}
                 {stale && <p role="alert" className="mt-2 text-[13px] text-fail">The document changed since this was checked (v{data.documentVersion} → v{docVersion}). Ask again.</p>}

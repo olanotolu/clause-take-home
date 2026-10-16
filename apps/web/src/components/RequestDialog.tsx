@@ -51,6 +51,7 @@ export function RequestDialog() {
   };
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: a backdrop click is a pointer shortcut; Esc already closes a native dialog
     <dialog ref={ref} onClose={close} onClick={(e) => { if (e.target === ref.current) close(); }} aria-labelledby="newreq-h" className="m-auto w-[min(560px,calc(100vw-24px))] rounded-2xl border border-line-strong bg-paper p-0 text-ink shadow-lift backdrop:bg-black/40">
       <form className="space-y-4 p-5" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <div>

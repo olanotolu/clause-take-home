@@ -159,7 +159,7 @@ function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { 
         <div className="min-w-0 rounded-control border border-line bg-canvas p-3.5">
           <h4 className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold">
             <span>Original <span className="font-normal text-muted">· v{version}</span></span>
-            {jumpable && <button onClick={() => onJump(jumpable)} className="font-medium text-accent underline underline-offset-2">Show in document</button>}
+            {jumpable && <button type="button" onClick={() => onJump(jumpable)} className="font-medium text-accent underline underline-offset-2">Show in document</button>}
           </h4>
           <Excerpt text={original} evidence={r.before.evidence} empty={r.kind === "absent" ? "Nothing matched, as required." : "No passage found that addresses this."} />
         </div>
@@ -247,7 +247,7 @@ export function CiTab() {
           </div>
         )}
         {ws.ci.status === "loading" && (
-          <div className="space-y-3" aria-busy="true" aria-label="Running Clause CI">
+          <div className="space-y-3" role="status" aria-busy="true" aria-label="Running Clause CI">
             <Skeleton className="h-28 w-full" />
             <div className="grid gap-4 min-[900px]:grid-cols-[320px_minmax(0,1fr)]"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>
             <TextShimmer as="p" className="text-sm">Running exact checks, then asking the judges. Usually a few seconds.</TextShimmer>
@@ -273,7 +273,7 @@ export function CiTab() {
                     <ul className="space-y-1.5">
                       {list.map((r, i) => (
                         <li key={r.id} className="stagger" style={{ "--i": i } as React.CSSProperties}>
-                          <button onClick={() => setSelected(r.id)} aria-current={selected === r.id} className={`flex w-full items-start gap-3 rounded-control border px-3 py-2.5 text-left transition-colors ${selected === r.id ? "border-accent bg-accent-soft" : "border-line bg-paper hover:bg-canvas"}`}>
+                          <button type="button" onClick={() => setSelected(r.id)} aria-current={selected === r.id} className={`flex w-full items-start gap-3 rounded-control border px-3 py-2.5 text-left transition-colors ${selected === r.id ? "border-accent bg-accent-soft" : "border-line bg-paper hover:bg-canvas"}`}>
                             <span className="mt-0.5"><VerdictIcon v={r.after.verdict} /></span>
                             <span className="min-w-0 flex-1">
                               <span className="line-clamp-2 text-sm font-medium leading-snug">{r.text}</span>

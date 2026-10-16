@@ -61,7 +61,7 @@ export function DetailsTab() {
           {linked.length === 0 ? <p className="text-sm text-muted">None. Create one from the top bar while this document is open.</p> : (
             <ul className="divide-y divide-line rounded-card border border-line bg-paper">
               {linked.map((r) => (
-                <li key={r.id}><button onClick={() => navigate({ name: "home", request: r.id })} className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-canvas"><span className="font-display font-semibold">{r.title}</span><span className="shrink-0 text-xs text-muted">{STATUS_LABEL[r.status]}</span></button></li>
+                <li key={r.id}><button type="button" onClick={() => navigate({ name: "home", request: r.id })} className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-canvas"><span className="font-display font-semibold">{r.title}</span><span className="shrink-0 text-xs text-muted">{STATUS_LABEL[r.status]}</span></button></li>
               ))}
             </ul>
           )}

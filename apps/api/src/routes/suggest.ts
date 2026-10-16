@@ -30,7 +30,7 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
       });
     }
 
-    let proposal;
+    let proposal: Awaited<ReturnType<typeof provider.suggest>>;
     try {
       proposal = await provider.suggest({ document: doc.content, instruction: req.body.instruction });
     } catch (err) {

@@ -262,7 +262,7 @@ export function SettingsView() {
             </Card>
           )}
           <div className="flex justify-end pt-1">
-            <button onClick={reset} className="rounded-lg border border-line-strong bg-paper px-3.5 py-2 text-[13px] font-medium text-muted transition-colors hover:border-fail/30 hover:bg-fail-bg hover:text-fail">Reset my preferences</button>
+            <button type="button" onClick={reset} className="rounded-lg border border-line-strong bg-paper px-3.5 py-2 text-[13px] font-medium text-muted transition-colors hover:border-fail/30 hover:bg-fail-bg hover:text-fail">Reset my preferences</button>
           </div>
         </div>
         <aside className="settings-secondary min-w-0" aria-label="Workspace and server settings">

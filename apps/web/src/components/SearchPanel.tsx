@@ -88,7 +88,7 @@ export function SearchPanel({ refreshKey, seed, onOpen, onPick, onResults }: Pro
       <ul className="-mx-1 min-h-0 flex-1 space-y-2 overflow-y-auto px-1">
         {page?.results.map((r) => (
           <li key={r.documentId} className="rounded-control border border-line bg-paper">
-            <button onClick={() => onOpen(r)} className="block w-full px-3 pt-2 text-left">
+            <button type="button" onClick={() => onOpen(r)} className="block w-full px-3 pt-2 text-left">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-sm font-semibold">{r.title}</span>
                 <span className="tnum shrink-0 text-xs text-muted">v{r.version} · {r.matchCount !== undefined ? `${r.matchCount}×` : `score ${r.relevance.toFixed(2)}`}</span>
@@ -97,7 +97,7 @@ export function SearchPanel({ refreshKey, seed, onOpen, onPick, onResults }: Pro
             <ul className="divide-y divide-line/70 px-1 pb-1">
               {r.hits.map((h, i) => (
                 <li key={i}>
-                  <button onClick={() => onPick(r, h)} disabled={h.start === undefined} title={h.start === undefined ? "No verified offset for this hit" : "Select this passage to edit"} className="block w-full rounded px-2 py-1.5 text-left hover:bg-canvas disabled:cursor-default disabled:hover:bg-transparent">
+                  <button type="button" onClick={() => onPick(r, h)} disabled={h.start === undefined} title={h.start === undefined ? "No verified offset for this hit" : "Select this passage to edit"} className="block w-full rounded px-2 py-1.5 text-left hover:bg-canvas disabled:cursor-default disabled:hover:bg-transparent">
                     <Snippet hit={h} />
                   </button>
                 </li>

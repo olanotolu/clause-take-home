@@ -16,3 +16,4 @@ bench/ci/data/
 # Playwright
 test-results/
 playwright-report/
+coverage/

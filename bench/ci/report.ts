@@ -6,7 +6,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { combineJudges } from "../../apps/api/src/review/ensemble.ts";
 import { verifyQuotes } from "../../apps/api/src/review/evidence.ts";
-import type { JudgeAnswer, JudgeLabel } from "../../apps/api/src/review/judges/types.ts";
+import type { JudgeLabel } from "../../apps/api/src/review/judges/types.ts";
 import type { CasesFile } from "./build-cases.ts";
 import { brier, classReport, confusion, fmtCi, pct, percentile, wilson } from "./metrics.ts";
 import type { RawRecord } from "./run.ts";

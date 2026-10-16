@@ -16,7 +16,6 @@ import { Tabs, type TabDef } from "../ui/Tabs.tsx";
 import { EmptyState, Skeleton } from "../ui/bits.tsx";
 
 /** A lane's colour is a 6px dot, not an icon: enough to scan, quiet enough to ignore. */
-const LANE_DOT: Record<RequestStatus, string> = { inbox: "bg-line-strong", in_progress: "bg-accent", needs_review: "bg-review", completed: "bg-pass" };
 const select = "h-9 rounded-control border border-line-strong bg-paper px-3 text-sm";
 
 /** Arrow keys move a picked-up card one column at a time (and a little vertically), so the board works without a pointer. */
@@ -117,7 +116,7 @@ function Lane({ status, items, selectedId, onOpen, onAdd }: { status: RequestSta
       <ul ref={list} className="mt-1 flex min-h-[40vh] flex-col gap-3">
         {items.map((r) => <li key={r.id}><Card r={r} selected={r.id === selectedId} onOpen={() => onOpen(r.id)} /></li>)}
       </ul>
-      <button onClick={onAdd} className="mt-2 flex items-center gap-2 self-start rounded-[12px] px-2 py-2 text-sm text-muted transition-colors duration-100 hover:bg-ink/[0.05] hover:text-ink">
+      <button type="button" onClick={onAdd} className="mt-2 flex items-center gap-2 self-start rounded-[12px] px-2 py-2 text-sm text-muted transition-colors duration-100 hover:bg-ink/[0.05] hover:text-ink">
         <PlusCircle size={20} aria-hidden />
         Add request
       </button>
@@ -186,7 +185,7 @@ export function WorkspaceView() {
         </div>
 
         <div id="view-panel" role="tabpanel" aria-labelledby={`view-${view}`} className="min-h-0 flex-1 px-5 pb-8 pt-5 max-[640px]:px-3">
-          {ws.requestsStatus.kind === "loading" && <div className="grid grid-cols-4 gap-3 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1" aria-busy="true" aria-label="Loading requests">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-72" />)}</div>}
+          {ws.requestsStatus.kind === "loading" && <div className="grid grid-cols-4 gap-3 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1" role="status" aria-busy="true" aria-label="Loading requests">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-72" />)}</div>}
           {ws.requestsStatus.kind === "error" && <p role="alert" className="rounded-control bg-fail-bg px-4 py-3 text-sm text-fail">{ws.requestsStatus.message}</p>}
           {ws.requestsStatus.kind === "ready" && ws.requests.length === 0 && (
             <EmptyState title="No requests yet" action={<Button variant="primary" onClick={() => ws.setNewRequest({ open: true })}>Create the first request</Button>}>
@@ -235,7 +234,7 @@ export function WorkspaceView() {
       <div className="flex min-w-0 justify-end overflow-hidden max-[1279px]:contents">
         {panelRequest && <RequestPanel key={panelRequest.id} request={panelRequest} open={!!selected && panelOpen} onClose={close} />}
       </div>
-      {selectedId && !selected && ws.requestsStatus.kind === "ready" && <p role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-control bg-fail-bg px-4 py-2 text-sm text-fail">That request no longer exists. <button className="underline" onClick={close}>Back to the board</button></p>}
+      {selectedId && !selected && ws.requestsStatus.kind === "ready" && <p role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-control bg-fail-bg px-4 py-2 text-sm text-fail">That request no longer exists. <button type="button" className="underline" onClick={close}>Back to the board</button></p>}
     </div>
   );
 }

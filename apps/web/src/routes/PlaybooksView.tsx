@@ -65,6 +65,7 @@ export function PlaybooksView({ id }: { id: string | undefined }) {
         </div>
         {adding && (
           <form className="mx-4 mb-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); void create(); }}>
+            {/* biome-ignore lint/a11y/noAutofocus: the field appears because the user just chose "new playbook", so focus belongs there */}
             <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={120} placeholder="Playbook name" aria-label="Playbook name" className={field} />
             <Button type="submit" variant="primary" size="sm" disabled={!newName.trim()}>Create</Button>
           </form>
@@ -73,7 +74,7 @@ export function PlaybooksView({ id }: { id: string | undefined }) {
           {list === null && [0, 1, 2].map((i) => <li key={i}><Skeleton className="h-16 w-full" /></li>)}
           {list?.map((p) => (
             <li key={p.id}>
-              <button onClick={() => navigate({ name: "playbooks", id: p.id })} aria-current={selectedId === p.id} className={`w-full rounded-control border px-3.5 py-3 text-left transition-colors ${selectedId === p.id ? "border-accent bg-accent-soft" : "border-line bg-paper hover:bg-canvas"}`}>
+              <button type="button" onClick={() => navigate({ name: "playbooks", id: p.id })} aria-current={selectedId === p.id} className={`w-full rounded-control border px-3.5 py-3 text-left transition-colors ${selectedId === p.id ? "border-accent bg-accent-soft" : "border-line bg-paper hover:bg-canvas"}`}>
                 <span className="font-display block text-[15px] font-semibold leading-snug">{p.name}</span>
                 {p.description && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{p.description}</span>}
                 <span className="tnum mt-1 block text-xs text-muted">{plural(p.ruleCount, "rule")}</span>
@@ -85,7 +86,7 @@ export function PlaybooksView({ id }: { id: string | undefined }) {
       </aside>
 
       <div className={`min-h-0 min-w-0 overflow-y-auto ${id ? "" : "max-[899px]:hidden"}`}>
-        {id && <div className="hidden max-[899px]:block border-b border-line bg-paper px-4 py-2"><button onClick={() => navigate({ name: "playbooks" })} className="h-10 text-sm font-medium text-accent">← All playbooks</button></div>}
+        {id && <div className="hidden max-[899px]:block border-b border-line bg-paper px-4 py-2"><button type="button" onClick={() => navigate({ name: "playbooks" })} className="h-10 text-sm font-medium text-accent">← All playbooks</button></div>}
         {loadingDetail && !detail && <div className="space-y-3 p-8"><Skeleton className="h-8 w-64" /><Skeleton className="h-24 w-full" /></div>}
         {!selectedId && list && list.length === 0 && <EmptyState icon={<BookOpenCheck size={26} aria-hidden />} title="Select or create a playbook" />}
         {detail && selectedId === detail.id && <PlaybookEditor key={detail.id} pb={detail} onChanged={() => { void loadDetail(detail.id); void loadList(); }} onDeleted={() => { void loadList(); navigate({ name: "playbooks" }); }} />}
@@ -150,7 +151,7 @@ function PlaybookEditor({ pb, onChanged, onDeleted }: { pb: PlaybookDetail; onCh
                   <h3 className="font-display mt-0.5 text-[15px] font-semibold leading-snug">{r.title}</h3>
                   <p className="mt-1 text-[13px] leading-snug text-ink/80">{r.text}</p>
                 </div>
-                <button onClick={async () => { const x = await api.deleteRule(pb.id, r.id); if (x.ok) onChanged(); else ws.toast(x.error.error, "fail"); }} aria-label={`Delete rule: ${r.title}`} className="mt-0.5 shrink-0 rounded p-1.5 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
+                <button type="button" onClick={async () => { const x = await api.deleteRule(pb.id, r.id); if (x.ok) onChanged(); else ws.toast(x.error.error, "fail"); }} aria-label={`Delete rule: ${r.title}`} className="mt-0.5 shrink-0 rounded p-1.5 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
               </li>
             ))}
           </ul>
@@ -185,7 +186,7 @@ function PlaybookEditor({ pb, onChanged, onDeleted }: { pb: PlaybookDetail; onCh
               {applied.result.skipped.length > 0 && (
                 <ul className="space-y-0.5 text-muted">{applied.result.skipped.map((s) => <li key={s.title}>Skipped “{s.title}”: {s.reason === "duplicate" ? "already a requirement" : "the document is at its limit"}</li>)}</ul>
               )}
-              <button className="font-medium text-accent underline underline-offset-2" onClick={() => navigate({ name: "doc", id: target, tab: "ci" })}>Open Clause CI for this document</button>
+              <button type="button" className="font-medium text-accent underline underline-offset-2" onClick={() => navigate({ name: "doc", id: target, tab: "ci" })}>Open Clause CI for this document</button>
             </div>
           )}
         </section>

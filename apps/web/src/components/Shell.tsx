@@ -139,7 +139,7 @@ export function Shell({ children }: { children: ReactNode }) {
               {g.items.map(({ key, label, icon: Icon, route: target }) => {
                 const on = current === key;
                 return (
-                  <button
+                  <button type="button"
                     key={key}
                     onClick={() => (target ? navigate(target) : setPalette(true))}
                     aria-current={on ? "page" : undefined}
@@ -155,8 +155,9 @@ export function Shell({ children }: { children: ReactNode }) {
                     <span className="relative max-[1279px]:sr-only">{label}</span>
                     {key === "search" && <span className="relative ml-auto max-[1279px]:hidden"><Kbd>⌘K</Kbd></span>}
                     {key === "home" && openRequests > 0 && (
-                      <span className="tnum relative ml-auto rounded-full bg-ink/[0.07] px-2 py-px text-xs text-rail-ink max-[1279px]:hidden" aria-label={`${openRequests} open requests`}>
+                      <span className="tnum relative ml-auto rounded-full bg-ink/[0.07] px-2 py-px text-xs text-rail-ink max-[1279px]:hidden">
                         <Num value={openRequests} />
+                        <span className="sr-only"> open requests</span>
                       </span>
                     )}
                   </button>
@@ -172,7 +173,7 @@ export function Shell({ children }: { children: ReactNode }) {
             {ws.docs.map((d) => {
               const on = route.name === "doc" && route.id === d.id;
               return (
-                <button
+                <button type="button"
                   key={d.id}
                   onClick={() => navigate({ name: "doc", id: d.id, tab: "edit" })}
                   aria-current={on ? "page" : undefined}
@@ -189,7 +190,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
         <div className="mt-auto space-y-2 border-t border-line px-3 py-3 max-[1279px]:hidden">
           <div className="relative">
-            <button aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)} className="flex w-full items-center gap-2.5 rounded-[12px] bg-paper/70 px-2.5 py-2 text-left hover:bg-paper">
+            <button type="button" aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)} className="flex w-full items-center gap-2.5 rounded-[12px] bg-paper/70 px-2.5 py-2 text-left hover:bg-paper">
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper">{identity.initials || <Buildings size={16} aria-hidden />}</span>
               <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-rail-ink">{identity.title}</span><span className="block truncate text-xs text-rail-muted">{identity.subtitle}</span></span>
               <ChevronDown size={15} aria-hidden className="text-rail-muted" />
@@ -198,7 +199,7 @@ export function Shell({ children }: { children: ReactNode }) {
               {auth.user ? <>
                 <p className="truncate text-xs font-medium text-rail-ink">{identity.title}</p>
                 {auth.user.email && auth.user.email !== identity.title && <p className="mt-0.5 truncate text-[11px] text-rail-muted">{auth.user.email}</p>}
-                <button onClick={() => { void auth.signOut(); setAccountOpen(false); }} className="mt-2 w-full rounded-control px-2 py-1.5 text-left text-xs text-rail-muted hover:bg-rail-hi hover:text-rail-ink">Sign out</button>
+                <button type="button" onClick={() => { void auth.signOut(); setAccountOpen(false); }} className="mt-2 w-full rounded-control px-2 py-1.5 text-left text-xs text-rail-muted hover:bg-rail-hi hover:text-rail-ink">Sign out</button>
               </> : <p className="text-xs leading-relaxed text-rail-muted">Everyone with this link shares one workspace. Sign-in is only used for repository connectors.</p>}
             </div>}
           </div>
@@ -214,7 +215,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 min-w-0 flex-col pr-3 max-[899px]:pr-0">
         <header className="flex h-16 shrink-0 items-center gap-3 px-3 max-[899px]:bg-paper max-[899px]:px-3">
           <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm text-muted max-[1100px]:hidden">
-            <button onClick={() => navigate({ name: route.name === "doc" ? "documents" : "home" })} className="rounded px-1 hover:text-ink">{route.name === "doc" ? "Documents" : "Workspace"}</button>
+            <button type="button" onClick={() => navigate({ name: route.name === "doc" ? "documents" : "home" })} className="rounded px-1 hover:text-ink">{route.name === "doc" ? "Documents" : "Workspace"}</button>
             {route.name !== "doc" && route.name !== "home" && <><ChevronRight size={14} aria-hidden /><span className="font-medium text-ink">{CRUMB[route.name]}</span></>}
             {route.name === "doc" && (
               <>
@@ -224,7 +225,7 @@ export function Shell({ children }: { children: ReactNode }) {
               </>
             )}
           </nav>
-          <button
+          <button type="button"
             onClick={() => setPalette(true)}
             className="ml-auto flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-paper px-4 text-left text-sm text-muted shadow-soft transition-shadow duration-100 hover:shadow-[0_1px_3px_rgb(20_20_22/0.1),0_0_0_1px_rgb(20_20_22/0.06)] max-[1100px]:ml-0 min-[1101px]:max-w-md min-[1101px]:flex-none min-[1101px]:basis-96"
           >
@@ -264,7 +265,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 </div>
                 {auth.user?.email && <p className="truncate px-3 pb-2 pt-0.5 text-xs text-rail-muted">{auth.user.email}</p>}
                 <div className="mx-2 border-t border-line" />
-                {auth.user ? <button role="menuitem" onClick={() => { void auth.signOut(); setProfileOpen(false); }} className="mt-1 flex min-h-10 w-full items-center rounded-[9px] px-3 text-left text-[13px] font-medium text-rail-muted transition-colors hover:bg-canvas hover:text-rail-ink focus-visible:outline-offset-[-2px]">Sign out</button> : <p className="px-3 py-2.5 text-xs leading-relaxed text-rail-muted">Shared CLAUSE workspace</p>}
+                {auth.user ? <button type="button" role="menuitem" onClick={() => { void auth.signOut(); setProfileOpen(false); }} className="mt-1 flex min-h-10 w-full items-center rounded-[9px] px-3 text-left text-[13px] font-medium text-rail-muted transition-colors hover:bg-canvas hover:text-rail-ink focus-visible:outline-offset-[-2px]">Sign out</button> : <p className="px-3 py-2.5 text-xs leading-relaxed text-rail-muted">Shared CLAUSE workspace</p>}
               </motion.div>}
             </AnimatePresence>
           </div>
@@ -274,21 +275,21 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <nav aria-label="Main (mobile)" className="hidden h-[calc(60px+env(safe-area-inset-bottom))] shrink-0 border-t border-line bg-rail pb-[env(safe-area-inset-bottom)] text-rail-ink max-[899px]:flex">
         {[NAV[0]!, NAV[1]!, NAV[2]!, NAV[4]!].map(({ key, label, icon: Icon, route: target }) => (
-          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={cn("flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", current === key ? "text-rail-ink" : "text-rail-muted")}>
+          <button type="button" key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={cn("flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", current === key ? "text-rail-ink" : "text-rail-muted")}>
             <Icon size={18} aria-hidden />
             {label}
           </button>
         ))}
-        <button ref={mobileMoreTrigger} onClick={() => setMobileMoreOpen(true)} aria-expanded={mobileMoreOpen} aria-controls="mobile-more-dialog" className="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-rail-muted"><List size={19} aria-hidden />More</button>
+        <button type="button" ref={mobileMoreTrigger} onClick={() => setMobileMoreOpen(true)} aria-expanded={mobileMoreOpen} aria-controls="mobile-more-dialog" className="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-rail-muted"><List size={19} aria-hidden />More</button>
       </nav>
     </div>
     <AnimatePresence>
       {mobileMoreOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="fixed inset-0 z-40 hidden bg-black/35 max-[899px]:block" onClick={() => setMobileMoreOpen(false)}>
         <motion.section ref={mobileMoreDialog} id="mobile-more-dialog" role="dialog" aria-modal="true" aria-label="More navigation" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }} transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }} className="absolute inset-x-0 bottom-0 rounded-t-[22px] border-t border-line bg-paper px-4 pt-3 shadow-lift" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }} onClick={(e) => e.stopPropagation()}>
           <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line-strong" />
-          <div className="mb-2 flex items-center justify-between px-1"><h2 className="font-display text-lg font-semibold">More</h2><button ref={mobileMoreClose} onClick={() => setMobileMoreOpen(false)} aria-label="Close navigation" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-canvas"><X size={17} aria-hidden /></button></div>
+          <div className="mb-2 flex items-center justify-between px-1"><h2 className="font-display text-lg font-semibold">More</h2><button type="button" ref={mobileMoreClose} onClick={() => setMobileMoreOpen(false)} aria-label="Close navigation" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-canvas"><X size={17} aria-hidden /></button></div>
           <div className="grid grid-cols-2 gap-2">
-            {[NAV[3]!, NAV[5]!, NAV[6]!, NAV[7]!].map(({ key, label, icon: Icon, route: target }) => <button key={key} onClick={() => { if (target) navigate(target); setMobileMoreOpen(false); }} aria-current={current === key ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-control border px-3 text-left text-sm font-medium transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.985]", current === key ? "border-accent bg-accent-soft text-ink" : "border-line bg-paper text-rail-ink hover:bg-canvas")}><Icon size={19} aria-hidden /><span>{label}</span></button>)}
+            {[NAV[3]!, NAV[5]!, NAV[6]!, NAV[7]!].map(({ key, label, icon: Icon, route: target }) => <button type="button" key={key} onClick={() => { if (target) navigate(target); setMobileMoreOpen(false); }} aria-current={current === key ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-control border px-3 text-left text-sm font-medium transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.985]", current === key ? "border-accent bg-accent-soft text-ink" : "border-line bg-paper text-rail-ink hover:bg-canvas")}><Icon size={19} aria-hidden /><span>{label}</span></button>)}
           </div>
         </motion.section>
       </motion.div>}

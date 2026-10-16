@@ -30,7 +30,7 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
         </div>
 
         <div className="mt-6">
-          {ws.docsStatus.kind === "loading" && <div className="space-y-2" aria-busy="true" aria-label="Loading documents">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>}
+          {ws.docsStatus.kind === "loading" && <div className="space-y-2" role="status" aria-busy="true" aria-label="Loading documents">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>}
           {ws.docsStatus.kind === "error" && <p role="alert" className="rounded-control bg-fail-bg px-4 py-3 text-sm text-fail">{ws.docsStatus.message}</p>}
           {ws.docsStatus.kind === "ready" && ws.docs.length === 0 && (
             <div className="py-2">

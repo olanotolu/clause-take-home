@@ -1,0 +1,35 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "root": true,
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**/*.ts", "**/*.tsx",
+      "!**/node_modules", "!**/dist", "!**/coverage", "!**/test-results", "!**/playwright-report",
+      // Being redesigned in uncommitted work by the owner; lint it once that lands rather than edit it underneath them.
+      "!apps/web/src/components/CommandPalette.tsx"
+    ]
+  },
+  // Lint only: the repo's dense one-line style is deliberate, so no formatter and no import sorting.
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      // Type-aware: an un-awaited promise in an async server is a silent failure.
+      "nursery": { "noFloatingPromises": "error", "noMisusedPromises": "error" },
+      // `!` after a check is how this codebase satisfies noUncheckedIndexedAccess; tsc strict already guards the rest.
+      "style": { "noNonNullAssertion": "off", "useTemplate": "off" },
+      // Reviewed: the 25 hits are deliberate. Extra deps (reloadKey, refreshKey, rulesKey, doc.version) are refetch triggers, and
+      // the "missing" ones are run-on-open effects; adding them would re-run those effects on every render.
+      "correctness": { "useExhaustiveDependencies": "off" },
+      "suspicious": { "noExplicitAny": "warn", "noArrayIndexKey": "warn" },
+      "a11y": { "noAutofocus": "warn" }
+    }
+  },
+  "overrides": [
+    // Terse assignment-in-expression and comma forms are the idiom in test stubs.
+    { "includes": ["**/test/**", "e2e/**"], "linter": { "rules": { "suspicious": { "noAssignInExpressions": "off" }, "complexity": { "noCommaOperator": "off" } } } }
+  ]
+}

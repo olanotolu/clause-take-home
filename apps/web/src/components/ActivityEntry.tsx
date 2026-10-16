@@ -40,7 +40,7 @@ export function ActivityEntry({ r, current, docId, currentVersion, docTitle, onR
       <span className="relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line-strong bg-paper text-muted"><Icon size={15} aria-hidden /></span>
       <div className="min-w-0 flex-1 rounded-card border border-line bg-paper p-3.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {docTitle && <button onClick={() => navigate({ name: "doc", id: docId, tab: "edit" })} className="font-display text-[15px] font-semibold underline-offset-2 hover:text-accent hover:underline">{docTitle}</button>}
+          {docTitle && <button type="button" onClick={() => navigate({ name: "doc", id: docId, tab: "edit" })} className="font-display text-[15px] font-semibold underline-offset-2 hover:text-accent hover:underline">{docTitle}</button>}
           <h3 className={`text-sm ${docTitle ? "text-muted" : "font-semibold"}`}>{title}</h3>
           <Pill>v{r.version}</Pill>
           {current && <Pill className="bg-accent-soft text-accent">current</Pill>}
@@ -59,7 +59,7 @@ export function ActivityEntry({ r, current, docId, currentVersion, docTitle, onR
           </ul>
         )}
         {edits.length > 2 && (
-          <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent">
+          <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent">
             {open ? <><ChevronUp size={13} aria-hidden />Show less</> : <><ChevronDown size={13} aria-hidden />Show all {edits.length}</>}
           </button>
         )}

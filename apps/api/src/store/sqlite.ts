@@ -310,7 +310,7 @@ export function sqliteStore(db: Db): Store {
         items.forEach((pb, i) => {
           const pid = newId("pbk");
           db.prepare("INSERT INTO playbooks (id, name, description, created_at, updated_at, seq) VALUES (?, ?, ?, ?, ?, ?)").run(pid, pb.name, pb.description, now, now, i + 1);
-          pb.rules.forEach((r, j) => db.prepare("INSERT INTO playbook_rules (id, playbook_id, title, kind, text, created_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?)").run(newId("rul"), pid, r.title, r.kind, r.text, now, j + 1));
+          for (const [j, r] of pb.rules.entries()) db.prepare("INSERT INTO playbook_rules (id, playbook_id, title, kind, text, created_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?)").run(newId("rul"), pid, r.title, r.kind, r.text, now, j + 1);
         });
         return items.length;
       });

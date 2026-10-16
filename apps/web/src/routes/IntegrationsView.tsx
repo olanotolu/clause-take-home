@@ -15,7 +15,6 @@ import { Button } from "../ui/Button.tsx";
 type ProviderId = "imanage" | "netdocuments" | "onedrive" | "dropbox" | "google_drive" | "sharepoint" | "box";
 interface Provider { id: ProviderId; name: string; description: string; connected: boolean; accountName: string | null; connectedAt: string | null }
 interface RemoteFile { id: string; name: string; mimeType: string; folder: boolean; parentId?: string; driveId?: string; imported?: boolean }
-interface FilePage { files: RemoteFile[]; nextPageToken: string | null }
 
 const MOCK_PROVIDERS: Provider[] = [
   { id: "imanage", name: "iManage", description: "Legal documents and matter workspaces", connected: false, accountName: null, connectedAt: null },
@@ -68,7 +67,7 @@ export function IntegrationsView() {
   const [error, setError] = useState("");
   const [next, setNext] = useState<string | null>(null);
 
-  const loadFiles = async (provider: ProviderId, folder = "", drive = "", append = false, pageToken = "") => {
+  const loadFiles = async (provider: ProviderId, folder = "", drive = "", append = false, _pageToken = "") => {
     setLoading(true); setError("");
     await new Promise((resolve) => window.setTimeout(resolve, 250));
     let demoFiles = DEMO_FILES[provider];
@@ -153,7 +152,7 @@ export function IntegrationsView() {
               <div className="mt-4 flex items-center gap-2">
                 {provider.connected ? <>
                   <Button size="sm" variant="secondary" onClick={() => void openProvider(provider)}>Browse files</Button>
-                  <button onClick={() => void disconnect(provider)} disabled={busy} className="ml-auto inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-xs text-muted hover:bg-line/60 hover:text-fail" aria-label={`Disconnect ${provider.name}`}><Trash2 size={14} /> Disconnect</button>
+                  <button type="button" onClick={() => void disconnect(provider)} disabled={busy} className="ml-auto inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-xs text-muted hover:bg-line/60 hover:text-fail" aria-label={`Disconnect ${provider.name}`}><Trash2 size={14} /> Disconnect</button>
                 </> : <Button size="sm" variant="secondary" disabled={busy} onClick={() => void connect(provider)}>Connect demo<ArrowRight size={14} /></Button>}
               </div>
             </motion.article>
@@ -164,7 +163,7 @@ export function IntegrationsView() {
         <section className="flex min-h-72 min-w-0 flex-col overflow-hidden rounded-card border border-line bg-paper" aria-label="Repository browser and search">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <div><h2 className="font-semibold">{active ? providers.find((p) => p.id === active)?.name : "Repository preview"}</h2><p className="text-xs text-muted">{active ? "Select sample documents to import" : "Connect any repository to preview its files."}</p></div>
-            {active && <button onClick={() => { setActive(null); setFiles([]); }} className="rounded-control px-2 py-1 text-xs text-muted hover:bg-line/60">Close</button>}
+            {active && <button type="button" onClick={() => { setActive(null); setFiles([]); }} className="rounded-control px-2 py-1 text-xs text-muted hover:bg-line/60">Close</button>}
           </div>
           <Tabs tabs={[{ id: "browse", label: "Browse", icon: <FileText size={14} aria-hidden /> }, { id: "search", label: "Search", icon: <Search size={14} aria-hidden /> }]} value={sideTab} onChange={setSideTab} label="Integration side panel" idPrefix="integrations-side" className="shrink-0 border-b border-line bg-paper px-2" />
           <div id="integrations-side-panel" role="tabpanel" aria-labelledby={`integrations-side-${sideTab}`} className="flex min-h-0 flex-1 flex-col">
@@ -175,8 +174,8 @@ export function IntegrationsView() {
           {!active && <div className="grid min-h-[430px] flex-1 place-items-center p-8 text-center"><div className="max-w-xs"><span className="mx-auto grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent"><FileText size={23} aria-hidden /></span><h3 className="mt-4 text-sm font-semibold">Browse a repository</h3><p className="mt-1 text-sm leading-relaxed text-muted">Choose a connector on the left and connect the demo to see sample folders and documents here.</p></div></div>}
           {active && <>
             <div className="flex items-center gap-1 overflow-x-auto border-b border-line px-3 py-2 text-xs text-muted">
-              <button onClick={() => { setCrumbs([]); setParentId(""); void loadFiles(active, "", driveId); }} className="shrink-0 hover:text-ink">{active === "sharepoint" ? "Libraries" : "Files"}</button>
-              {crumbs.map((crumb, i) => <span key={`${crumb.id}-${i}`} className="flex shrink-0 items-center gap-1"><ChevronRight size={12} /><button onClick={() => void goToCrumb(i)} className="max-w-36 truncate hover:text-ink">{crumb.name}</button></span>)}
+              <button type="button" onClick={() => { setCrumbs([]); setParentId(""); void loadFiles(active, "", driveId); }} className="shrink-0 hover:text-ink">{active === "sharepoint" ? "Libraries" : "Files"}</button>
+              {crumbs.map((crumb, i) => <span key={`${crumb.id}-${i}`} className="flex shrink-0 items-center gap-1"><ChevronRight size={12} /><button type="button" onClick={() => void goToCrumb(i)} className="max-w-36 truncate hover:text-ink">{crumb.name}</button></span>)}
             </div>
             {error && <p role="alert" className="mx-3 mt-3 rounded-control bg-fail-bg px-3 py-2 text-xs text-fail">{error}</p>}
             <div className="max-h-[460px] overflow-y-auto p-2">
@@ -184,14 +183,14 @@ export function IntegrationsView() {
               {!loading && files.length === 0 && <p className="p-4 text-sm text-muted">No files in this location.</p>}
               {files.map((file, index) => (
                 <motion.div key={file.id} layout initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, delay: Math.min(index * 0.025, 0.18) }} className="flex items-center gap-2 rounded-control px-2 py-1.5 hover:bg-canvas">
-                  {file.folder ? <button onClick={() => void enterFolder(file)} className="flex min-w-0 flex-1 items-center gap-2 text-left"><span className="grid size-6 place-items-center rounded bg-accent-soft text-accent"><ChevronDown size={13} /></span><span className="truncate text-sm">{file.name}</span><ChevronRight size={14} className="ml-auto shrink-0 text-muted" /></button> : <>
+                  {file.folder ? <button type="button" onClick={() => void enterFolder(file)} className="flex min-w-0 flex-1 items-center gap-2 text-left"><span className="grid size-6 place-items-center rounded bg-accent-soft text-accent"><ChevronDown size={13} /></span><span className="truncate text-sm">{file.name}</span><ChevronRight size={14} className="ml-auto shrink-0 text-muted" /></button> : <>
                     <input aria-label={`${file.imported ? "Already imported" : "Select"} ${file.name}`} type="checkbox" checked={selected.includes(file.id)} disabled={file.imported} onChange={(e) => setSelected((s) => e.target.checked ? [...s, file.id] : s.filter((id) => id !== file.id))} />
                     <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
                     {file.imported ? <span className="shrink-0 text-[11px] font-medium text-pass">Imported</span> : <span className="shrink-0 text-[11px] text-muted">{file.mimeType.includes("pdf") ? "PDF" : file.mimeType.includes("word") || file.name.endsWith(".docx") ? "Word" : "Text"}</span>}
                   </>}
                 </motion.div>
               ))}
-              {next && <button disabled={loading} onClick={() => void loadFiles(active, parentId, driveId, true, next)} className="w-full py-2 text-xs font-medium text-accent hover:underline">{loading ? "Loading…" : "Load more"}</button>}
+              {next && <button type="button" disabled={loading} onClick={() => void loadFiles(active, parentId, driveId, true, next)} className="w-full py-2 text-xs font-medium text-accent hover:underline">{loading ? "Loading…" : "Load more"}</button>}
             </div>
             <div className="flex items-center justify-between border-t border-line px-4 py-3">
               <span className="text-xs text-muted">{selected.length} selected</span>

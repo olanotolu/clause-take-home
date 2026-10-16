@@ -65,7 +65,7 @@ export function RequestPanel({ request, open, onClose }: { request: WorkRequest;
             <span className="tnum">Created {ago(request.createdAt)}</span>
           </p>
         </div>
-        <button onClick={onClose} aria-label="Close request" className="rounded-control p-1.5 text-muted hover:bg-line/70 hover:text-ink"><X size={18} aria-hidden /></button>
+        <button type="button" onClick={onClose} aria-label="Close request" className="rounded-control p-1.5 text-muted hover:bg-line/70 hover:text-ink"><X size={18} aria-hidden /></button>
       </header>
 
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
@@ -127,7 +127,7 @@ export function RequestPanel({ request, open, onClose }: { request: WorkRequest;
         <section aria-labelledby="req-doc">
           <h3 id="req-doc" className="mb-1.5 text-sm font-semibold">Linked document</h3>
           {doc ? (
-            <button onClick={() => navigate({ name: "doc", id: doc.id, tab: "edit" })} className="flex w-full items-center gap-3 rounded-control border border-line px-3 py-2.5 text-left hover:bg-canvas">
+            <button type="button" onClick={() => navigate({ name: "doc", id: doc.id, tab: "edit" })} className="flex w-full items-center gap-3 rounded-control border border-line px-3 py-2.5 text-left hover:bg-canvas">
               <FileText size={18} className="shrink-0 text-muted" aria-hidden />
               <span className="min-w-0 flex-1"><span className="font-display block truncate text-[15px] font-semibold">{doc.title}</span><span className="tnum text-xs text-muted">v{doc.version} · {kb(doc.size)}</span></span>
             </button>

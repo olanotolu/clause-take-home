@@ -91,7 +91,7 @@ export function TemplatesView() {
         </header>
 
         <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Template categories">
-          {CATEGORIES.map((c) => <button key={c} role="tab" aria-selected={category === c} onClick={() => setCategory(c)} className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] transition-colors ${category === c ? "border-accent bg-accent text-accent-ink" : "border-line bg-paper text-muted hover:text-ink"}`}>{c}{items && <span className="ml-1 opacity-70">{c === "All" ? items.length : items.filter((t) => t.category === c).length}</span>}</button>)}
+          {CATEGORIES.map((c) => <button type="button" key={c} role="tab" aria-selected={category === c} onClick={() => setCategory(c)} className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] transition-colors ${category === c ? "border-accent bg-accent text-accent-ink" : "border-line bg-paper text-muted hover:text-ink"}`}>{c}{items && <span className="ml-1 opacity-70">{c === "All" ? items.length : items.filter((t) => t.category === c).length}</span>}</button>)}
         </div>
 
         {failed && <p role="alert" className="rounded-control bg-fail-bg px-4 py-3 text-sm text-fail">Could not load templates. Refresh to try again.</p>}
@@ -100,7 +100,7 @@ export function TemplatesView() {
         {items && category === "All" && !query && featured.length > 0 && <section aria-labelledby="featured-title">
           <div className="mb-3 flex items-center gap-2"><Sparkles size={17} className="text-accent" aria-hidden /><h2 id="featured-title" className="font-display text-lg font-semibold">Featured</h2><span className="text-xs text-muted">Common starting points for in-house teams</span></div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {featured.slice(0, 4).map((t) => <button key={t.id} onClick={() => setTemplate(t)} className={`group rounded-card border bg-paper p-4 text-left transition-[border-color,transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none ${selected?.id === t.id ? "border-accent ring-1 ring-accent/20" : "border-line"}`}>
+            {featured.slice(0, 4).map((t) => <button type="button" key={t.id} onClick={() => setTemplate(t)} className={`group rounded-card border bg-paper p-4 text-left transition-[border-color,transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none ${selected?.id === t.id ? "border-accent ring-1 ring-accent/20" : "border-line"}`}>
               <span className="mb-4 flex h-9 w-9 items-center justify-center rounded-control bg-accent-soft text-accent"><FileText size={18} aria-hidden /></span><Pill>{t.category}</Pill><strong className="mt-2 block font-display text-base font-semibold">{t.title}</strong><span className="mt-1 line-clamp-2 block text-[13px] leading-relaxed text-muted">{t.description}</span><span className="mt-4 flex items-center justify-between text-xs text-muted"><span>{t.source === "CLAUSE sample" ? "CLAUSE sample" : `Version ${t.sourceVersion}`}</span><ArrowRight size={15} className="transition-transform group-hover:translate-x-1 motion-reduce:transform-none" aria-hidden /></span>
             </button>)}
           </div>
@@ -110,7 +110,7 @@ export function TemplatesView() {
           <div className="min-w-0 rounded-card border border-line bg-paper">
             <div className="flex items-end justify-between border-b border-line px-4 py-3"><div><h2 id="catalog-title" className="font-display text-lg font-semibold">All templates</h2><p className="text-xs text-muted">{matches.length} templates · filter by category or search</p></div><span className="hidden text-xs text-muted sm:inline">Click a row to preview</span></div>
             {matches.length === 0 ? <div className="p-5 text-sm text-muted">No templates match that search.</div> : <ul className="divide-y divide-line">
-              {matches.map((t) => <li key={t.id}><button onClick={() => setTemplate(t)} aria-current={selected?.id === t.id} className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-canvas ${selected?.id === t.id ? "bg-accent-soft/60" : ""}`}>
+              {matches.map((t) => <li key={t.id}><button type="button" onClick={() => setTemplate(t)} aria-current={selected?.id === t.id} className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-canvas ${selected?.id === t.id ? "bg-accent-soft/60" : ""}`}>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line bg-paper text-accent"><FileText size={17} aria-hidden /></span><span className="min-w-0 flex-1"><strong className="block truncate text-sm font-semibold">{t.title}</strong><span className="mt-0.5 block truncate text-xs text-muted">{t.description}</span></span><span className="hidden sm:block"><Pill>{t.category}</Pill></span><span className="hidden w-[110px] shrink-0 text-right text-[11px] text-muted md:block">{t.source === "CLAUSE sample" ? "Sample" : t.sourceVersion}</span>
               </button></li>)}
             </ul>}

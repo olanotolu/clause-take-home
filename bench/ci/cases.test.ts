@@ -45,7 +45,7 @@ describe.skipIf(!dataPresent)("benchmark cases (need the dataset: node bench/ci/
       expect(p.controlSpans).toHaveLength(3);
       const overlaps = (a: [number, number], b: [number, number]) => a[0] < b[1] && b[0] < a[1];
       for (const c of p.controlSpans) for (const e of p.evidenceSpans) expect(overlaps(c, e), `${p.id}`).toBe(false);
-      for (const [s, e] of [...p.evidenceSpans, ...p.controlSpans]) expect(e).toBeLessThanOrEqual(doc.text.length);
+      for (const [, e] of [...p.evidenceSpans, ...p.controlSpans]) expect(e).toBeLessThanOrEqual(doc.text.length);
     }
   });
 });

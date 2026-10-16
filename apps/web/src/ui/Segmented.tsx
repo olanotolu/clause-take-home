@@ -18,6 +18,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
     <div role="radiogroup" aria-label={label} className={cn("inline-flex rounded-control bg-ink/[0.06] p-0.5 text-[13px]", className)}>
       <AnimatedBackground defaultValue={value} onValueChange={(id) => { if (id) onChange(id as T); }} className="rounded-md bg-paper shadow-[0_0_0_1px_var(--color-line),0_1px_2px_rgb(0_0_0/0.06)]" transition={{ type: "spring", bounce: 0.1, duration: 0.3 }}>
         {options.map((o) => (
+          // biome-ignore lint/a11y/useSemanticElements: a segmented control drawn as buttons, with radiogroup semantics and arrow-key navigation
           <button
             key={o.value}
             data-id={o.value}

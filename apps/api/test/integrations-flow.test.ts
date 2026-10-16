@@ -151,7 +151,7 @@ describe("browse, import, disconnect", () => {
     app = await testApp();
     await connect(app.store, "dropbox");
     stub({ "https://content.dropboxapi.com/2/files/download": (_u, init) => {
-      const id = String((init?.headers as Record<string, string>)["Dropbox-API-Arg"]);
+      const id = String((init?.headers as Record<string, string> | undefined)?.["Dropbox-API-Arg"]);
       return id.includes("empty") ? text("   ") : text("binary", "application/octet-stream");
     } });
     const headers = await bearer();

@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { annotationsOf, loadSplit } from "./dataset.ts";
+import { loadSplit } from "./dataset.ts";
 import { bestSentence } from "./heuristic.ts";
 import type { CasesFile } from "./build-cases.ts";
 import { classReport, confusion } from "./metrics.ts";

@@ -31,7 +31,7 @@ export function EditTab() {
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(320px,360px)] max-[899px]:grid-cols-1 max-[899px]:grid-rows-[auto_minmax(0,1fr)] min-[900px]:overflow-hidden min-[1280px]:grid-cols-[minmax(0,1fr)_390px]">
       <div role="tablist" aria-label="Document view" className="hidden max-[899px]:flex border-b border-line bg-paper p-1.5">
-        {(["document", "tools"] as const).map((pane) => <button key={pane} role="tab" aria-selected={mobilePane === pane} onClick={() => setMobilePane(pane)} className={`h-10 flex-1 rounded-control text-sm font-medium capitalize transition-colors ${mobilePane === pane ? "bg-accent-soft text-ink" : "text-muted hover:bg-canvas"}`}>{pane === "tools" ? "Search & tools" : "Document"}</button>)}
+        {(["document", "tools"] as const).map((pane) => <button type="button" key={pane} role="tab" aria-selected={mobilePane === pane} onClick={() => setMobilePane(pane)} className={`h-10 flex-1 rounded-control text-sm font-medium capitalize transition-colors ${mobilePane === pane ? "bg-accent-soft text-ink" : "text-muted hover:bg-canvas"}`}>{pane === "tools" ? "Search & tools" : "Document"}</button>)}
       </div>
       <div className={`flex min-h-0 min-w-0 flex-col ${mobilePane === "document" ? "max-[899px]:flex" : "max-[899px]:hidden"}`}>
         {redlineSpans && (
@@ -39,7 +39,8 @@ export function EditTab() {
             Redline preview of {redlineSpans.length} staged change{redlineSpans.length === 1 ? "" : "s"}: <span className="del px-0.5">removed</span> <span className="ins px-0.5">added</span>. Nothing is saved until you Apply.
           </p>
         )}
-        <div ref={scroller} tabIndex={0} role="region" aria-label="Document text" className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-5 py-1 max-[640px]:px-2">
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex lint/a11y/useSemanticElements: axe requires a scrollable region to be keyboard reachable */}
+        <div ref={scroller} tabIndex={0} role="region" aria-label="Document pane" className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-5 py-1 max-[640px]:px-2">
           <DocPane content={doc.content} hits={ws.hits} selection={ws.selection} redline={redlineSpans} flash={flash} onSelect={ws.setSelection} />
           {ws.selection && !redlineSpans && (
             <SelectionToolbar

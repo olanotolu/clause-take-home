@@ -62,6 +62,7 @@ export function Row({ label, note, htmlFor, children }: { label: string; note?: 
 export function Toggle({ id, checked, onChange }: { id: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
+      type="button"
       id={id}
       role="switch"
       aria-checked={checked}

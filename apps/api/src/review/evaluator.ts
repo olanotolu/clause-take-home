@@ -83,7 +83,7 @@ export function createSemanticEvaluator(opts: EvaluatorOptions): SemanticEvaluat
       if (text.length > MAX_JUDGED_CHARS) return UNAVAILABLE(`This document is ${text.length} characters; AI judging is limited to ${MAX_JUDGED_CHARS}.`);
       const key = `${isGoal ? "goal" : "req"}\u0000${requirement}\u0000${sha256(text)}`;
       const hit = cache.get(key);
-      if (hit) {
+      if (hit !== undefined) {
         cache.delete(key); // refresh recency
         cache.set(key, hit);
         return hit;
