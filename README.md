@@ -60,7 +60,7 @@ Two benchmarks exist: [ContractNLI](bench/ci/RESULTS.md) measured the LLM baseli
 
 ## Performance and verification
 
-The local SQLite 10 MiB benchmark (Apple M4, Node 26.7, under load) measured words search at 16/20 ms for rare/common terms and a full-stack single edit at 713 ms, of which the engine took 7 ms; index updates, the full revision snapshot, and response transfer dominated. Hosted Postgres has a 500,000-character limit, so these are not hosted 10 MiB results. Reruns are kept in [performance notes](bench/performance/README.md).
+The local SQLite 10 MiB benchmark (Apple M4, Node 24, paired rerun) measured words search at 21/25 ms for rare/common terms, exact search at 16/52 ms for unique/many hits, and a full-stack single edit at 789 ms, of which the engine took 7 ms; index updates, the full revision snapshot, and response transfer dominated. `Prefer: return=minimal` drops the text from the edit response (10 MiB: 10,486,119 → 357 bytes). Hosted Postgres has a 500,000-character limit, so these are not hosted 10 MiB results. Reruns are kept in [performance notes](bench/performance/README.md).
 
 ```sh
 pnpm typecheck
