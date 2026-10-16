@@ -48,7 +48,7 @@ export function combineJudges(text: string, outcomes: readonly JudgeOutcome[]): 
   }
 
   const verdict = [...verdicts][0]!;
-  // Jev returns no prose, so lead with the first judge that has something to say; otherwise use a plain sentence.
+  // A judge may return no prose, so lead with the first judge that has something to say; otherwise use a plain sentence.
   const lead = answered.find((o) => o.answer.rationale.trim())?.answer ?? answered[0]!.answer;
   const said = lead.rationale.trim() || `${WORDS[lead.label][0]!.toUpperCase()}${WORDS[lead.label].slice(1)}.`;
   if (verdict === "PASS" && !verifiedAny) {

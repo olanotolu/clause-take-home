@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { Activity, BookOpenCheck, Brain, FileText, GearSix, Lock, type IconProps } from "../../ui/icons.tsx";
+import { Activity, Brain, FileText, GearSix, Lock, type IconProps } from "../../ui/icons.tsx";
 
 const SECTION_ICONS: Record<string, (props: IconProps) => ReactNode> = {
   general: GearSix,
@@ -8,7 +8,6 @@ const SECTION_ICONS: Record<string, (props: IconProps) => ReactNode> = {
   editing: FileText,
   security: Lock,
   usage: Activity,
-  planned: BookOpenCheck,
 };
 
 export function SettingsSectionIcon({ id, ...props }: { id: string } & IconProps) {
@@ -94,14 +93,3 @@ export function Fact({ label, note, value }: { label: string; note?: string; val
  * A feature the mockup shows but this prototype does not have. It is visibly disabled and says so in words,
  * so nobody can mistake it for a working control.
  */
-export function Planned({ label, note }: { label: string; note?: string }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 opacity-60" aria-disabled="true">
-      <div className="min-w-[11rem] flex-1">
-        <p className="text-sm font-medium">{label}</p>
-        {note && <p className="text-xs text-muted">{note}</p>}
-      </div>
-      <span className="shrink-0 rounded-full border border-line px-2.5 py-0.5 text-[11px] font-semibold text-muted">Not in this prototype</span>
-    </div>
-  );
-}

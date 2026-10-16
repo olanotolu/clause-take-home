@@ -54,7 +54,7 @@ The brief floats an in-memory inverted index for faster repeated searches. What 
 
 Suggestions are proposals. They go through the same edit engine, and a person applies them. Each suggestion or Clause CI request has a 25-second deadline including queued judging, plus caps of 4,000 output tokens, five edits, 2,000 characters per target/replacement, and a 400-character rationale. Oversized edits are rejected rather than truncated. A suggestion timeout returns `504 AI_TIMEOUT`; a valid proposal whose CI check timed out returns `ci: null`.
 
-Clause CI compares saved requirements before and after an edit. Exact checks use no model. Semantic checks require verified quotes and stay advisory; failures and timeouts become `UNAVAILABLE`. Verifying that a quote exists does not establish what it means legally. Jev is experimental and disabled by default; its optional batch implementation sends one call per document state, with the LLM judge kept as a separate evidence source.
+Clause CI compares saved requirements before and after an edit. Exact checks use no model. Semantic checks require verified quotes and stay advisory; failures and timeouts become `UNAVAILABLE`. Verifying that a quote exists does not establish what it means legally. Judges that support batching send one call per document state.
 
 Two benchmarks exist: [ContractNLI](bench/ci/RESULTS.md) measured the LLM baseline on NDA entailment, and the [citation experiment](bench/citations/RESULTS.md) froze 30 development and 30 held-out cases plus ten fabricated quotes, recording model/input hashes and raw responses with at most $5 reserved for serial calls. Provider access failures stop that arm. Neither experiment establishes legal reliability.
 

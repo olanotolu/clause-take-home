@@ -101,7 +101,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           <Command.Input value={q} onValueChange={setQ} placeholder="Search documents and clauses" className="h-full min-w-0 flex-1 bg-transparent text-[15px] max-[520px]:text-[16px] outline-none placeholder:text-muted/75" />
           {searching && <Loader2 size={16} className="shrink-0 animate-spin text-muted" aria-label="Searching" />}
           <span className="max-[520px]:hidden"><Kbd>esc</Kbd></span>
-          <button onClick={onClose} aria-label="Close search" className="hidden size-9 shrink-0 place-items-center rounded-control text-muted transition-colors hover:bg-canvas active:scale-95 max-[520px]:grid"><X size={18} aria-hidden /></button>
+          <button type="button" onClick={onClose} aria-label="Close search" className="hidden size-9 shrink-0 place-items-center rounded-control text-muted transition-colors hover:bg-canvas active:scale-95 max-[520px]:grid"><X size={18} aria-hidden /></button>
         </div>
         {needle.length < 2 && <p className="mt-2 px-1 text-xs text-muted">Search contract titles and clause text across this workspace.</p>}
       </div>

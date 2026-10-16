@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { createSemanticEvaluator } from "../src/review/evaluator.ts";
-import { createJevJudge } from "../src/review/judges/jev.ts";
 import { testApp, createDoc } from "./helpers.ts";
 import type { Judge } from "../src/review/judges/types.ts";
 
@@ -71,15 +70,19 @@ describe("AI request budgets", () => {
     await evaluator.evaluate({ text: "two", requirement: "r", isGoal: false });
     expect(calls).toBe(1);
   });
-  it("sends one Jev call for each distinct state, with all rules in that call", async () => {
+  it("sends one batched call per distinct document state, with all rules in that call", async () => {
     let calls = 0;
-    const judge = createJevJudge({ id: "jev", decide: async (input) => { calls++; return { choice: "entailed", batch: input.questions!.map(() => ({ choice: "entailed", probabilities: { entailed: 0.95 } })) }; } });
+    const judge: Judge = {
+      id: "batcher",
+      judge: async () => { throw new Error("a batching judge must not be called one rule at a time"); },
+      judgeBatch: async (inputs) => { calls++; return inputs.map(() => ({ label: "entailed" as const, pEntailed: 0.95, quotes: [], rationale: "" })); },
+    };
     const evaluator = createSemanticEvaluator({ judges: [judge] });
     const requirements = Array.from({ length: 9 }, (_, i) => ({ requirement: `rule ${i}`, isGoal: i === 8 }));
     const result = await Promise.all(["before", "after"].map((text) => evaluator.evaluateBatch!({ text, requirements })));
     expect(calls).toBe(2);
     expect(result.flat()).toHaveLength(18);
-    expect(result.flat().every((r) => r.verdict === "NEEDS_REVIEW")).toBe(true); // Jev has no quoted evidence.
+    expect(result.flat().every((r) => r.verdict === "NEEDS_REVIEW")).toBe(true); // no quoted evidence, so nothing can be confirmed
   });
 });
 

@@ -15,16 +15,16 @@ Phosphor, through one module (`apps/web/src/ui/icons.tsx`). Regular weight for i
 
 ## Colour
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `canvas` | #fafafa | #0b0b0c | page background |
-| `paper` | #ffffff | #141416 | panels, the document sheet |
-| `ink` | #141416 | #f2f2f4 | text |
-| `muted` | #5e6169 | #9b9ea8 | secondary text (contrast ≥ 4.5:1 on canvas) |
-| `line` | ink at 6% | white at 7% | every resting border |
-| `line-strong` | ink at 15% | white at 16% | inputs and deliberate emphasis |
-| `accent` | #235a96 | #7fb0ec | primary actions, selection, focus ring |
-| `pass` / `fail` / `review` | #146b45 / #b3261e / #8a5300 | lighter equivalents | status, always with an icon and a word |
+| Token | Value | Use |
+|---|---|---|
+| `canvas` | #fafafa | page background |
+| `paper` | #ffffff | panels, the document sheet |
+| `ink` | #141416 | text |
+| `muted` | #5e6169 | secondary text (contrast ≥ 4.5:1 on canvas) |
+| `line` | ink at 6% | every resting border |
+| `line-strong` | ink at 15% | inputs and deliberate emphasis |
+| `accent` | #235a96 | primary actions, selection, focus ring |
+| `pass` / `fail` / `review` | #146b45 / #b3261e / #8a5300 | status, always with an icon and a word |
 
 ## Type
 

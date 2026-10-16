@@ -203,11 +203,6 @@ export function Shell({ children }: { children: ReactNode }) {
               </> : <p className="text-xs leading-relaxed text-rail-muted">Everyone with this link shares one workspace. Sign-in is only used for repository connectors.</p>}
             </div>}
           </div>
-          <div className="rounded-[12px] bg-paper/70 px-3 py-2.5">
-            <div className="flex items-center justify-between text-xs"><span className="font-medium text-rail-ink">Usage</span><span className="text-[10px] text-rail-muted">Sample</span></div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/15"><div className="h-full w-[24%] rounded-full bg-accent" /></div>
-            <p className="tnum mt-1.5 text-xs text-rail-ink">2.4 GB <span className="text-rail-muted">/ 10 GB</span></p>
-          </div>
           <p className="px-1 text-[10px] text-rail-muted">{ws.docs.length} document{ws.docs.length === 1 ? "" : "s"} · {kb(totalBytes)} · {status ? (status.storage === "postgres" ? "Postgres" : "SQLite") : "Workspace"}</p>
         </div>
       </aside>

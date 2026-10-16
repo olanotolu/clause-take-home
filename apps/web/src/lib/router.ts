@@ -14,13 +14,13 @@ export type Route =
   | { name: "activity" }
   | { name: "integrations" }
   | { name: "templates" }
-  | { name: "settings"; section?: "general" | "ai" | "editing" | "security" | "usage" | "planned" };
+  | { name: "settings"; section?: "general" | "ai" | "editing" | "security" | "usage" };
 
 /** Hash routes keep deep links, reload and the back button working with no server routing (Vercel serves one page). */
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, "").split("?", 1)[0]!.split("/").filter(Boolean);
   const [head, a, b] = parts;
-  const settingsSections = ["general", "ai", "editing", "security", "usage", "planned"] as const;
+  const settingsSections = ["general", "ai", "editing", "security", "usage"] as const;
   const section = (value: string | undefined) => settingsSections.find((item) => item === value);
   const decode = (v: string): string | null => {
     try {
