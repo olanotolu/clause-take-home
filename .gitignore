@@ -19,3 +19,9 @@ playwright-report/
 coverage/
 .schemathesis/
 .fuzz-venv/
+
+# Local agent tooling (kept on disk, not part of the project)
+.agents/
+.claude/skills/
+.impeccable.md
+skills-lock.json
