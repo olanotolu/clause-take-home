@@ -31,7 +31,6 @@ Phosphor, through one module (`apps/web/src/ui/icons.tsx`). Regular weight for i
 - Interface: STK Miso (variable, 100-900), with a metric-matched fallback so text does not jump when it loads. Hierarchy comes from weight and size, never from a second display face.
 - Contracts: document text is set in a serif (Iowan Old Style, Palatino, Georgia). It is content, not interface.
 - Scale (px): 11, 12, 13, 14 (body), 15, 16, 20, 24, 30. Tabular numerals on every number that changes. No negative tracking, no uppercase eyebrows.
-- STK Miso is a commercial typeface taken from the owner's other project. It is not open source: do not redistribute it, and swap it for another face if this repository is ever published.
 
 ## Shape and depth
 
