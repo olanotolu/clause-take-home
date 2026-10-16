@@ -1,8 +1,8 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Num } from "../ui/Num.tsx";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { Activity, BookOpenCheck, ChevronDown, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, List, Plus, PlugIcon, Search, Settings, X } from "../ui/icons.tsx";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { api, type SettingsStatus } from "../lib/api.ts";
 import { cn } from "../lib/cn.ts";
@@ -52,6 +52,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const { settings } = useSettings();
   const [palette, setPalette] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const mobileMoreTrigger = useRef<HTMLButtonElement>(null);
+  const mobileMoreClose = useRef<HTMLButtonElement>(null);
+  const mobileMoreDialog = useRef<HTMLElement>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [status, setStatus] = useState<SettingsStatus | null>(null);
   const [docList] = useAutoAnimate<HTMLElement>({ duration: 180, easing: "ease-out" });
@@ -70,6 +73,29 @@ export function Shell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (!mobileMoreOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    mobileMoreClose.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMobileMoreOpen(false); return; }
+      if (e.key !== "Tab") return;
+      const controls = mobileMoreDialog.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])");
+      if (!controls?.length) return;
+      const first = controls[0]!;
+      const last = controls[controls.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+      mobileMoreTrigger.current?.focus();
+    };
+  }, [mobileMoreOpen]);
 
   const current = activeKey(route);
   const totalBytes = ws.docs.reduce((n, d) => n + d.size, 0);
@@ -197,18 +223,20 @@ export function Shell({ children }: { children: ReactNode }) {
             {label}
           </button>
         ))}
-        <button onClick={() => setMobileMoreOpen(true)} aria-expanded={mobileMoreOpen} className="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-rail-muted"><List size={19} aria-hidden />More</button>
+        <button ref={mobileMoreTrigger} onClick={() => setMobileMoreOpen(true)} aria-expanded={mobileMoreOpen} aria-controls="mobile-more-dialog" className="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-rail-muted"><List size={19} aria-hidden />More</button>
       </nav>
     </div>
-    {mobileMoreOpen && <div className="fixed inset-0 z-40 hidden bg-black/30 backdrop-blur-[2px] max-[899px]:block" onClick={() => setMobileMoreOpen(false)}>
-      <section role="dialog" aria-modal="true" aria-label="More navigation" className="absolute inset-x-0 bottom-0 rounded-t-[22px] border-t border-line bg-paper px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-3 shadow-lift" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line-strong" />
-        <div className="mb-2 flex items-center justify-between px-1"><h2 className="font-display text-lg font-semibold">More</h2><button onClick={() => setMobileMoreOpen(false)} aria-label="Close navigation" className="grid size-9 place-items-center rounded-full text-muted hover:bg-canvas"><X size={17} aria-hidden /></button></div>
-        <div className="grid grid-cols-2 gap-2">
-          {[NAV[3]!, NAV[5]!, NAV[6]!, NAV[7]!].map(({ key, label, icon: Icon, route: target }) => <button key={key} onClick={() => { if (target) navigate(target); setMobileMoreOpen(false); }} aria-current={current === key ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-control border px-3 text-left text-sm font-medium", current === key ? "border-accent bg-accent-soft text-ink" : "border-line bg-paper text-rail-ink hover:bg-canvas")}><Icon size={19} aria-hidden /><span>{label}</span></button>)}
-        </div>
-      </section>
-    </div>}
+    <AnimatePresence>
+      {mobileMoreOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="fixed inset-0 z-40 hidden bg-black/35 max-[899px]:block" onClick={() => setMobileMoreOpen(false)}>
+        <motion.section ref={mobileMoreDialog} id="mobile-more-dialog" role="dialog" aria-modal="true" aria-label="More navigation" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }} transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }} className="absolute inset-x-0 bottom-0 rounded-t-[22px] border-t border-line bg-paper px-4 pt-3 shadow-lift" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }} onClick={(e) => e.stopPropagation()}>
+          <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line-strong" />
+          <div className="mb-2 flex items-center justify-between px-1"><h2 className="font-display text-lg font-semibold">More</h2><button ref={mobileMoreClose} onClick={() => setMobileMoreOpen(false)} aria-label="Close navigation" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-canvas"><X size={17} aria-hidden /></button></div>
+          <div className="grid grid-cols-2 gap-2">
+            {[NAV[3]!, NAV[5]!, NAV[6]!, NAV[7]!].map(({ key, label, icon: Icon, route: target }) => <button key={key} onClick={() => { if (target) navigate(target); setMobileMoreOpen(false); }} aria-current={current === key ? "page" : undefined} className={cn("flex min-h-14 items-center gap-3 rounded-control border px-3 text-left text-sm font-medium transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.985]", current === key ? "border-accent bg-accent-soft text-ink" : "border-line bg-paper text-rail-ink hover:bg-canvas")}><Icon size={19} aria-hidden /><span>{label}</span></button>)}
+          </div>
+        </motion.section>
+      </motion.div>}
+    </AnimatePresence>
     <CommandPalette open={palette} onClose={() => setPalette(false)} />
     <NewDocumentDialog open={ws.newDocOpen} onClose={() => ws.setNewDocOpen(false)} />
     <Toaster position="bottom-right" theme={settings.theme} offset={16} mobileOffset={{ bottom: 76, left: 12, right: 12 }} closeButton />

@@ -24,6 +24,34 @@
   .palette-dialog[data-state="open"], .palette-dialog[data-state="closed"] { transform: translate(-50%, -50%); }
 }
 
+@keyframes palette-mobile-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes palette-mobile-out { from { opacity: 1 } to { opacity: 0 } }
+@media (max-width: 520px) {
+  .palette-overlay { background: transparent; backdrop-filter: none; }
+  .palette-dialog {
+    inset: auto 0 0;
+    top: var(--palette-viewport-top, 0px);
+    left: 0;
+    width: 100vw;
+    height: var(--palette-viewport-height, 100dvh);
+    max-height: var(--palette-viewport-height, 100dvh);
+    display: flex;
+    flex-direction: column;
+    transform: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .palette-dialog[data-state="open"] { animation: palette-mobile-in 150ms ease-out both; }
+  .palette-dialog[data-state="closed"] { animation: palette-mobile-out 120ms ease-in both; }
+  .palette-dialog > div:first-child { padding-top: calc(12px + env(safe-area-inset-top)); }
+  .palette-dialog [cmdk-list] { max-height: none; min-height: 0; flex: 1 1 auto; }
+  .palette-dialog [cmdk-item] { min-height: 56px; }
+}
+@media (max-width: 520px) and (prefers-reduced-motion: reduce) {
+  .palette-dialog[data-state="open"], .palette-dialog[data-state="closed"] { animation: none !important; }
+}
+
 /*
  * CLAUSE design tokens, in the product register: chroma-0 neutrals (no warm cast, so signals read as signals), hairline
  * borders at 6% ink, one blue accent for actions, selection and focus, and status pairs that always carry an icon and
