@@ -35,6 +35,9 @@ importers:
       '@fastify/type-provider-zod':
         specifier: ^1.0.1
         version: 1.0.1(@fastify/swagger@9.9.2)(fastify@5.12.7)(openapi-types@12.1.3)(zod@4.6.7)
+      '@napi-rs/canvas':
+        specifier: 0.1.80
+        version: 0.1.80
       '@openrouter/ai-sdk-provider':
         specifier: 3.1.0
         version: 3.1.0(ai@7.0.142(zod@4.6.7))(zod@4.6.7)
