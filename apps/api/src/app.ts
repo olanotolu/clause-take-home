@@ -138,6 +138,12 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
       return spec as never;
     },
   });
+  // The reference lives at /docs/ (its assets are relative). Scalar's own redirect from /docs is absolute ("/docs/"),
+  // which drops the /api prefix behind the Vercel rewrite and the Vite proxy and lands on the web app instead. A relative
+  // redirect resolves against the URL the browser actually used: /api/docs -> /api/docs/, and /docs -> /docs/ locally.
+  app.addHook("onRequest", async (req, reply) => {
+    if (req.method === "GET" && req.url.split("?")[0] === "/docs") return reply.redirect("docs/", 301);
+  });
   await app.register(scalar, { routePrefix: "/docs" });
   app.get("/openapi.json", { schema: { hide: true } }, async () => app.swagger());
   app.get("/health", { schema: { hide: true } }, async () => ({ status: "ok" }));
