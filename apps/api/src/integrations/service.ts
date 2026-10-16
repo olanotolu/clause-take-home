@@ -1,6 +1,5 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
 import { jwtVerify, createRemoteJWKSet } from "jose";
-import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import type { IntegrationConnection, IntegrationProvider, Store } from "../store/types.ts";
 import { providerById, providerConfig, PROVIDERS } from "./providers.ts";
@@ -265,6 +264,12 @@ export async function extractText(store: Store, provider: IntegrationProvider, f
     return result.value.trim();
   }
   if (mimeType === "application/pdf" || ext === "pdf") {
+    // PDF.js 5 expects browser geometry globals during module initialization. Vercel's
+    // function bundler does not include pdf-parse's optional canvas dependency unless
+    // it is imported explicitly, so load and expose its Node implementations first.
+    const canvas = await import("@napi-rs/canvas");
+    Object.assign(globalThis, { DOMMatrix: canvas.DOMMatrix, ImageData: canvas.ImageData, Path2D: canvas.Path2D });
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: bytes });
     try { return (await parser.getText()).text.trim(); }
     finally { await parser.destroy(); }
