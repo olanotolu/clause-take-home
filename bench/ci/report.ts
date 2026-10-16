@@ -174,3 +174,35 @@ export function renderMarkdown(args: { summaries: JudgeSummary[]; cases: CasesFi
   L.push("Dataset: ContractNLI, Koreeda & Manning (2021), CC BY 4.0, https://stanfordnlp.github.io/contract-nli/", "");
   return L.join("\n");
 }
+
+async function main() {
+  const dir = join(import.meta.dirname, "results");
+  const cases = JSON.parse(readFileSync(join(import.meta.dirname, "cases.json"), "utf8")) as CasesFile;
+  const config = JSON.parse(readFileSync(join(import.meta.dirname, "config.json"), "utf8")) as Record<string, unknown> & { llmModel: string; jevModel: string };
+  const { buildJobs } = await import("./run.ts");
+  const texts: Texts = { static: new Map(), before: new Map(), after_pos: new Map(), after_ctrl: new Map() };
+  for (const j of buildJobs()) texts[j.kind].set(j.caseId, j.text);
+
+  const arms = [
+    { id: "keyword-baseline", file: "raw-keyword-baseline.jsonl" },
+    { id: config.llmModel, file: "raw-llm.jsonl" },
+    { id: config.jevModel, file: "raw-jev.jsonl" },
+  ].map((a) => ({ ...a, raw: readRaw(join(dir, a.file)) })).filter((a) => a.raw.length > 0);
+
+  const truth = new Map<string, Nli>();
+  const summaries = arms.map((a) => summarize(a.id, a.raw, cases, texts, truth));
+  const prices: Record<string, Awaited<ReturnType<typeof openRouterPrice>>> = {};
+  for (const s of summaries) if (s.judge === config.llmModel) prices[s.judge] = await openRouterPrice(s.judge);
+
+  const jevRan = arms.some((a) => a.id === config.jevModel);
+  const jevNote = jevRan
+    ? `**${config.jevModel}** via Vercel AI Gateway (pinned model id).`
+    : `**${config.jevModel}: not run.** Vercel AI Gateway serves it only to teams with paid credits (the call returned HTTP 403, "Free tier users do not have access to this model"). The Jev judge is implemented and unit-tested; it has **no measured results here**, so no claim is made about it.`;
+
+  const md = renderMarkdown({ summaries, cases, config, prices, jevNote, generatedAt: new Date().toISOString().slice(0, 10) });
+  writeFileSync(join(import.meta.dirname, "RESULTS.md"), md);
+  writeFileSync(join(dir, "summary.json"), JSON.stringify(summaries, null, 1) + "\n");
+  console.log(md);
+}
+
+if (import.meta.main) await main();

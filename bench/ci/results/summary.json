@@ -1,0 +1,169 @@
+[
+ {
+  "judge": "keyword-baseline",
+  "calls": 150,
+  "errors": 0,
+  "static": {
+   "n": 60,
+   "accuracy": {
+    "p": 0.4,
+    "lo": 0.28569303003765506,
+    "hi": 0.5263417560579315
+   },
+   "macroF1": 0.37290163726945336,
+   "recall": {
+    "Entailment": 0.7,
+    "Contradiction": 0.3,
+    "NotMentioned": 0.2
+   },
+   "binaryAccuracy": {
+    "p": 0.5666666666666667,
+    "lo": 0.44103214654694856,
+    "hi": 0.6842779960559936
+   },
+   "abstain": 0,
+   "brier": 0.23832671957671953,
+   "confusion": {
+    "Entailment": {
+     "Entailment": 14,
+     "Contradiction": 5,
+     "NotMentioned": 1,
+     "Abstain": 0
+    },
+    "Contradiction": {
+     "Entailment": 10,
+     "Contradiction": 6,
+     "NotMentioned": 4,
+     "Abstain": 0
+    },
+    "NotMentioned": {
+     "Entailment": 10,
+     "Contradiction": 6,
+     "NotMentioned": 4,
+     "Abstain": 0
+    },
+    "Abstain": {
+     "Entailment": 0,
+     "Contradiction": 0,
+     "NotMentioned": 0,
+     "Abstain": 0
+    }
+   }
+  },
+  "regression": {
+   "pairs": 30,
+   "usable": 17,
+   "detected": 4,
+   "falseAlarm": 0,
+   "separates": 4,
+   "recallAll": {
+    "p": 0.13333333333333333,
+    "lo": 0.05309569424218104,
+    "hi": 0.2968168394441695
+   }
+  },
+  "product": {
+   "usable": 17,
+   "flaggedPos": 4,
+   "flaggedCtrl": 0,
+   "failPos": 4,
+   "reviewPos": 0,
+   "failCtrl": 0,
+   "reviewCtrl": 0
+  },
+  "quotes": {
+   "total": 129,
+   "verified": 129
+  },
+  "latency": {
+   "p50": 1,
+   "p95": 2
+  },
+  "tokens": null
+ },
+ {
+  "judge": "anthropic/claude-sonnet-5.5",
+  "calls": 150,
+  "errors": 0,
+  "static": {
+   "n": 60,
+   "accuracy": {
+    "p": 0.8,
+    "lo": 0.6821795390818299,
+    "hi": 0.8817161026314104
+   },
+   "macroF1": 0.8229798776994399,
+   "recall": {
+    "Entailment": 0.95,
+    "Contradiction": 0.8,
+    "NotMentioned": 0.65
+   },
+   "binaryAccuracy": {
+    "p": 0.9166666666666666,
+    "lo": 0.8193083153188752,
+    "hi": 0.9638800759495141
+   },
+   "abstain": 4,
+   "brier": 0.06903666666666666,
+   "confusion": {
+    "Entailment": {
+     "Entailment": 19,
+     "Contradiction": 0,
+     "NotMentioned": 0,
+     "Abstain": 1
+    },
+    "Contradiction": {
+     "Entailment": 2,
+     "Contradiction": 16,
+     "NotMentioned": 1,
+     "Abstain": 1
+    },
+    "NotMentioned": {
+     "Entailment": 2,
+     "Contradiction": 3,
+     "NotMentioned": 13,
+     "Abstain": 2
+    },
+    "Abstain": {
+     "Entailment": 0,
+     "Contradiction": 0,
+     "NotMentioned": 0,
+     "Abstain": 0
+    }
+   }
+  },
+  "regression": {
+   "pairs": 30,
+   "usable": 28,
+   "detected": 22,
+   "falseAlarm": 0,
+   "separates": 22,
+   "recallAll": {
+    "p": 0.7333333333333333,
+    "lo": 0.5555169795568831,
+    "hi": 0.8581750444608938
+   }
+  },
+  "product": {
+   "usable": 28,
+   "flaggedPos": 22,
+   "flaggedCtrl": 0,
+   "failPos": 15,
+   "reviewPos": 7,
+   "failCtrl": 0,
+   "reviewCtrl": 0
+  },
+  "quotes": {
+   "total": 191,
+   "verified": 191
+  },
+  "latency": {
+   "p50": 2446,
+   "p95": 4963
+  },
+  "tokens": {
+   "input": 600726,
+   "output": 32145
+  }
+ }
+]
