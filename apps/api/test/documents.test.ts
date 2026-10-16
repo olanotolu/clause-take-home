@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { createDoc, NDA, patch, quote, testApp } from "./helpers.ts";
+import { createDoc, NDA, patch, quote, testApp, testStore } from "./helpers.ts";
 
 let app: FastifyInstance;
 beforeEach(async () => void (app = await testApp()));
@@ -132,6 +132,18 @@ describe("PATCH /documents/:id", () => {
     expect(res.statusCode).toBe(413);
     expect(res.json()).toMatchObject({ code: 413, type: "PAYLOAD_TOO_LARGE" });
     await small.close();
+  });
+
+  it("answers a server fault with 500 and { error, code, type }, without the cause, a stack or document text", async () => {
+    const store = await testStore();
+    const faulty = await testApp({ store });
+    const doc = await createDoc(faulty, "NDA", "Confidential: Redwood acquisition");
+    store.getDocument = async () => { throw new Error("connection to db-7.internal refused while reading 'Redwood acquisition'"); };
+    const res = await faulty.inject({ method: "GET", url: `/documents/${doc.id}` });
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toEqual({ error: "Internal server error", code: 500, type: "INTERNAL" });
+    expect(res.body).not.toMatch(/db-7|Redwood|stack|\.ts/);
+    await faulty.close();
   });
 });
 

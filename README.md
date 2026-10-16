@@ -194,7 +194,7 @@ A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus
 ## How I know the tests are any good
 
 ```bash
-pnpm test             # 330 pass, 7 skipped on SQLite (the skips are Postgres-only); 336 pass on Postgres
+pnpm test             # 331 pass, 7 skipped on SQLite (the skips are Postgres-only); 337 pass on Postgres
 pnpm typecheck        # strict TypeScript across core, API and web
 pnpm bench            # the performance table
 pnpm mutate           # bounded mutation run on the engine, about 30 s
