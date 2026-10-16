@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 const API = process.env.CLAUSE_API ?? "http://127.0.0.1:3000";
+const proxy = { "/api": { target: API, rewrite: (p: string) => p.replace(/^\/api/, "") } };
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -19,5 +20,6 @@ export default defineConfig({
       },
     },
   },
-  server: { port: 5173, proxy: { "/api": { target: API, rewrite: (p) => p.replace(/^\/api/, "") } } },
+  server: { port: 5173, proxy },
+  preview: { proxy },
 });

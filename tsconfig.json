@@ -21,6 +21,8 @@
     "apps/api/src",
     "apps/api/test",
     "bench",
-    "scripts"
+    "scripts",
+    "e2e",
+    "playwright.config.ts"
   ]
 }

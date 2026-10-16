@@ -39,7 +39,7 @@ export function EditTab() {
             Redline preview of {redlineSpans.length} staged change{redlineSpans.length === 1 ? "" : "s"}: <span className="del px-0.5">removed</span> <span className="ins px-0.5">added</span>. Nothing is saved until you Apply.
           </p>
         )}
-        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-5 py-1 max-[640px]:px-2">
+        <div ref={scroller} tabIndex={0} role="region" aria-label="Document text" className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-5 py-1 max-[640px]:px-2">
           <DocPane content={doc.content} hits={ws.hits} selection={ws.selection} redline={redlineSpans} flash={flash} onSelect={ws.setSelection} />
           {ws.selection && !redlineSpans && (
             <SelectionToolbar

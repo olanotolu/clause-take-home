@@ -12,3 +12,7 @@ mutation-report.json
 .vercel
 .env*
 bench/ci/data/
+
+# Playwright
+test-results/
+playwright-report/
