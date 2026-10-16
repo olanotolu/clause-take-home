@@ -2,6 +2,7 @@ import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScrol
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight } from "../ui/icons.tsx";
 import { BEATS, beatStart, BONE, INK } from "./intro/content.ts";
+import { Words } from "./intro/Type.tsx";
 import { CheckPanel, ResolvePanel, VersionPanel } from "./intro/Panels.tsx";
 import { Terrain } from "./intro/Terrain.tsx";
 
@@ -13,7 +14,8 @@ import { Terrain } from "./intro/Terrain.tsx";
  */
 
 const EASE = [0.23, 1, 0.32, 1] as const;
-const HEADLINE = "Edits that land exactly where you point.".split(" ");
+// Two weights on purpose: the first line is light, the claim is heavy.
+const HEADLINE = [["Edits", "that", "land"], ["exactly", "where", "you", "point."]] as const;
 const STILL = "linear-gradient(#1b1226 0%, #6d3345 38%, #d98b4f 68%, #4a2a1a 100%)";
 
 /** Fades a block in and out over a window of scroll progress; out of the window it is neither announced nor clickable. */
@@ -26,6 +28,17 @@ function Beat({ p, at, children, className = "", hold = false }: { p: MotionValu
     <motion.div style={{ opacity, y, pointerEvents: live ? "auto" : "none" }} aria-hidden={!live} className={`absolute inset-x-0 ${className}`}>
       {children}
     </motion.div>
+  );
+}
+
+/** "01 / 03" while a beat is on screen, in tabular numerals so it does not jitter as it changes. */
+function Counter({ p }: { p: MotionValue<number> }) {
+  const [n, setN] = useState(0);
+  useMotionValueEvent(p, "change", (v) => setN(v < 0.2 || v >= 0.8 ? 0 : Math.floor((v - 0.2) / 0.2) + 1));
+  return (
+    <div aria-hidden className="pointer-events-none absolute right-7 top-[4.4rem] z-10 text-[12px] font-bold tracking-[0.2em] transition-opacity duration-300 max-[640px]:right-5" style={{ color: BONE, opacity: n ? 0.85 : 0, fontVariantNumeric: "tabular-nums" }}>
+      {String(n || 1).padStart(2, "0")} <span style={{ opacity: 0.5 }}>/ 03</span>
+    </div>
   );
 }
 
@@ -81,21 +94,27 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
 
           <div className="relative mx-auto h-full max-w-[1240px] px-7 max-[640px]:px-5">
             <div className="absolute inset-x-7 top-6 z-20 flex items-center justify-between max-[640px]:inset-x-5">
-              <motion.span initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, delay: 0.8 }} className="text-[13px] font-semibold tracking-[0.3em]" style={{ color: BONE }}>
+              <motion.span initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, delay: 0.8 }} className="flex items-center gap-3 text-[13px] font-extrabold tracking-[0.34em]" style={{ color: BONE }}>
+                <span aria-hidden className="block size-[15px] rounded-[4px] border-2" style={{ borderColor: BONE, borderRightColor: "transparent" }} />
                 CLAUSE
               </motion.span>
-              <button ref={skip} type="button" onClick={onEnter} className="h-9 rounded-full border px-4 text-[13px] font-medium transition-colors hover:bg-[rgb(246_234_210/.14)]" style={{ borderColor: "rgb(246 234 210 / .5)", color: BONE }}>
+              <button ref={skip} type="button" onClick={onEnter} className="flex h-9 items-center gap-2.5 rounded-full border pl-4 pr-2 text-[13px] font-semibold transition-colors hover:bg-[rgb(246_234_210/.14)]" style={{ borderColor: "rgb(246 234 210 / .5)", color: BONE }}>
                 Skip intro
+                <kbd className="rounded-md border px-1.5 py-px text-[10px] font-semibold tracking-wide max-[640px]:hidden" style={{ borderColor: "rgb(246 234 210 / .4)", color: "rgb(246 234 210 / .75)" }}>Esc</kbd>
               </button>
             </div>
 
             <motion.div style={{ opacity: heroOpacity, y: heroY }} className="absolute inset-x-7 bottom-[11vh] max-[640px]:inset-x-5 max-[640px]:bottom-[9vh]">
-              <h1 className="max-w-[14ch] text-[clamp(2.5rem,6.8vw,6rem)] font-medium leading-[0.98] tracking-[-0.035em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)" }}>
-                {HEADLINE.map((w, i) => (
-                  <span key={`${w}-${i}`} className="mr-[0.2em] inline-block overflow-hidden align-bottom pb-[0.1em]">
-                    <motion.span className="inline-block" initial={reduce ? false : { y: "115%" }} animate={{ y: 0 }} transition={{ duration: 1.3, delay: 1.0 + i * 0.1, ease: EASE }}>
-                      {w}
-                    </motion.span>
+              <h1 className="text-[clamp(2.6rem,7.2vw,6.4rem)] leading-[0.96] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)", textWrap: "balance" }}>
+                {HEADLINE.map((line, li) => (
+                  <span key={line[0]} className="block" style={{ fontWeight: li === 0 ? 300 : 700 }}>
+                    {line.map((w, i) => (
+                      <span key={w} className="mr-[0.2em] inline-block overflow-hidden align-bottom pb-[0.12em]">
+                        <motion.span className="inline-block" initial={reduce ? false : { y: "118%" }} animate={{ y: 0 }} transition={{ duration: 1.4, delay: 1.0 + (li * 3 + i) * 0.1, ease: EASE }}>
+                          {w}
+                        </motion.span>
+                      </span>
+                    ))}
                   </span>
                 ))}
               </h1>
@@ -116,8 +135,13 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                 <Beat key={b.n} p={p} at={[s, s + 0.04, s + 0.18, s + 0.2]} className="bottom-[10vh] px-7 max-[640px]:bottom-[7vh] max-[640px]:px-5">
                   <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,470px)] items-end gap-12 max-[900px]:grid-cols-1 max-[900px]:gap-4">
                     <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.26em]" style={{ color: "rgb(246 234 210 / .72)" }}>{b.n} — {b.title}</p>
-                      <p className="mt-3 max-w-[24ch] text-[clamp(1.5rem,3.3vw,2.9rem)] font-medium leading-[1.08] tracking-[-0.02em]" style={{ color: BONE, textShadow: "0 2px 30px rgb(10 4 2 / .5)" }}>{b.text}</p>
+                      <p className="flex items-baseline gap-4" style={{ color: BONE }}>
+                        <span className="text-[clamp(3.4rem,7vw,6.2rem)] font-extralight leading-[0.8] tracking-[-0.05em]" style={{ fontVariantNumeric: "tabular-nums" }}>{b.n}</span>
+                        <span className="text-[13px] font-bold uppercase tracking-[0.28em]" style={{ color: "rgb(246 234 210 / .78)" }}>{b.title}</span>
+                      </p>
+                      <p className="mt-5 max-w-[23ch] text-[clamp(1.55rem,3.3vw,2.9rem)] leading-[1.1] tracking-[-0.025em]" style={{ color: BONE, textShadow: "0 2px 30px rgb(10 4 2 / .5)", textWrap: "balance" }}>
+                        <Words p={p} from={s + 0.012} to={s + 0.1} runs={b.runs} />
+                      </p>
                     </div>
                     <Panel p={p} s={s} />
                   </div>
@@ -126,26 +150,26 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
             })}
 
             <Beat p={p} at={[0.8, 0.88, 0.999, 1]} hold className="bottom-[11vh] px-7 max-[640px]:bottom-[9vh] max-[640px]:px-5">
-              <h2 className="max-w-[13ch] text-[clamp(2.2rem,5.6vw,4.8rem)] font-medium leading-[1] tracking-[-0.03em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)" }}>See it on a real contract.</h2>
+              <h2 className="max-w-[13ch] text-[clamp(2.3rem,5.8vw,5rem)] leading-[0.98] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)" }}><span style={{ fontWeight: 300 }}>See it on a</span> <span style={{ fontWeight: 700 }}>real contract.</span></h2>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
                 <button
                   type="button"
                   onClick={onEnter}
                   tabIndex={atEnd ? 0 : -1}
-                  className="group inline-flex h-14 items-center gap-3 rounded-full px-7 text-base font-semibold transition-transform duration-150 active:scale-[0.97]"
+                  className="group inline-flex h-[60px] items-center gap-4 rounded-full pl-8 pr-2 text-[17px] font-bold tracking-[-0.01em] transition-transform duration-150 active:scale-[0.97]"
                   style={{ background: BONE, color: INK, pointerEvents: atEnd ? "auto" : "none" }}
                 >
-                  Open the workspace <ArrowRight size={18} aria-hidden className="transition-transform duration-200 group-hover:translate-x-1" />
+                  Open the workspace
+                  <span className="grid size-11 place-items-center rounded-full transition-transform duration-300 group-hover:translate-x-1" style={{ background: INK, color: BONE }}><ArrowRight size={18} aria-hidden /></span>
                 </button>
                 <p className="text-sm" style={{ color: "rgb(246 234 210 / .8)" }}>Sample contracts, no sign-in.</p>
               </div>
             </Beat>
           </div>
 
-          <div aria-hidden className="pointer-events-none absolute bottom-0 right-7 top-0 z-10 flex items-center max-[640px]:right-3">
-            <div className="relative h-[28vh] w-px" style={{ background: "rgb(246 234 210 / .28)" }}>
-              <motion.div className="absolute left-0 top-0 w-px" style={{ height: fill, background: BONE }} />
-            </div>
+          <Counter p={p} />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[2px]" style={{ background: "rgb(246 234 210 / .18)" }}>
+            <motion.div className="h-full" style={{ width: fill, background: BONE }} />
           </div>
         </div>
       </div>

@@ -3,47 +3,47 @@ import type { ReactNode } from "react";
 import { BONE } from "./content.ts";
 
 /**
- * Plain API receipts, one per beat: the actual shape of what the service answers, set in monospace on the scene. Lines
- * appear in step with the scroll. The ids and offsets are an example, and the panel says so.
+ * One example of what the service answers per beat, set as a designed table in the page's own typeface (tabular
+ * numerals keep the figures aligned). Rows arrive with the scroll. The ids and offsets are an example, and it says so.
  */
-const MONO = 'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace';
+const DIM = "rgb(246 234 210 / .62)";
+const HAIR = "rgb(246 234 210 / .13)";
 
-function Line({ p, at, children, strong = false }: { p: MotionValue<number>; at: number; children: ReactNode; strong?: boolean }) {
+function Row({ p, at, k, children, strong = false, warn = false }: { p: MotionValue<number>; at: number; k: string; children: ReactNode; strong?: boolean; warn?: boolean }) {
   const o = useTransform(p, [at, at + 0.012], [0, 1], { clamp: true });
-  const x = useTransform(o, [0, 1], [-6, 0]);
+  const x = useTransform(o, [0, 1], [-8, 0]);
   return (
-    <motion.div style={{ opacity: o, x, fontWeight: strong ? 600 : 400 }} className="whitespace-pre-wrap break-words">
-      {children}
+    <motion.div style={{ opacity: o, x, borderColor: HAIR }} className="grid grid-cols-[88px_minmax(0,1fr)] items-baseline gap-3 border-t py-[7px] first:border-t-0 max-[640px]:grid-cols-[72px_minmax(0,1fr)]" >
+      <dt className="text-[10.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: DIM }}>{k || <span className="sr-only">Also</span>}</dt>
+      <dd className="text-[14px] leading-snug max-[640px]:text-[12.5px]" style={{ fontWeight: strong ? 650 : 420, color: warn ? "#ffbfa6" : BONE }}>{children}</dd>
     </motion.div>
   );
 }
 
-function Receipt({ label, children }: { label: string; children: ReactNode }) {
+function Receipt({ p, at, code, name, label, children }: { p: MotionValue<number>; at: number; code: string; name: string; label: string; children: ReactNode }) {
+  const head = useTransform(p, [at, at + 0.012], [0, 1], { clamp: true });
   return (
-    <figure
-      aria-label={label}
-      className="w-full max-w-[470px] rounded-[10px] border px-4 py-3.5 text-[12.5px] leading-[1.7] max-[640px]:px-3 max-[640px]:text-[11.5px]"
-      style={{ fontFamily: MONO, color: BONE, background: "rgb(18 9 4 / .58)", borderColor: "rgb(246 234 210 / .26)", backdropFilter: "blur(6px)" }}
-    >
-      {children}
-      <figcaption className="mt-2 text-[10.5px] uppercase tracking-[0.14em]" style={{ color: "rgb(246 234 210 / .62)" }}>example response</figcaption>
+    <figure aria-label={label} className="w-full max-w-[480px] rounded-[16px] border px-5 pb-3 pt-4 max-[640px]:px-4" style={{ color: BONE, background: "rgb(18 9 4 / .6)", borderColor: "rgb(246 234 210 / .24)", backdropFilter: "blur(10px)", fontVariantNumeric: "tabular-nums" }}>
+      <motion.div style={{ opacity: head, borderColor: "rgb(246 234 210 / .3)" }} className="flex items-baseline gap-3 border-b pb-3">
+        <span className="text-[44px] font-light leading-none tracking-[-0.03em] max-[640px]:text-[34px]">{code}</span>
+        <span className="text-[13px] font-bold uppercase tracking-[0.14em]">{name}</span>
+      </motion.div>
+      <dl className="mt-2" style={{ borderColor: "rgb(246 234 210 / .14)" }}>{children}</dl>
+      <figcaption className="mt-1 pb-0.5 text-[10px] uppercase tracking-[0.16em]" style={{ color: "rgb(246 234 210 / .5)" }}>Example response</figcaption>
     </figure>
   );
 }
 
-const dim = { color: "rgb(246 234 210 / .66)" } as const;
-
 export function ResolvePanel({ p, s }: { p: MotionValue<number>; s: number }) {
   const t = s + 0.04;
   return (
-    <Receipt label="An example response: a replace whose target text matches three places is refused with 409 AMBIGUOUS_TARGET and the three candidates">
-      <Line p={p} at={t}>PATCH /documents/doc_8f2a1c</Line>
-      <Line p={p} at={t + 0.012}><span style={dim}>replace</span> “shall not disclose”</Line>
-      <Line p={p} at={t + 0.035} strong>409 AMBIGUOUS_TARGET</Line>
-      <Line p={p} at={t + 0.05}><span style={dim}>[0]</span> 412–430 …Receiving Party shall not disclose Confidential…</Line>
-      <Line p={p} at={t + 0.062}><span style={dim}>[1]</span> 988–1006 …Disclosing Party shall not disclose Trade…</Line>
-      <Line p={p} at={t + 0.074}><span style={dim}>[2]</span> 1534–1552 …Neither party shall not disclose the Term.</Line>
-      <Line p={p} at={t + 0.092}><span style={dim}>choose with</span> occurrence, prefix or an offset range</Line>
+    <Receipt p={p} at={t} code="409" name="Ambiguous target" label="An example response: a replace whose target text matches three places is refused with 409 AMBIGUOUS_TARGET and the three candidates">
+      <Row p={p} at={t + 0.012} k="Request">PATCH /documents/doc_8f2a1c</Row>
+      <Row p={p} at={t + 0.024} k="Target">“shall not disclose”</Row>
+      <Row p={p} at={t + 0.04} k="Found at" strong>412–430</Row>
+      <Row p={p} at={t + 0.052} k="">988–1006</Row>
+      <Row p={p} at={t + 0.064} k="">1534–1552</Row>
+      <Row p={p} at={t + 0.082} k="Choose by">occurrence, prefix or an offset range</Row>
     </Receipt>
   );
 }
@@ -51,13 +51,11 @@ export function ResolvePanel({ p, s }: { p: MotionValue<number>; s: number }) {
 export function VersionPanel({ p, s }: { p: MotionValue<number>; s: number }) {
   const t = s + 0.04;
   return (
-    <Receipt label="An example response: an edit made against version 2 of a document that is now at version 3 is refused with 409 VERSION_CONFLICT">
-      <Line p={p} at={t}>PATCH /documents/doc_8f2a1c</Line>
-      <Line p={p} at={t + 0.012}><span style={dim}>expectedVersion</span> 2</Line>
-      <Line p={p} at={t + 0.035} strong>409 VERSION_CONFLICT</Line>
-      <Line p={p} at={t + 0.05}><span style={dim}>expectedVersion</span> 2</Line>
-      <Line p={p} at={t + 0.062}><span style={dim}>currentVersion </span> 3</Line>
-      <Line p={p} at={t + 0.08}><span style={dim}>nothing written. no merge. reload and retry.</span></Line>
+    <Receipt p={p} at={t} code="409" name="Version conflict" label="An example response: an edit made against version 2 of a document that is now at version 3 is refused with 409 VERSION_CONFLICT">
+      <Row p={p} at={t + 0.012} k="Request">PATCH /documents/doc_8f2a1c</Row>
+      <Row p={p} at={t + 0.026} k="You edited">version 2</Row>
+      <Row p={p} at={t + 0.04} k="Current" strong warn>version 3</Row>
+      <Row p={p} at={t + 0.058} k="Result">Nothing written. No merge. Reload and retry.</Row>
     </Receipt>
   );
 }
@@ -65,13 +63,12 @@ export function VersionPanel({ p, s }: { p: MotionValue<number>; s: number }) {
 export function CheckPanel({ p, s }: { p: MotionValue<number>; s: number }) {
   const t = s + 0.04;
   return (
-    <Receipt label="An example response: Clause CI checks an edit against three rules; one holds, one fails, one needs review">
-      <Line p={p} at={t}>POST /documents/doc_8f2a1c/changes/check</Line>
-      <Line p={p} at={t + 0.03} strong>200 · 3 rules</Line>
-      <Line p={p} at={t + 0.045}><span style={dim}>holds        </span> Mutual confidentiality</Line>
-      <Line p={p} at={t + 0.06} strong><span style={{ color: "#ffb59a" }}>FAILS        </span> No perpetual term</Line>
-      <Line p={p} at={t + 0.075}><span style={dim}>needs review </span> Survival period stated</Line>
-      <Line p={p} at={t + 0.092}><span style={dim}>nothing is saved until the PATCH.</span></Line>
+    <Receipt p={p} at={t} code="200" name="3 rules checked" label="An example response: Clause CI checks an edit against three rules; one holds, one fails, one needs review">
+      <Row p={p} at={t + 0.012} k="Request">POST /documents/doc_8f2a1c/changes/check</Row>
+      <Row p={p} at={t + 0.03} k="Holds">Mutual confidentiality</Row>
+      <Row p={p} at={t + 0.046} k="Fails" strong warn>No perpetual term</Row>
+      <Row p={p} at={t + 0.062} k="Review">Survival period stated</Row>
+      <Row p={p} at={t + 0.08} k="Saved">Nothing, until you apply.</Row>
     </Receipt>
   );
 }
