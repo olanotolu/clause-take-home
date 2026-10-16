@@ -52,7 +52,7 @@ export function ChangesTray() {
         <div className="ml-auto flex items-center gap-2">
           <Button size="sm" variant="ghost" onClick={ws.clearStaged}>Discard</Button>
           <Button variant="primary" size="sm" disabled={!validNow} loading={ws.applying} onClick={() => void ws.apply()}>
-            {ws.applying ? "Applying…" : `Apply ${staged.length === 1 ? "change" : `all ${staged.length}`}`}
+            {ws.applying ? "Applying…" : ws.doc?.sample ? "Apply to a copy" : `Apply ${staged.length === 1 ? "change" : `all ${staged.length}`}`}
           </Button>
         </div>
       </div>

@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { Activity, BookOpenCheck, Brain, FileText, GearSix, Lock, Palette, type IconProps } from "../../ui/icons.tsx";
+import { Activity, BookOpenCheck, Brain, FileText, GearSix, Lock, type IconProps } from "../../ui/icons.tsx";
 
 const SECTION_ICONS: Record<string, (props: IconProps) => ReactNode> = {
   general: GearSix,
   ai: Brain,
   editing: FileText,
   security: Lock,
-  appearance: Palette,
   usage: Activity,
   planned: BookOpenCheck,
 };

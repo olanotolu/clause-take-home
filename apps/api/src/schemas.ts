@@ -42,6 +42,10 @@ export const RevertBody = z.strictObject({
   expectedVersion: z.number().int().min(1).optional().meta({ description: "Reject with 409 unless the document is exactly at this version." }),
 });
 
+export const CopyBody = z.strictObject({
+  title: text().pipe(z.string().min(1).max(300)).optional(),
+});
+
 export const CreateBody = z.strictObject({
   title: text().pipe(z.string().min(1).max(300)),
   content: text(),
@@ -111,6 +115,7 @@ export const DocumentOut = z.object({
   contentHash: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  sample: z.boolean().optional().meta({ description: "True for the shared sample contracts: read-only through the API; POST /documents/{id}/copy makes an editable copy." }),
   templateProvenance: z.object({
     templateId: z.string(), title: z.string(), source: z.string(), attribution: z.string(), sourceUrl: z.string(),
     sourceVersion: z.string(), license: z.string(), jurisdictionNote: z.string(),

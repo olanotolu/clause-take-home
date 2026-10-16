@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { CiSnapshot, Playbook, PlaybookRule, Priority, RequestPatch, RequestStatus, RequestType, RequirementKind, WorkRequest } from "./types.ts";
 
+/** Stable identity of a sample contract: its title, lower-cased, with runs of anything else collapsed to a dash. */
+export const sampleKeyOf = (title: string): string => title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 export const newId = (prefix: string, len = 12): string => `${prefix}_${randomUUID().replaceAll("-", "").slice(0, len)}`;
 
 /** YYYY-MM-DD, `days` from now (UTC). */

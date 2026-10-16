@@ -9,6 +9,8 @@ export interface DocumentRecord {
   createdAt: string;
   updatedAt: string;
   templateProvenance?: TemplateProvenance;
+  /** One of the shared sample contracts: the server restores it if missing and the API refuses to change it. */
+  sample?: boolean;
 }
 
 export interface TemplateProvenance {
@@ -234,8 +236,12 @@ export interface Store {
   seedPlaybooksIfEmpty(items: SeedPlaybook[]): Promise<number>;
   seedRequestsIfEmpty(items: SeedRequest[]): Promise<number>;
 
-  /** Inserts `items` only if there are no documents at all, atomically (safe if several instances start at once). Returns how many were inserted. */
-  seedIfEmpty(items: { title: string; content: string }[]): Promise<number>;
+  /**
+   * Makes sure every sample exists, atomically (safe if several instances start at once). A sample that is missing is
+   * created; an unmarked document with the same title and EXACTLY the canonical text is adopted instead of duplicated.
+   * Existing samples are never rewritten. Returns how many were created or adopted.
+   */
+  ensureSamples(items: { title: string; content: string }[]): Promise<number>;
 
   close(): Promise<void>;
 }

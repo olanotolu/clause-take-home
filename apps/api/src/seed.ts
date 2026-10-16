@@ -2,14 +2,10 @@ import { storeFromEnv } from "./config.ts";
 import { SEED_DOCUMENTS } from "./seed-data.ts";
 import { SEED_PLAYBOOKS, SEED_REQUESTS, seedDemoRequirements } from "./seed-workspace.ts";
 
-/** Loads the fictional contracts into whichever database the environment selects (SQLite by default). Never touches existing rows. */
+/** Makes sure the fictional sample contracts exist in whichever database the environment selects (SQLite by default). Never rewrites an existing document. */
 const store = await storeFromEnv(process.env);
-const existing = new Set((await store.listDocuments(100, 0)).items.map((d) => d.title));
-for (const item of SEED_DOCUMENTS) {
-  if (existing.has(item.title)) continue;
-  const doc = await store.insertDocument(item);
-  console.log(`${doc.id}  v${doc.version}  ${item.title}`);
-}
+const samples = await store.ensureSamples(SEED_DOCUMENTS);
+if (samples) console.log(`${samples} sample contracts created or marked`);
 const playbooks = await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS);
 const requests = await store.seedRequestsIfEmpty(SEED_REQUESTS);
 const demoRules = await seedDemoRequirements(store);

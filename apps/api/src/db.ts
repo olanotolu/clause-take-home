@@ -129,6 +129,9 @@ const MIGRATIONS: string[] = [
   CREATE INDEX integration_imports_document_idx ON integration_imports (document_id);
   `,
   `ALTER TABLE documents ADD COLUMN template_provenance TEXT;`,
+  // The shared sample contracts carry a stable key; ordinary documents leave it NULL.
+  `ALTER TABLE documents ADD COLUMN sample_key TEXT;
+   CREATE UNIQUE INDEX documents_sample_key_idx ON documents (sample_key) WHERE sample_key IS NOT NULL;`,
 ];
 
 export function openDb(path: string): Db {

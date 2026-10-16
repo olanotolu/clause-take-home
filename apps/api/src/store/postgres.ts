@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import pg from "pg";
-import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
+import { dueIn, newId, REQUEST_COLUMNS, sampleKeyOf, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
 import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type WordSnapshot, type RevisionInfo, type Store, type IntegrationProvider } from "./types.ts";
 
 /**
@@ -123,6 +123,8 @@ const MIGRATIONS: string[] = [
   CREATE INDEX integration_imports_document_idx ON integration_imports (document_id);
   `,
   `ALTER TABLE documents ADD COLUMN template_provenance TEXT;`,
+  `ALTER TABLE documents ADD COLUMN sample_key TEXT;
+   CREATE UNIQUE INDEX documents_sample_key_idx ON documents (sample_key) WHERE sample_key IS NOT NULL;`,
 ];
 
 interface Row {
@@ -134,6 +136,7 @@ interface Row {
   created_at: string;
   updated_at: string;
   template_provenance?: string | null;
+  sample_key?: string | null;
 }
 
 const toRecord = (r: Row): DocumentRecord => ({
@@ -145,9 +148,10 @@ const toRecord = (r: Row): DocumentRecord => ({
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   ...(r.template_provenance ? { templateProvenance: typeof r.template_provenance === "string" ? JSON.parse(r.template_provenance) : r.template_provenance } : {}),
+  ...(r.sample_key ? { sample: true } : {}),
 });
 
-const DOC_COLUMNS = "id, title, content, version, content_hash, created_at, updated_at, template_provenance";
+const DOC_COLUMNS = "id, title, content, version, content_hash, created_at, updated_at, template_provenance, sample_key";
 
 /**
  * Plain text -> tsquery text. Every word is emitted as a quoted literal and a "quoted phrase" becomes a `<->`
@@ -209,13 +213,13 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
   opts.onPool?.(pool);
   await migrate(pool);
 
-  async function insertWith(c: pg.PoolClient, input: { title: string; content: string; templateProvenance?: import("./types.ts").TemplateProvenance }): Promise<DocumentRecord> {
+  async function insertWith(c: pg.PoolClient, input: { title: string; content: string; templateProvenance?: import("./types.ts").TemplateProvenance; sampleKey?: string }): Promise<DocumentRecord> {
     const now = new Date().toISOString();
     const id = `doc_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
     const hash = sha256(input.content);
-    await c.query("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at, template_provenance) VALUES ($1, $2, $3, 1, $4, $5, $5, $6)", [id, input.title, input.content, hash, now, input.templateProvenance ? JSON.stringify(input.templateProvenance) : null]);
+    await c.query("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at, template_provenance, sample_key) VALUES ($1, $2, $3, 1, $4, $5, $5, $6, $7)", [id, input.title, input.content, hash, now, input.templateProvenance ? JSON.stringify(input.templateProvenance) : null, input.sampleKey ?? null]);
     await c.query("INSERT INTO revisions (document_id, version, content, content_hash, summary, created_at) VALUES ($1, 1, $2, $3, $4, $5)", [id, input.content, hash, JSON.stringify([{ created: true }]), now]);
-    return { id, title: input.title, content: input.content, version: 1, contentHash: hash, createdAt: now, updatedAt: now, ...(input.templateProvenance ? { templateProvenance: input.templateProvenance } : {}) };
+    return { id, title: input.title, content: input.content, version: 1, contentHash: hash, createdAt: now, updatedAt: now, ...(input.templateProvenance ? { templateProvenance: input.templateProvenance } : {}), ...(input.sampleKey ? { sample: true } : {}) };
   }
 
   /** Runs `fn` on one connection inside a transaction. */
@@ -289,12 +293,12 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
 
     async listDocuments(limit, offset) {
       const rows = await pool.query<Omit<Row, "content"> & { size: number }>(
-        `SELECT id, title, version, content_hash, created_at, updated_at, length(content) AS size
-         FROM documents ORDER BY created_at DESC, seq DESC LIMIT $1 OFFSET $2`,
+        `SELECT id, title, version, content_hash, created_at, updated_at, sample_key, length(content) AS size
+         FROM documents ORDER BY (sample_key IS NULL), created_at DESC, seq DESC LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
       const total = Number((await pool.query<{ n: string }>("SELECT count(*) AS n FROM documents")).rows[0]!.n);
-      const items: DocumentSummary[] = rows.rows.map((r) => ({ id: r.id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, updatedAt: r.updated_at, size: Number(r.size) }));
+      const items: DocumentSummary[] = rows.rows.map((r) => ({ id: r.id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, updatedAt: r.updated_at, ...(r.sample_key ? { sample: true } : {}), size: Number(r.size) }));
       return { total, items };
     },
 
@@ -476,7 +480,7 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
         if (Number((await c.query<{ n: string }>("SELECT count(*) AS n FROM requests")).rows[0]!.n) > 0) return 0;
         let n = 0;
         for (const it of items) {
-          const doc = (await c.query<{ id: string }>("SELECT id FROM documents WHERE title = $1 ORDER BY seq LIMIT 1", [it.documentTitle])).rows[0];
+          const doc = (await c.query<{ id: string }>("SELECT id FROM documents WHERE title = $1 ORDER BY (sample_key IS NULL), seq LIMIT 1", [it.documentTitle])).rows[0];
           if (!doc) continue;
           const now = new Date(Date.now() - (items.length - n) * 3_600_000).toISOString();
           n++;
@@ -487,12 +491,21 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
     },
 
     /** An advisory lock makes "is it empty? then fill it" atomic across instances: exactly one cold start seeds. */
-    async seedIfEmpty(items) {
+    async ensureSamples(items) {
       return tx(async (c) => {
         await c.query("SELECT pg_advisory_xact_lock(727275)");
-        if (Number((await c.query<{ n: string }>("SELECT count(*) AS n FROM documents")).rows[0]!.n) > 0) return 0;
-        for (const item of items) await insertWith(c, item);
-        return items.length;
+        let touched = 0;
+        for (const item of items) {
+          const key = sampleKeyOf(item.title);
+          if ((await c.query("SELECT 1 FROM documents WHERE sample_key = $1", [key])).rowCount) continue;
+          // An unmarked document with this title and exactly the canonical text is the sample already (the hosted
+          // database was seeded before samples were marked): adopt it rather than create a duplicate.
+          const same = (await c.query<{ id: string }>("SELECT id FROM documents WHERE title = $1 AND content_hash = $2 AND sample_key IS NULL ORDER BY seq LIMIT 1", [item.title, sha256(item.content)])).rows[0];
+          if (same) await c.query("UPDATE documents SET sample_key = $1 WHERE id = $2", [key, same.id]);
+          else await insertWith(c, { ...item, sampleKey: key });
+          touched++;
+        }
+        return touched;
       });
     },
 

@@ -13,7 +13,6 @@ const SECTIONS = [
   ["ai", "AI & Models", "How the AI checks behave. Models themselves are set on the server."],
   ["editing", "Document & Editing", "How staged changes are reviewed and applied."],
   ["security", "Security & Privacy", "What this deployment does with your documents."],
-  ["appearance", "Appearance", "Theme."],
   ["usage", "Usage & Limits", "Live numbers from the server."],
   ["planned", "Planned", "Shown in the product design; not built in this prototype."],
 ] as const;
@@ -78,7 +77,6 @@ const KEYWORDS: Record<SectionId, string> = {
   ai: "ai model judge risk sensitivity strict balanced suggestions jev claude",
   editing: "apply confirm redline hash sha256 auto",
   security: "privacy retention sso audit open access data stored openrouter",
-  appearance: "theme dark light system",
   usage: "limits rate documents storage postgres sqlite caps",
   planned: "integrations slack drive microsoft github sso billing team playbooks templates",
 };
@@ -218,7 +216,7 @@ export function SettingsView() {
 
           {show("security") && (
             <Card id="security" title="Security & Privacy" subtitle={SECTIONS[3][2]}>
-              <Fact label="Access" note="No sign-in. Anyone with the link can read and edit." value={status?.access === "open" ? "Open demo" : failed ? "Unavailable" : "Loading…"} />
+              <Fact label="Access" note="No sign-in. Anyone with the link can read, and edit or delete their own documents. The five sample contracts are read-only; copy one to edit it." value={status?.access === "open" ? "Open demo" : failed ? "Unavailable" : "Loading…"} />
               <Fact label="What is stored" value="Document text, every version, requirements, content hashes" />
               <Fact label="AI checks send document text to" note="Only when you run a check or ask for a suggestion." value="OpenRouter, then the model provider" />
               <Fact label="Retention" value="Kept until deleted by the operator" />
@@ -228,16 +226,8 @@ export function SettingsView() {
             </Card>
           )}
 
-          {show("appearance") && (
-            <Card id="appearance" title="Appearance" subtitle={SECTIONS[4][2]}>
-              <Row label="Theme" htmlFor="s-theme">
-                <Select id="s-theme" value={settings.theme} onChange={(v) => set("theme", v)} options={[["system", "Match system"], ["light", "Light"], ["dark", "Dark"]]} />
-              </Row>
-            </Card>
-          )}
-
           {show("usage") && (
-            <Card id="usage" title="Usage & Limits" subtitle={SECTIONS[5][2]}>
+            <Card id="usage" title="Usage & Limits" subtitle={SECTIONS[4][2]}>
               {failed && <p role="alert" className="py-3 text-sm text-del">Could not reach the server for its status.</p>}
               {status && (
                 <>
@@ -255,7 +245,7 @@ export function SettingsView() {
           )}
 
           {show("planned") && (
-            <Card id="planned" title="Planned" subtitle={SECTIONS[6][2]}>
+            <Card id="planned" title="Planned" subtitle={SECTIONS[5][2]}>
               <Planned label="Integrations: Google Drive, Microsoft 365, Slack, GitHub" />
               <Planned label="Team members and roles" />
               <Planned label="Playbooks and custom organisation rules" />

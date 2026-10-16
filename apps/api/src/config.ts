@@ -53,7 +53,7 @@ export function lazyStoreFromEnv(env: Record<string, string | undefined>, hooks:
   return lazyStore({ kind, maxContentChars: kind === "postgres" ? POSTGRES_MAX_CONTENT_CHARS : Number.POSITIVE_INFINITY }, async () => {
     const store = await storeFromEnv(env, hooks);
     if (env.CLAUSE_SEED === "1") {
-      await store.seedIfEmpty(SEED_DOCUMENTS);
+      await store.ensureSamples(SEED_DOCUMENTS);
       // Independent of the documents check, so a database seeded before these tables existed still gets them (once).
       await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS);
       await store.seedRequestsIfEmpty(SEED_REQUESTS);

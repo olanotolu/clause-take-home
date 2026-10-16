@@ -35,6 +35,7 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const ws = useWorkspace();
+  const readOnly = Boolean(ws.doc?.sample);
   const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
   const [pick, setPick] = useState("");
 
@@ -84,7 +85,7 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
       <p className="text-[13px] text-muted">Requirements are this document's test suite. CLAUSE CI checks every proposed edit against them and tells you which an edit keeps, breaks, or newly satisfies.</p>
 
-      {playbooks.length > 0 && (
+      {playbooks.length > 0 && !readOnly && (
         <section aria-labelledby="req-pb" className="rounded-control border border-line bg-paper p-3">
           <h3 id="req-pb" className="mb-2 text-sm font-semibold">Start from a playbook</h3>
           <div className="flex gap-2">
@@ -111,12 +112,21 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-muted">{BY_KIND[r.kind].icon}{BY_KIND[r.kind].label}</span>
                 <p className="doc !text-[14px] !leading-snug">{r.text.length > 160 ? `${r.text.slice(0, 160)}…` : r.text}</p>
               </div>
-              <button type="button" onClick={() => void remove(r.id)} aria-label={`Delete requirement: ${r.text.slice(0, 40)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>
+              {!readOnly && <button type="button" onClick={() => void remove(r.id)} aria-label={`Delete requirement: ${r.text.slice(0, 40)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>}
             </li>
           ))}
         </ul>
       </section>
 
+      {readOnly && (
+        <section aria-labelledby="req-ro" className="rounded-control border border-line bg-paper p-3">
+          <h3 id="req-ro" className="mb-1 text-sm font-semibold">This sample is read-only</h3>
+          <p className="text-xs text-muted">Make a copy to add, change or remove requirements.</p>
+          <Button size="sm" className="mt-2" onClick={() => void ws.copyDoc()}>Make a copy</Button>
+        </section>
+      )}
+
+      {!readOnly && (
       <section aria-labelledby="req-add" className="rounded-control border border-line bg-paper p-3">
         <h3 id="req-add" className="mb-2 text-sm font-semibold">Add a requirement</h3>
         <label htmlFor="req-kind" className="sr-only">Kind</label>
@@ -132,6 +142,7 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
         </div>
         {error && <p role="alert" className="mt-2 text-[13px] text-fail">{error}</p>}
       </section>
+      )}
     </div>
   );
 }

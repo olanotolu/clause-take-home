@@ -47,8 +47,10 @@ export function registerPlaybookRoutes(app: App): void {
    * Copies a playbook's rules onto a document as requirements. Rules the document already has (same kind and text) are
    * skipped, and so is anything past the per-document limit; the response says which and why. Nothing else changes.
    */
-  app.post("/documents/:id/apply-playbook", { schema: { params: IdParams, body: ApplyPlaybookBody, response: { 200: ApplyPlaybookOut, ...errors(400, 404, 500) } } }, async (req, reply) => {
-    if (!(await app.store.getDocument(req.params.id))) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+  app.post("/documents/:id/apply-playbook", { schema: { params: IdParams, body: ApplyPlaybookBody, response: { 200: ApplyPlaybookOut, ...errors(400, 403, 404, 500) } } }, async (req, reply) => {
+    const doc = await app.store.getDocument(req.params.id);
+    if (!doc) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id: req.params.id });
+    if (doc.sample) return reply.problem({ type: "SAMPLE_READ_ONLY", id: doc.id });
     const pb = await app.store.getPlaybook(req.body.playbookId);
     if (!pb) return reply.problem({ type: "PLAYBOOK_NOT_FOUND", id: req.body.playbookId });
     const have = await app.store.listRequirements(req.params.id);

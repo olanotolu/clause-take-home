@@ -7,8 +7,8 @@ describe("parseSettings", () => {
   });
 
   it("keeps valid fields and replaces only the invalid ones", () => {
-    const s = parseSettings(JSON.stringify({ theme: "dark", dateFormat: "klingon", aiTab: "yes", strictness: "strict", showHash: false }));
-    expect(s).toMatchObject({ theme: "dark", dateFormat: DEFAULTS.dateFormat, aiTab: DEFAULTS.aiTab, strictness: "strict", showHash: false });
+    const s = parseSettings(JSON.stringify({ confirmApply: true, dateFormat: "klingon", aiTab: "yes", strictness: "strict", showHash: false }));
+    expect(s).toMatchObject({ confirmApply: true, dateFormat: DEFAULTS.dateFormat, aiTab: DEFAULTS.aiTab, strictness: "strict", showHash: false });
   });
 
   it("ignores unknown keys and never returns them", () => {

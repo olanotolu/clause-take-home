@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { DEFAULTS, parseSettings, STORAGE_KEY, type Settings } from "./settings-core.ts";
 
 interface Ctx {
@@ -31,14 +31,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const set = useCallback<Ctx["set"]>((key, value) => setSettings((s) => { const next = { ...s, [key]: value }; write(next); return next; }), []);
   const reset = useCallback(() => { write(DEFAULTS); setSettings(DEFAULTS); }, []);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => { document.documentElement.dataset.theme = settings.theme === "system" ? (mq.matches ? "dark" : "light") : settings.theme; };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, [settings.theme]);
 
   const value = useMemo(() => ({ settings, set, reset }), [settings, set, reset]);
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

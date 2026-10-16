@@ -85,9 +85,9 @@ export const TEMPLATES = defs.map((d) => {
   };
 });
 
-export function registerTemplateRoutes(app: App): void {
+export function registerTemplateRoutes(app: App, createLimit: { max: number; timeWindow: string }): void {
   app.get("/templates", { schema: { response: { 200: z.object({ items: TemplateOut.array() }), ...errors(500) } } }, async () => ({ items: TEMPLATES }));
-  app.post("/templates/:id/create", { schema: { params: TemplateIdParams, body: CreateTemplateBody, response: { 201: z.object({ document: DocumentOut, attachedRequirements: RequirementOut.array(), attachmentError: z.string().optional() }), ...errors(400, 404, 413, 500) } } }, async (req, reply) => {
+  app.post("/templates/:id/create", { config: { rateLimit: createLimit }, schema: { params: TemplateIdParams, body: CreateTemplateBody, response: { 201: z.object({ document: DocumentOut, attachedRequirements: RequirementOut.array(), attachmentError: z.string().optional() }), ...errors(400, 404, 413, 429, 500) } } }, async (req, reply) => {
     const template = TEMPLATES.find((t) => t.id === req.params.id);
     if (!template) return reply.code(404).send({ error: "Template not found", code: 404, type: "TEMPLATE_NOT_FOUND" });
     const missing = template.variables.filter((v) => v.required && !req.body.values[v.id]?.trim()).map((v) => v.label);

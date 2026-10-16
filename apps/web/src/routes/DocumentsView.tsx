@@ -48,7 +48,7 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
                 <tbody className="divide-y divide-line">
                   {rows.map((d) => (
                     <tr key={d.id} className="group cursor-pointer hover:bg-canvas" onClick={() => navigate({ name: "doc", id: d.id, tab: "edit" })}>
-                      <td className="max-w-[48vw] px-4 py-3 max-[640px]:px-3"><a href={`#/doc/${encodeURIComponent(d.id)}/edit`} className="block truncate font-medium group-hover:text-accent" onClick={(e) => e.stopPropagation()}>{d.title}</a></td>
+                      <td className="max-w-[48vw] px-4 py-3 max-[640px]:px-3"><a href={`#/doc/${encodeURIComponent(d.id)}/edit`} className="block truncate font-medium group-hover:text-accent" onClick={(e) => e.stopPropagation()}>{d.title}{d.sample && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 align-middle text-[11px] font-semibold text-accent">Sample</span>}</a></td>
                       <td className="tnum px-3 py-3 text-muted">v{d.version}</td>
                       <td className="tnum px-3 py-3 text-muted max-[640px]:hidden">{kb(d.size)}</td>
                       <td className="tnum whitespace-nowrap px-4 py-3 text-muted max-[640px]:px-3">{ago(d.updatedAt)}</td>

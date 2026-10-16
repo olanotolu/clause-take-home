@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import { openDb, transaction, type Db } from "../db.ts";
-import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
+import { dueIn, newId, REQUEST_COLUMNS, sampleKeyOf, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
 import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, NATIVE_SNIPPET_MAX_CHARS, type WordSnapshot, type RevisionInfo, type Store, type IntegrationConnection, type IntegrationProvider } from "./types.ts";
 
 const OPEN = "\u0002";
@@ -17,6 +17,7 @@ interface Row {
   created_at: string;
   updated_at: string;
   template_provenance?: string | null;
+  sample_key?: string | null;
 }
 
 const toRecord = (r: Row): DocumentRecord => ({
@@ -28,6 +29,7 @@ const toRecord = (r: Row): DocumentRecord => ({
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   ...(r.template_provenance ? { templateProvenance: JSON.parse(r.template_provenance) } : {}),
+  ...(r.sample_key ? { sample: true } : {}),
 });
 
 const placeholders = (n: number) => Array.from({ length: n }, () => "?").join(",");
@@ -49,7 +51,7 @@ export function createSqliteStore(path: string): Store {
 
 export function sqliteStore(db: Db): Store {
   const getDoc = (id: string): DocumentRecord | undefined => {
-    const row = db.prepare("SELECT id, title, content, version, content_hash, created_at, updated_at, template_provenance FROM documents WHERE id = ?").get(id);
+    const row = db.prepare("SELECT id, title, content, version, content_hash, created_at, updated_at, template_provenance, sample_key FROM documents WHERE id = ?").get(id);
     return row ? toRecord(row as unknown as Row) : undefined;
   };
 
@@ -113,12 +115,12 @@ export function sqliteStore(db: Db): Store {
     async listDocuments(limit, offset) {
       const rows = db
         .prepare(
-          `SELECT id, title, version, content_hash, created_at, updated_at, length(content) AS size
-           FROM documents ORDER BY created_at DESC, seq DESC LIMIT ? OFFSET ?`,
+          `SELECT id, title, version, content_hash, created_at, updated_at, sample_key, length(content) AS size
+           FROM documents ORDER BY (sample_key IS NULL), created_at DESC, seq DESC LIMIT ? OFFSET ?`,
         )
         .all(limit, offset) as unknown as (Omit<Row, "content"> & { size: number })[];
       const { n } = db.prepare("SELECT count(*) AS n FROM documents").get() as { n: number };
-      const items: DocumentSummary[] = rows.map((r) => ({ id: r.id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, updatedAt: r.updated_at, size: r.size }));
+      const items: DocumentSummary[] = rows.map((r) => ({ id: r.id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, updatedAt: r.updated_at, size: r.size, ...(r.sample_key ? { sample: true } : {}) }));
       return { total: n, items };
     },
 
@@ -310,7 +312,7 @@ export function sqliteStore(db: Db): Store {
         if ((db.prepare("SELECT count(*) AS n FROM requests").get() as { n: number }).n > 0) return 0;
         let n = 0;
         for (const it of items) {
-          const doc = db.prepare("SELECT id FROM documents WHERE title = ? ORDER BY seq LIMIT 1").get(it.documentTitle) as { id: string } | undefined;
+          const doc = db.prepare("SELECT id FROM documents WHERE title = ? ORDER BY (sample_key IS NULL), seq LIMIT 1").get(it.documentTitle) as { id: string } | undefined;
           if (!doc) continue;
           const now = new Date(Date.now() - (items.length - n) * 3_600_000).toISOString();
           db.prepare("INSERT INTO requests (id, document_id, title, goal, status, priority, type, due_date, ci, created_at, updated_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)").run(newId("wrq"), doc.id, it.title, it.goal, it.status, it.priority, it.type, it.dueInDays === undefined ? null : dueIn(it.dueInDays), now, now, ++n);
@@ -319,17 +321,27 @@ export function sqliteStore(db: Db): Store {
       });
     },
 
-    async seedIfEmpty(items) {
+    async ensureSamples(items) {
       const now = new Date().toISOString();
       return transaction(db, () => {
-        if ((db.prepare("SELECT count(*) AS n FROM documents").get() as { n: number }).n > 0) return 0;
+        let touched = 0;
         for (const item of items) {
-          const id = `doc_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+          const key = sampleKeyOf(item.title);
+          if (db.prepare("SELECT 1 FROM documents WHERE sample_key = ?").get(key)) continue;
           const hash = sha256(item.content);
-          db.prepare("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)").run(id, item.title, item.content, hash, now, now);
-          db.prepare("INSERT INTO revisions (document_id, version, content, content_hash, summary, created_at) VALUES (?, 1, ?, ?, ?, ?)").run(id, item.content, hash, JSON.stringify([{ created: true }]), now);
+          // A document with this title and exactly the canonical text is the sample already (the hosted database was
+          // seeded before samples were marked): adopt it rather than create a duplicate.
+          const same = db.prepare("SELECT id FROM documents WHERE title = ? AND content_hash = ? AND sample_key IS NULL ORDER BY seq LIMIT 1").get(item.title, hash) as { id: string } | undefined;
+          if (same) {
+            db.prepare("UPDATE documents SET sample_key = ? WHERE id = ?").run(key, same.id);
+          } else {
+            const id = `doc_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+            db.prepare("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at, sample_key) VALUES (?, ?, ?, 1, ?, ?, ?, ?)").run(id, item.title, item.content, hash, now, now, key);
+            db.prepare("INSERT INTO revisions (document_id, version, content, content_hash, summary, created_at) VALUES (?, 1, ?, ?, ?, ?)").run(id, item.content, hash, JSON.stringify([{ created: true }]), now);
+          }
+          touched++;
         }
-        return items.length;
+        return touched;
       });
     },
 

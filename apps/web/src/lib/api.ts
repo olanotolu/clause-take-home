@@ -1,8 +1,8 @@
 import type { Target } from "@clause/engine";
 
 export interface TemplateProvenance { templateId: string; title: string; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string }
-export interface Doc { id: string; title: string; content: string; version: number; contentHash: string; createdAt: string; updatedAt: string; templateProvenance?: TemplateProvenance }
-export interface DocSummary { id: string; title: string; version: number; size: number; updatedAt: string }
+export interface Doc { id: string; title: string; content: string; version: number; contentHash: string; createdAt: string; updatedAt: string; templateProvenance?: TemplateProvenance; sample?: boolean }
+export interface DocSummary { id: string; title: string; version: number; size: number; updatedAt: string; sample?: boolean }
 export interface Applied { index: number; start: number; end: number; before: string; after: string; newStart: number; newEnd: number }
 export interface Segment { text: string; match: boolean }
 export interface Hit { snippet: Segment[]; start?: number; end?: number; target?: Target }
@@ -112,6 +112,7 @@ export const api = {
   list: () => call<{ items: DocSummary[]; total: number }>("GET", "/documents?limit=100"),
   get: (id: string) => call<Doc>("GET", `/documents/${id}`),
   create: (title: string, content: string) => call<Doc>("POST", "/documents", { title, content }),
+  copy: (id: string, title?: string) => call<Doc>("POST", `/documents/${encodeURIComponent(id)}/copy`, title ? { title } : {}),
   revisions: (id: string) => call<{ items: Revision[] }>("GET", `/documents/${id}/revisions`),
   search: (q: string, mode: string) => call<SearchPage>("GET", `/documents/search?q=${encodeURIComponent(q)}&mode=${mode}&limit=20`),
   preview: (id: string, expectedVersion: number, changes: Change[]) =>

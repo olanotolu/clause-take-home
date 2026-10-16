@@ -43,6 +43,8 @@ export interface AppOptions {
   semanticEvaluator?: SemanticEvaluator;
   /** Per-IP cap on /changes/check (semantic checks cost money). */
   checkRateLimit?: { max: number; timeWindow: string };
+  /** Creating or copying documents; bounds how fast anyone can fill a shared database. */
+  createRateLimit?: { max: number; timeWindow: string };
   /** Source of AI edit proposals. Omit to disable /suggest (503). The rest of the API never depends on it. */
   suggestionProvider?: EditSuggestionProvider;
 }
@@ -144,7 +146,8 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   await app.register(rateLimit, { global: false });
 
   const typed = app.withTypeProvider<ZodTypeProvider>() as unknown as App;
-  registerDocumentRoutes(typed);
+  const createLimit = opts.createRateLimit ?? { max: Number(process.env.CLAUSE_CREATE_PER_HOUR ?? 60), timeWindow: "1 hour" };
+  registerDocumentRoutes(typed, createLimit);
   registerSearchRoutes(typed);
   registerRequirementRoutes(typed);
   const checkLimit = opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" };
@@ -155,7 +158,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   registerRequestRoutes(typed, semantic, checkLimit);
   registerPlaybookRoutes(typed);
   registerActivityRoutes(typed);
-  registerTemplateRoutes(typed);
+  registerTemplateRoutes(typed, createLimit);
   registerIntegrationRoutes(typed);
   registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, suggestionModel: opts.suggestionProvider?.model ?? null, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: buildVersion(process.env) });
   return app;

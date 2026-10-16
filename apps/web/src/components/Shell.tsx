@@ -296,7 +296,7 @@ export function Shell({ children }: { children: ReactNode }) {
     </AnimatePresence>
     <CommandPalette open={palette} onClose={() => setPalette(false)} />
     <NewDocumentDialog open={ws.newDocOpen} onClose={() => ws.setNewDocOpen(false)} />
-    <Toaster position="bottom-right" theme={settings.theme} offset={16} mobileOffset={{ bottom: 76, left: 12, right: 12 }} closeButton />
+    <Toaster position="bottom-right" theme="light" offset={16} mobileOffset={{ bottom: 76, left: 12, right: 12 }} closeButton />
     </>
   );
 }

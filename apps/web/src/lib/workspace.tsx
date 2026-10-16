@@ -61,6 +61,8 @@ interface Workspace {
   stageSuggested: (items: Omit<Staged, "id">[], ci?: CiReport | null) => void;
   restore: (toVersion: number) => Promise<void>;
   create: (title: string, content: string) => Promise<string | null>;
+  /** A disposable, editable copy of the open document (how the read-only samples are worked on). Opens the copy. */
+  copyDoc: () => Promise<string | null>;
   runCi: () => Promise<void>;
   showEvidence: (e: Evidence) => void;
   pickHit: (result: DocResult, hit: Hit) => void;
@@ -321,8 +323,43 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     window.getSelection()?.removeAllRanges();
   }, [doc, selection]);
 
+  const copyDoc = useCallback(async () => {
+    if (!doc) return null;
+    const r = await api.copy(doc.id);
+    if (!r.ok) {
+      toast(r.error.error, "fail");
+      return null;
+    }
+    await refreshDocs();
+    navigate({ name: "doc", id: r.data.id, tab: "edit" });
+    toast(`Made “${r.data.title}”. It is yours to edit.`, "pass");
+    return r.data.id;
+  }, [doc, toast, refreshDocs]);
+
+  /** A sample is read-only, so applying staged changes to it means: copy it, then apply the same changes to the copy. */
+  const applyToCopy = useCallback(async () => {
+    if (!doc) return;
+    setApplying(true);
+    const copied = await api.copy(doc.id);
+    if (!copied.ok) {
+      setApplying(false);
+      toast(copied.error.error, "fail");
+      return;
+    }
+    const r = await api.apply(copied.data.id, copied.data.version, toChanges(staged));
+    setApplying(false);
+    await refreshDocs();
+    setStaged([]);
+    setSelection(null);
+    setRedline(false);
+    navigate({ name: "doc", id: copied.data.id, tab: "edit" });
+    if (r.ok) toast(`Applied to your copy: v${r.data.previousVersion} → v${r.data.version}. The sample is unchanged.`, "pass");
+    else toast(`Made your copy, but the changes did not apply: ${r.error.error}`, "fail");
+  }, [doc, staged, toast, refreshDocs]);
+
   const apply = useCallback(async () => {
     if (!doc || staged.length === 0) return;
+    if (doc.sample) return applyToCopy();
     if (settings.confirmApply && !window.confirm(`Apply ${staged.length} change${staged.length === 1 ? "" : "s"} as a new version of “${doc.title}”? Earlier versions are kept.`)) return;
     setApplying(true);
     const r = await api.apply(doc.id, doc.version, toChanges(staged));
@@ -340,7 +377,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     } else {
       setPreview({ status: "invalid", error: r.error });
     }
-  }, [doc, staged, settings.confirmApply, toast, refreshDocs]);
+  }, [doc, staged, settings.confirmApply, toast, refreshDocs, applyToCopy]);
 
   const reload = useCallback(async () => {
     if (!doc) return;
@@ -362,6 +399,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const restore = useCallback(async (toVersion: number) => {
     if (!doc) return;
+    if (doc.sample) return toast("This sample is read-only. Make a copy to restore versions.");
     const r = await api.revert(doc.id, doc.version, toVersion);
     if (r.ok) {
       if (r.data.changed) {
@@ -395,6 +433,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const protect = useCallback(async (text: string) => {
     if (!doc) return;
+    if (doc.sample) return toast("This sample is read-only. Make a copy to add rules.");
     const r = await api.addRequirement(doc.id, "unchanged", text);
     if (!r.ok) return toast(r.error.error, "fail");
     setRulesKey((k) => k + 1);
@@ -407,7 +446,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     docs, docsStatus, doc, opening, selection, setSelection, staged, preview, redline, setRedline, hits, setSearchPage, conflict, applying,
     refreshKey, rulesKey, bumpRules: () => setRulesKey((k) => k + 1), ci, goal, setGoal, toast, openDoc, refreshDocs, stage,
     removeStaged: (id) => setStaged((s) => s.filter((x) => x.id !== id)), clearStaged: () => setStaged([]), apply, reload, stageSuggested, restore,
-    create, runCi, showEvidence, pickHit, protect, proposedText, newDocOpen, setNewDocOpen,
+    create, copyDoc, runCi, showEvidence, pickHit, protect, proposedText, newDocOpen, setNewDocOpen,
     requests, requestsStatus, refreshRequests, createRequest, patchRequest, removeRequest, checkingRequest, checkRequest, newRequest, setNewRequest,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
