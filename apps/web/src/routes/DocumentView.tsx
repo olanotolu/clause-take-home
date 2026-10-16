@@ -54,12 +54,17 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 border-b border-line bg-paper px-6 pt-4 max-[640px]:px-3">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+      <header className="relative z-10 shrink-0 border-b border-line bg-paper px-6 pt-4 max-[640px]:px-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
-            <h1 className="font-display truncate text-2xl max-[640px]:text-xl" title={doc.title}>{doc.title}</h1>
-            <p className="tnum mt-0.5 text-[13px] text-muted">
-              v<Num value={doc.version} /> · {kb(new TextEncoder().encode(doc.content).length)} · updated <span title={formatDate(doc.updatedAt, settings.dateFormat)}>{ago(doc.updatedAt)}</span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <h1 className="font-display truncate text-[23px] leading-tight max-[640px]:text-xl" title={doc.title}>{doc.title}</h1>
+              <span className="tnum inline-flex shrink-0 items-center rounded-md border border-line bg-canvas px-2 py-0.5 text-xs font-semibold text-muted">v<Num value={doc.version} /></span>
+            </div>
+            <p className="tnum mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted">
+              <span>{kb(new TextEncoder().encode(doc.content).length)}</span>
+              <span aria-hidden="true" className="text-line-strong">·</span>
+              <span title={formatDate(doc.updatedAt, settings.dateFormat)}>Updated {ago(doc.updatedAt)}</span>
               {settings.showHash && <span className="ml-2 hidden font-mono text-xs sm:inline" title="SHA-256 of the current text">sha256 {doc.contentHash.slice(0, 10)}</span>}
             </p>
           </div>
@@ -93,7 +98,7 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
             </Button>
           </div>
         </div>
-        <Tabs tabs={tabs} value={tab} onChange={(t) => navigate({ name: "doc", id: doc.id, tab: t })} label="Document sections" idPrefix="doc" className="-mb-px mt-2" />
+        <Tabs tabs={tabs} value={tab} onChange={(t) => navigate({ name: "doc", id: doc.id, tab: t })} label="Document sections" idPrefix="doc" className="-mb-px mt-3" />
       </header>
       <div id="doc-panel" role="tabpanel" aria-labelledby={`doc-${tab}`} className="min-h-0 flex-1">
         <div key={tab} className="fade-up h-full">

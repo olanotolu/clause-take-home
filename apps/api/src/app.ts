@@ -18,6 +18,8 @@ import { registerTemplateRoutes } from "./routes/templates.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
 import { registerSuggestRoutes } from "./routes/suggest.ts";
 import { noSemanticEvaluator } from "./review/runner.ts";
+import { registerIntegrationRoutes } from "./routes/integrations.ts";
+import { IntegrationError } from "./integrations/service.ts";
 import type { SemanticEvaluator } from "./review/types.ts";
 import type { EditSuggestionProvider } from "./suggest.ts";
 
@@ -70,6 +72,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
 
   // Every non-2xx has the same shape: { error, code, type, details? }. No stack traces, no document text.
   app.setErrorHandler((err, req, reply) => {
+    if (err instanceof IntegrationError) return reply.code(err.status).send({ error: err.message, code: err.status, type: err.code });
     if (hasZodFastifySchemaValidationErrors(err)) {
       return reply.code(400).send({
         error: "Request validation failed",
@@ -129,6 +132,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   registerPlaybookRoutes(typed);
   registerActivityRoutes(typed);
   registerTemplateRoutes(typed);
-  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev" });
+  registerIntegrationRoutes(typed);
+  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, suggestionModel: opts.suggestionProvider?.model ?? null, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev" });
   return app;
 }

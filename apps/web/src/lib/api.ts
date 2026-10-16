@@ -1,6 +1,7 @@
 import type { Target } from "@clause/engine";
 
-export interface Doc { id: string; title: string; content: string; version: number; contentHash: string; createdAt: string; updatedAt: string }
+export interface TemplateProvenance { templateId: string; title: string; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string }
+export interface Doc { id: string; title: string; content: string; version: number; contentHash: string; createdAt: string; updatedAt: string; templateProvenance?: TemplateProvenance }
 export interface DocSummary { id: string; title: string; version: number; size: number; updatedAt: string }
 export interface Applied { index: number; start: number; end: number; before: string; after: string; newStart: number; newEnd: number }
 export interface Segment { text: string; match: boolean }
@@ -44,7 +45,7 @@ export interface SettingsStatus {
   version: string;
   storage: "sqlite" | "postgres";
   access: "open";
-  ai: { judges: string[]; suggestions: boolean; strictnessOptions: ("balanced" | "strict")[] };
+  ai: { judges: string[]; suggestions: boolean; suggestionModel: string | null; strictnessOptions: ("balanced" | "strict")[] };
   limits: { maxDocumentChars: number | null; maxJudgedChars: number; maxRequirementsPerDocument: number; checkPerHour: number; suggestPerHour: number };
 }
 export type RequestStatus = "inbox" | "in_progress" | "needs_review" | "completed";
@@ -84,7 +85,10 @@ export interface PlaybookSummary extends Playbook { ruleCount: number }
 export interface PlaybookDetail extends Playbook { rules: PlaybookRule[] }
 export interface ApplyResult { added: Requirement[]; skipped: { title: string; reason: "duplicate" | "limit" }[] }
 export interface ActivityItem { documentId: string; title: string; version: number; contentHash: string; createdAt: string; summary: Revision["summary"] }
-export interface Template { id: string; title: string; category: "NDA" | "Commercial" | "Employment" | "Data & Privacy"; content: string }
+export type TemplateCategory = "NDA" | "Commercial" | "Data & Privacy" | "Vendor & Services" | "Employment";
+export interface TemplateVariable { id: string; label: string; required: boolean; placeholder: string; helpText: string }
+export interface TemplateSuggestion { id: string; title: string; kind: RequirementKind; text: string }
+export interface Template { id: string; title: string; description: string; category: TemplateCategory; content: string; source: string; attribution: string; sourceUrl: string; sourceVersion: string; license: string; jurisdictionNote: string; featured: boolean; variables: TemplateVariable[]; suggestedRequirements: TemplateSuggestion[] }
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -133,6 +137,8 @@ export const api = {
   applyPlaybook: (docId: string, playbookId: string) => call<ApplyResult>("POST", `/documents/${docId}/apply-playbook`, { playbookId }),
   activity: (limit = 60) => call<{ items: ActivityItem[] }>("GET", `/activity?limit=${limit}`),
   templates: () => call<{ items: Template[] }>("GET", "/templates"),
+  createFromTemplate: (id: string, values: Record<string, string>, selectedRequirementIds: string[], title?: string) =>
+    call<{ document: Doc; attachedRequirements: Requirement[]; attachmentError?: string }>("POST", `/templates/${encodeURIComponent(id)}/create`, { values, selectedRequirementIds, ...(title ? { title } : {}) }),
   settingsStatus: () => call<SettingsStatus>("GET", "/settings/status"),
   suggest: (id: string, instruction: string) => call<SuggestResponse>("POST", `/documents/${id}/suggest`, { instruction }),
   apply: (id: string, expectedVersion: number, changes: Change[]) => call<Receipt>("PATCH", `/documents/${id}`, { expectedVersion, changes }),

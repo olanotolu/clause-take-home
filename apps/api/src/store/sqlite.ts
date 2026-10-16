@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import { openDb, transaction, type Db } from "../db.ts";
 import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
-import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
+import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store, type IntegrationConnection, type IntegrationProvider } from "./types.ts";
 
 const OPEN = "\u0002";
 const CLOSE = "\u0003";
@@ -16,6 +16,7 @@ interface Row {
   content_hash: string;
   created_at: string;
   updated_at: string;
+  template_provenance?: string | null;
 }
 
 const toRecord = (r: Row): DocumentRecord => ({
@@ -26,6 +27,7 @@ const toRecord = (r: Row): DocumentRecord => ({
   contentHash: r.content_hash,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
+  ...(r.template_provenance ? { templateProvenance: JSON.parse(r.template_provenance) } : {}),
 });
 
 const placeholders = (n: number) => Array.from({ length: n }, () => "?").join(",");
@@ -47,7 +49,7 @@ export function createSqliteStore(path: string): Store {
 
 export function sqliteStore(db: Db): Store {
   const getDoc = (id: string): DocumentRecord | undefined => {
-    const row = db.prepare("SELECT id, title, content, version, content_hash, created_at, updated_at FROM documents WHERE id = ?").get(id);
+    const row = db.prepare("SELECT id, title, content, version, content_hash, created_at, updated_at, template_provenance FROM documents WHERE id = ?").get(id);
     return row ? toRecord(row as unknown as Row) : undefined;
   };
 
@@ -60,10 +62,48 @@ export function sqliteStore(db: Db): Store {
       const id = `doc_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
       const hash = sha256(input.content);
       return transaction(db, () => {
-        db.prepare("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)").run(id, input.title, input.content, hash, now, now);
+        const provenance = input.templateProvenance ? JSON.stringify(input.templateProvenance) : null;
+        db.prepare("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at, template_provenance) VALUES (?, ?, ?, 1, ?, ?, ?, ?)").run(id, input.title, input.content, hash, now, now, provenance);
         db.prepare("INSERT INTO revisions (document_id, version, content, content_hash, summary, created_at) VALUES (?, 1, ?, ?, ?, ?)").run(id, input.content, hash, JSON.stringify([{ created: true }]), now);
-        return { id, title: input.title, content: input.content, version: 1, contentHash: hash, createdAt: now, updatedAt: now };
+        return { id, title: input.title, content: input.content, version: 1, contentHash: hash, createdAt: now, updatedAt: now, ...(input.templateProvenance ? { templateProvenance: input.templateProvenance } : {}) };
       });
+    },
+
+    async insertImportedDocument(input) {
+      return transaction(db, () => {
+        const prior = db.prepare("SELECT d.id FROM integration_imports i JOIN documents d ON d.id = i.document_id WHERE i.provider = ? AND i.file_id = ?").get(input.provider, input.fileId) as { id: string } | undefined;
+        if (prior) return { doc: getDoc(prior.id)!, imported: false };
+        const now = new Date().toISOString();
+        const id = `doc_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+        const hash = sha256(input.content);
+        db.prepare("INSERT INTO documents (id, title, content, version, content_hash, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)").run(id, input.title, input.content, hash, now, now);
+        db.prepare("INSERT INTO revisions (document_id, version, content, content_hash, summary, created_at) VALUES (?, 1, ?, ?, ?, ?)").run(id, input.content, hash, JSON.stringify([{ created: true, importedFrom: input.provider }]), now);
+        db.prepare("INSERT INTO integration_imports (provider, file_id, document_id, imported_at) VALUES (?, ?, ?, ?)").run(input.provider, input.fileId, id, now);
+        return { doc: getDoc(id)!, imported: true };
+      });
+    },
+
+    async listIntegrationConnections() {
+      const rows = db.prepare("SELECT provider, expires_at, account_name, connected_at FROM integration_connections ORDER BY provider").all() as unknown as { provider: IntegrationProvider; expires_at: string | null; account_name: string | null; connected_at: string }[];
+      return rows.map((r) => ({ provider: r.provider, expiresAt: r.expires_at, accountName: r.account_name, connectedAt: r.connected_at }));
+    },
+
+    async getIntegrationConnection(provider) {
+      const r = db.prepare("SELECT provider, access_token, refresh_token, expires_at, account_name, connected_at FROM integration_connections WHERE provider = ?").get(provider) as unknown as { provider: IntegrationProvider; access_token: string; refresh_token: string | null; expires_at: string | null; account_name: string | null; connected_at: string } | undefined;
+      return r && { provider: r.provider, accessToken: r.access_token, refreshToken: r.refresh_token, expiresAt: r.expires_at, accountName: r.account_name, connectedAt: r.connected_at };
+    },
+
+    async saveIntegrationConnection(c: IntegrationConnection) {
+      db.prepare("INSERT INTO integration_connections (provider, access_token, refresh_token, expires_at, account_name, connected_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(provider) DO UPDATE SET access_token = excluded.access_token, refresh_token = excluded.refresh_token, expires_at = excluded.expires_at, account_name = excluded.account_name, connected_at = excluded.connected_at").run(c.provider, c.accessToken, c.refreshToken, c.expiresAt, c.accountName, c.connectedAt);
+    },
+
+    async deleteIntegrationConnection(provider) {
+      db.prepare("DELETE FROM integration_connections WHERE provider = ?").run(provider);
+    },
+
+    async getIntegrationImport(provider, fileId) {
+      const r = db.prepare("SELECT provider, file_id, document_id, imported_at FROM integration_imports WHERE provider = ? AND file_id = ?").get(provider, fileId) as unknown as { provider: IntegrationProvider; file_id: string; document_id: string; imported_at: string } | undefined;
+      return r && { provider: r.provider, fileId: r.file_id, documentId: r.document_id, importedAt: r.imported_at };
     },
 
     async getDocument(id) {

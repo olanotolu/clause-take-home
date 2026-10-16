@@ -79,7 +79,7 @@ async function conflictFor(store: Store, id: string, read: DocumentRecord, ifMat
   );
 }
 
-export async function createDocument(store: Store, input: { title: string; content: string }): Promise<Result<DocumentRecord, DomainError>> {
+export async function createDocument(store: Store, input: { title: string; content: string; templateProvenance?: import("./store/types.ts").TemplateProvenance }): Promise<Result<DocumentRecord, DomainError>> {
   const big = tooLarge(store, input.content);
   if (big) return fail(big);
   const doc = await guarded(store, input.content, () => store.insertDocument(input));

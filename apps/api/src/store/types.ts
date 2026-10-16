@@ -8,6 +8,34 @@ export interface DocumentRecord {
   contentHash: string;
   createdAt: string;
   updatedAt: string;
+  templateProvenance?: TemplateProvenance;
+}
+
+export interface TemplateProvenance {
+  templateId: string;
+  title: string;
+  source: string;
+  attribution: string;
+  sourceUrl: string;
+  sourceVersion: string;
+  license: string;
+  jurisdictionNote: string;
+}
+
+export type IntegrationProvider = "imanage" | "netdocuments" | "onedrive" | "dropbox" | "google_drive" | "sharepoint" | "box";
+export interface IntegrationConnection {
+  provider: IntegrationProvider;
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: string | null;
+  accountName: string | null;
+  connectedAt: string;
+}
+export interface IntegrationImport {
+  provider: IntegrationProvider;
+  fileId: string;
+  documentId: string;
+  importedAt: string;
 }
 
 export type DocumentSummary = Omit<DocumentRecord, "content"> & { size: number };
@@ -159,7 +187,13 @@ export interface Store {
   /** Largest document this backend indexes. Postgres caps a tsvector near 1 MB, so it refuses larger text up front. */
   readonly maxContentChars: number;
 
-  insertDocument(input: { title: string; content: string }): Promise<DocumentRecord>;
+  insertDocument(input: { title: string; content: string; templateProvenance?: TemplateProvenance }): Promise<DocumentRecord>;
+  insertImportedDocument(input: { title: string; content: string; provider: IntegrationProvider; fileId: string }): Promise<{ doc: DocumentRecord; imported: boolean }>;
+  listIntegrationConnections(): Promise<Omit<IntegrationConnection, "accessToken" | "refreshToken">[]>;
+  getIntegrationConnection(provider: IntegrationProvider): Promise<IntegrationConnection | undefined>;
+  saveIntegrationConnection(connection: IntegrationConnection): Promise<void>;
+  deleteIntegrationConnection(provider: IntegrationProvider): Promise<void>;
+  getIntegrationImport(provider: IntegrationProvider, fileId: string): Promise<IntegrationImport | undefined>;
   getDocument(id: string): Promise<DocumentRecord | undefined>;
   listDocuments(limit: number, offset: number): Promise<{ items: DocumentSummary[]; total: number }>;
   deleteDocument(id: string): Promise<boolean>;

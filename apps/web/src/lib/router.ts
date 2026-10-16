@@ -10,13 +10,16 @@ export type Route =
   | { name: "doc"; id: string; tab: DocTab }
   | { name: "playbooks"; id?: string }
   | { name: "activity" }
+  | { name: "integrations" }
   | { name: "templates" }
-  | { name: "settings" };
+  | { name: "settings"; section?: "general" | "ai" | "editing" | "security" | "appearance" | "usage" | "planned" };
 
 /** Hash routes keep deep links, reload and the back button working with no server routing (Vercel serves one page). */
 export function parseRoute(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  const parts = hash.replace(/^#\/?/, "").split("?", 1)[0]!.split("/").filter(Boolean);
   const [head, a, b] = parts;
+  const settingsSections = ["general", "ai", "editing", "security", "appearance", "usage", "planned"] as const;
+  const section = (value: string | undefined) => settingsSections.find((item) => item === value);
   const decode = (v: string): string | null => {
     try {
       return decodeURIComponent(v);
@@ -30,6 +33,7 @@ export function parseRoute(hash: string): Route {
   }
   if (head === "documents") return { name: "documents" };
   if (head === "activity") return { name: "activity" };
+  if (head === "integrations") return { name: "integrations" };
   if (head === "playbooks") {
     const id = a ? decode(a) : null;
     return id ? { name: "playbooks", id } : { name: "playbooks" };
@@ -45,7 +49,13 @@ export function parseRoute(hash: string): Route {
     return { name: "doc", id, tab };
   }
   if (head === "templates") return { name: "templates" };
-  if (head === "settings") return { name: "settings" };
+  if (head === "settings") {
+    const settingsSection = section(a);
+    return settingsSection ? { name: "settings", section: settingsSection } : { name: "settings" };
+  }
+  // Older settings links use a bare hash, for example /#ai or /#security.
+  const legacySection = section(head);
+  if (legacySection) return { name: "settings", section: legacySection };
   return { name: "home" };
 }
 
@@ -54,9 +64,10 @@ export function buildRoute(r: Route): string {
     case "home": return r.request ? `#/request/${encodeURIComponent(r.request)}` : "#/";
     case "documents": return "#/documents";
     case "activity": return "#/activity";
+    case "integrations": return "#/integrations";
     case "playbooks": return r.id ? `#/playbooks/${encodeURIComponent(r.id)}` : "#/playbooks";
     case "templates": return "#/templates";
-    case "settings": return "#/settings";
+    case "settings": return r.section ? `#/settings/${r.section}` : "#/settings";
     case "doc": return `#/doc/${encodeURIComponent(r.id)}/${r.tab}`;
   }
 }
