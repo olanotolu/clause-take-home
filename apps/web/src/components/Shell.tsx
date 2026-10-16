@@ -1,7 +1,7 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Num } from "../ui/Num.tsx";
-import { AnimatePresence, motion } from "motion/react";
-import { Activity, BookOpenCheck, ChevronDown, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, List, Plus, PlugIcon, Search, Settings, X } from "../ui/icons.tsx";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Activity, BookOpenCheck, Buildings, ChevronDown, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, List, Plus, PlugIcon, Search, Settings, X } from "../ui/icons.tsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { api, type SettingsStatus } from "../lib/api.ts";
@@ -11,6 +11,7 @@ import { useSettings } from "../lib/settings.tsx";
 import { kb } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { useAuth } from "../lib/auth.tsx";
+import { workspaceIdentity } from "../lib/identity.ts";
 import { Button } from "../ui/Button.tsx";
 import { Kbd } from "../ui/bits.tsx";
 import { CommandPalette } from "./CommandPalette.tsx";
@@ -49,6 +50,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const route = useRoute();
   const ws = useWorkspace();
   const auth = useAuth();
+  const identity = workspaceIdentity(auth.user);
+  const reduceMotion = useReducedMotion();
   const { settings } = useSettings();
   const [palette, setPalette] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
@@ -56,12 +59,30 @@ export function Shell({ children }: { children: ReactNode }) {
   const mobileMoreClose = useRef<HTMLButtonElement>(null);
   const mobileMoreDialog = useRef<HTMLElement>(null);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<SettingsStatus | null>(null);
   const [docList] = useAutoAnimate<HTMLElement>({ duration: 180, easing: "ease-out" });
 
   useEffect(() => {
     void api.settingsStatus().then((r) => r.ok && setStatus(r.data));
   }, []);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) setProfileOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [profileOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -169,14 +190,16 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="mt-auto space-y-2 border-t border-line px-3 py-3 max-[1279px]:hidden">
           <div className="relative">
             <button aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)} className="flex w-full items-center gap-2.5 rounded-[12px] bg-paper/70 px-2.5 py-2 text-left hover:bg-paper">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper">AC</span>
-              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-rail-ink">Acme Inc.</span><span className="block truncate text-xs text-rail-muted">Legal Team</span></span>
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper">{identity.initials || <Buildings size={16} aria-hidden />}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-rail-ink">{identity.title}</span><span className="block truncate text-xs text-rail-muted">{identity.subtitle}</span></span>
               <ChevronDown size={15} aria-hidden className="text-rail-muted" />
             </button>
             {accountOpen && <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[12px] border border-line bg-paper p-3 shadow-soft">
-              <p className="truncate text-xs font-medium text-rail-ink">{auth.user?.name || auth.user?.email || "Workspace profile"}</p>
-              {auth.user?.email && <p className="mt-0.5 truncate text-[11px] text-rail-muted">{auth.user.email}</p>}
-              {auth.user && <button onClick={() => { void auth.signOut(); setAccountOpen(false); }} className="mt-2 w-full rounded-control px-2 py-1.5 text-left text-xs text-rail-muted hover:bg-rail-hi hover:text-rail-ink">Sign out</button>}
+              {auth.user ? <>
+                <p className="truncate text-xs font-medium text-rail-ink">{identity.title}</p>
+                {auth.user.email && auth.user.email !== identity.title && <p className="mt-0.5 truncate text-[11px] text-rail-muted">{auth.user.email}</p>}
+                <button onClick={() => { void auth.signOut(); setAccountOpen(false); }} className="mt-2 w-full rounded-control px-2 py-1.5 text-left text-xs text-rail-muted hover:bg-rail-hi hover:text-rail-ink">Sign out</button>
+              </> : <p className="text-xs leading-relaxed text-rail-muted">Everyone with this link shares one workspace. Sign-in is only used for repository connectors.</p>}
             </div>}
           </div>
           <div className="rounded-[12px] bg-paper/70 px-3 py-2.5">
@@ -212,6 +235,39 @@ export function Shell({ children }: { children: ReactNode }) {
           <Button variant="primary" icon={<Plus size={16} aria-hidden />} onClick={() => ws.setNewRequest({ open: true, ...(crumbDoc && { documentId: crumbDoc.id }) })}>
             <span className="max-[640px]:sr-only">New request</span>
           </Button>
+          <div className="relative shrink-0" ref={profileMenuRef}>
+            <motion.button
+              type="button"
+              aria-label={`Profile: ${identity.title}`}
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+              onClick={() => setProfileOpen((open) => !open)}
+              whileTap={{ scale: 0.94 }}
+              transition={{ duration: 0.14 }}
+              className={cn("grid size-10 place-items-center rounded-full border text-xs font-semibold transition-[background-color,border-color,box-shadow] duration-150 focus-visible:outline-offset-2", profileOpen ? "border-accent/40 bg-accent-soft text-ink shadow-soft" : "border-line bg-paper text-rail-ink hover:border-line-strong hover:bg-canvas")}
+            >
+              <span className="grid size-7 place-items-center rounded-full bg-ink/[0.07]">{identity.initials || <Buildings size={15} aria-hidden />}</span>
+            </motion.button>
+            <AnimatePresence>
+              {profileOpen && <motion.div
+                role="menu"
+                aria-label="Profile menu"
+                initial={{ opacity: 0, y: reduceMotion ? 0 : -6, scale: reduceMotion ? 1 : 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: reduceMotion ? 0 : -4, scale: reduceMotion ? 1 : 0.985 }}
+                transition={{ duration: reduceMotion ? 0.01 : 0.17, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(18rem,calc(100vw-1.5rem))] origin-top-right rounded-[14px] border border-line bg-paper p-2 shadow-lift"
+              >
+                <div className="flex items-center gap-3 rounded-[10px] px-2.5 py-2">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper">{identity.initials || <Buildings size={16} aria-hidden />}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-rail-ink">{identity.title}</span><span className="block truncate text-xs text-rail-muted">{identity.subtitle}</span></span>
+                </div>
+                {auth.user?.email && <p className="truncate px-3 pb-2 pt-0.5 text-xs text-rail-muted">{auth.user.email}</p>}
+                <div className="mx-2 border-t border-line" />
+                {auth.user ? <button role="menuitem" onClick={() => { void auth.signOut(); setProfileOpen(false); }} className="mt-1 flex min-h-10 w-full items-center rounded-[9px] px-3 text-left text-[13px] font-medium text-rail-muted transition-colors hover:bg-canvas hover:text-rail-ink focus-visible:outline-offset-[-2px]">Sign out</button> : <p className="px-3 py-2.5 text-xs leading-relaxed text-rail-muted">Shared CLAUSE workspace</p>}
+              </motion.div>}
+            </AnimatePresence>
+          </div>
         </header>
         <main className="mb-3 min-h-0 flex-1 overflow-hidden rounded-panel bg-paper shadow-soft max-[899px]:mb-0 max-[899px]:rounded-none max-[899px]:shadow-none">{children}</main>
       </div>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pct, shortModel } from "../src/lib/confidence.ts";
+import { workspaceIdentity } from "../src/lib/identity.ts";
 import { buildRoute, parseRoute, type Route } from "../src/lib/router.ts";
 import { ago, deltaLabel, kb, wordCount, wordDelta } from "../src/lib/wordDelta.ts";
 
@@ -104,5 +105,18 @@ describe("requests helpers", () => {
     expect(g.inbox.map((r) => r.id)).toEqual(["a"]);
     expect(g.needs_review.map((r) => r.id)).toEqual(["c"]);
     expect(g.in_progress).toEqual([]);
+  });
+});
+
+describe("workspaceIdentity", () => {
+  it("claims nothing when nobody is signed in", () => {
+    expect(workspaceIdentity(null)).toEqual({ signedIn: false, initials: "", title: "Open workspace", subtitle: "No sign-in required" });
+  });
+  it("uses the session's own name, role and initials", () => {
+    expect(workspaceIdentity({ name: "Ada Lovelace", email: "ada@example.com", role: "admin" })).toEqual({ signedIn: true, initials: "AL", title: "Ada Lovelace", subtitle: "Admin" });
+  });
+  it("falls back to the email, then to a neutral label, without inventing a role", () => {
+    expect(workspaceIdentity({ name: "", email: "grace.hopper@example.com" })).toMatchObject({ initials: "GH", title: "grace.hopper@example.com", subtitle: "Signed in" });
+    expect(workspaceIdentity({})).toMatchObject({ signedIn: true, initials: "", title: "Signed in" });
   });
 });

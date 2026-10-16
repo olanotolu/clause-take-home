@@ -1,13 +1,10 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { createAuthClient } from "@neondatabase/neon-js/auth";
-import { BetterAuthReactAdapter } from "@neondatabase/neon-js/auth/react/adapters";
+import { createContext, lazy, Suspense, useContext, useState, type ReactNode } from "react";
 
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL as string | undefined;
 export const authConfigured = Boolean(authUrl);
-export const neonAuth = createAuthClient(authUrl || "http://127.0.0.1:1", { adapter: BetterAuthReactAdapter() });
 
 export interface SessionUser { id: string; email: string; name: string; image?: string | null; role?: string }
-interface AuthContextValue {
+export interface AuthContextValue {
   user: SessionUser | null;
   pending: boolean;
   available: boolean;
@@ -19,28 +16,16 @@ const empty: AuthContextValue = { user: null, pending: false, available: false, 
 const AuthContext = createContext<AuthContextValue>(empty);
 export const useAuth = () => useContext(AuthContext);
 
-function ConfiguredAuthProvider({ children }: { children: ReactNode }) {
-  const session = neonAuth.useSession();
-  const user = (session.data?.user as SessionUser | undefined) ?? null;
-  const value = useMemo<AuthContextValue>(() => ({
-    user,
-    pending: session.isPending,
-    available: true,
-    signIn: async (email, password) => {
-      const result = await neonAuth.signIn.email({ email, password });
-      if (result.error) throw new Error(result.error.message ?? "Could not sign in.");
-    },
-    signOut: async () => { await neonAuth.signOut(); },
-    bearer: async () => {
-      const response = await fetch(`${authUrl!.replace(/\/$/, "")}/token`, { credentials: "include" });
-      if (!response.ok) return null;
-      const result = await response.json() as { token?: string };
-      return result.token ?? null;
-    },
-  }), [user, session.isPending]);
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+// The auth client is a large dependency that only matters once someone signs in, so it loads after first paint. It
+// renders beside the app and reports the session through onChange, which keeps the app tree mounted while it loads.
+const NeonSession = lazy(() => import("./auth-neon.tsx"));
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  return authConfigured ? <ConfiguredAuthProvider>{children}</ConfiguredAuthProvider> : <AuthContext.Provider value={empty}>{children}</AuthContext.Provider>;
+  const [value, setValue] = useState<AuthContextValue>(authConfigured ? { ...empty, pending: true } : empty);
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {authConfigured && <Suspense fallback={null}><NeonSession authUrl={authUrl!} onChange={setValue} /></Suspense>}
+    </AuthContext.Provider>
+  );
 }

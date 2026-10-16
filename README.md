@@ -82,7 +82,7 @@ I then redid the *look*, because my first pass (warm cream, serif headings, a da
 
 What I deliberately did *not* draw as real, because there is nothing behind it: assignees, teams and avatars, comments, notifications, billing, and Jev's numbers. Requests have no owner field because this app has no users.
 
-Three things on screen are **demos and say so**: the Integrations page (a "Connect demo" flow over sample files, imported with a "DEMO IMPORT" marker), the usage meter in the sidebar (labelled "Sample"), and the "Acme Inc." workspace card above it, which is decoration and not a feature. The real repository connectors (OneDrive, Dropbox, Google Drive, SharePoint, Box, plus iManage and NetDocuments with tenant endpoints) exist in the API and are admin-only, but need per-provider OAuth credentials and an encryption key that the live demo does not have, so the page does not call them.
+Two things on screen are **demos and say so**: the Integrations page (a "Connect demo" flow over sample files, imported with a "DEMO IMPORT" marker) and the usage meter in the sidebar (labelled "Sample"). The identity chip above the meter is not a demo: it says "Open workspace, no sign-in required" until someone signs in, then shows that session's own name and role. The real repository connectors (OneDrive, Dropbox, Google Drive, SharePoint, Box, plus iManage and NetDocuments with tenant endpoints) exist in the API and are admin-only, but need per-provider OAuth credentials and an encryption key that the live demo does not have, so the page does not call them.
 
 I went well past the suggested time-box. Treat steps 1-5 as the actual assignment and the rest as extras you're free to ignore.
 
@@ -177,7 +177,7 @@ curl -s -X PATCH localhost:3000/documents/$ID -H 'content-type: application/json
 | `POST /documents/:id/apply-playbook` | copy a playbook's rules onto a document as requirements |
 | `GET /activity?limit` | newest versions across all documents |
 | `GET /templates`, `POST /templates/:id/create` | starting points for a new document; create fills the template's fields and can attach its suggested requirements |
-| `/integrations/*` | OAuth repository connectors (list, connect, callback, browse, import, disconnect). Admin-only; unconfigured on the live demo |
+| `/integrations/*` | OAuth repository connectors (list, connect, callback, browse, import, disconnect). Admin-only; unconfigured on the live demo. Tokens are AES-256-GCM at rest; the OAuth flow uses PKCE and a state that is signed with its own derived key and tied to the browser that started it by an HttpOnly cookie; concurrent token refreshes are shared; every provider call has a timeout |
 
 A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus the exact spans that changed. It states which bytes changed. It does not claim the change is legally right.
 
