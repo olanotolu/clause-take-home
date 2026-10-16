@@ -4,7 +4,8 @@ import { InvalidQueryError, search } from "../search.ts";
 
 
 export function registerSearchRoutes(app: App): void {
-  // Registered before /documents/:id so "search" is never read as an id.
+  // "search" is never read as an :id: Fastify's router matches a static segment before a parameter, whatever the
+  // registration order.
   app.get("/documents/search", { schema: { querystring: SearchQuery, response: { 200: SearchPageOut, ...errors(400, 500) } } }, async (req, reply) => {
     const { q, mode, ids, limit, offset } = req.query;
     try {

@@ -37,6 +37,7 @@ documents_words MATCH ? AND rowid = ?` returned every matching row in this SQLit
 product. Why tests missed it: they asserted the *highlighted word*, which was the same ("disclose") in
 every document. Fix: filter on the joined `d.seq`, and verify the returned row's seq (defence in depth).
 Regression test: "every result's snippet comes from ITS OWN document" (verified to fail on the old query).
+(Later correction: after the search snapshot rewrite, the snippet query filters on the joined `d.id`, and `nativeHit` re-finds the fragment in that document's own text before attaching offsets. There is no separate seq check any more.)
 Lesson: assert provenance (this text is in THIS document), not just plausibility.
 
 ## 2026-10-15 — mutation testing: StrykerJS 10 didn't work here; wrote a bounded harness instead
