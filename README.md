@@ -75,7 +75,7 @@ The brief, in my own words, with the part of the repo that answers each item.
 | **README** with setup, usage, performance and API rationale | This file | |
 | Correct **4xx/5xx** with a JSON `{ error, code }` body | One error shape for every response, including framework errors; a 500 never leaks a stack or document text | a forced-500 test, the weekly API fuzz |
 | **Bulk** changes | `changes` is an array of up to 5,000, applied all-or-nothing | `engine.test.ts`, `documents.test.ts` |
-| **Large documents**, near-linear | The new text is rebuilt in one pass; 7 ms for one edit on 10 MiB. Finding targets is one scan per quote, so O(changes × length) overall, and I say so | [Performance](#performance) |
+| **Large documents**, near-linear | The new text is rebuilt in one pass; 7 ms for one edit on 10 MiB. Targets in large batches are found in one pass too (Aho–Corasick): 5,000 quote changes on 10 MiB resolve in about 100 ms | [Performance](#performance) |
 | **Concurrency** and repeated matches | `expectedVersion` or `If-Match`, then a compare-and-swap commit: a stale write gets 409 or 412. A quote that matches more than once is refused with every candidate listed | [`concurrency.test.ts`](apps/api/test/concurrency.test.ts), [`etag-race.test.ts`](apps/api/test/etag-race.test.ts) |
 | **Indexing**, and its trade-offs | Inverted indexes inside the database (SQLite FTS5 and trigram; Postgres GIN and pg_trgm), updated in the same transaction as the edit | [Why not an in-memory inverted index](#why-not-an-in-memory-inverted-index) |
 | **API design** rationale | Resources for reads and writes, named actions where an action isn't a resource update | [Design decisions](#design-decisions-and-trade-offs) |
@@ -237,7 +237,6 @@ Today it runs on Vercel (web and API as one project) with Neon Postgres.
 
 - No tenancy, sign-in or confidential audit trail on the demo, and no production security claim.
 - Full snapshots and full-text edit responses scale poorly for large documents (decision 6; `return=minimal` helps).
-- Target resolution costs up to O(changes × document length).
 - Rate limits and the verdict cache are per process, not per tenant.
 - Semantic checks are advisory. A verified quote proves the words exist, not that they support the conclusion.
 - Word exports pass XML and pandoc accept/reject checks; not every Microsoft Word version was tested.
