@@ -13,8 +13,10 @@ import { TemplatesView } from "./routes/TemplatesView.tsx";
 function Routes() {
   const route = useRoute();
   const ws = useWorkspace();
+  // Switching areas is a frequent action, so the motion is only a short lift; the document keeps its own key per tab.
+  const key = route.name === "doc" ? `doc-${route.id}` : route.name;
   return (
-    <>
+    <div key={key} className="fade-up h-full">
       {route.name === "home" && <WorkspaceView />}
       {route.name === "documents" && <DocumentsView onNew={() => ws.setNewDocOpen(true)} />}
       {route.name === "playbooks" && <PlaybooksView id={route.id} />}
@@ -23,7 +25,7 @@ function Routes() {
       {route.name === "templates" && <TemplatesView />}
       {route.name === "settings" && <SettingsView />}
       <RequestDialog />
-    </>
+    </div>
   );
 }
 

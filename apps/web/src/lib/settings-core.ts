@@ -12,7 +12,7 @@ export interface Settings {
   autoRedline: boolean;
 }
 
-export const DEFAULTS: Settings = { theme: "system", dateFormat: "locale", aiTab: true, strictness: "balanced", confirmApply: false, showHash: true, autoRedline: false };
+export const DEFAULTS: Settings = { theme: "system", dateFormat: "locale", aiTab: true, strictness: "balanced", confirmApply: false, showHash: false, autoRedline: false };
 
 export const STORAGE_KEY = "clause.settings.v1";
 

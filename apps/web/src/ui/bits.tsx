@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CircleHelp, CircleSlash, Info, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleHelp, CircleSlash, Info, XCircle } from "./icons.tsx";
 import type { ReactNode } from "react";
 
 export type Tone = "pass" | "fail" | "review" | "info" | "neutral";
@@ -16,7 +16,7 @@ const ICON = { pass: CheckCircle2, fail: XCircle, review: AlertTriangle, info: I
 export function StatusPill({ tone, children, icon = true }: { tone: Tone; children: ReactNode; icon?: boolean }) {
   const I = ICON[tone];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${TONE[tone]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TONE[tone]}`}>
       {icon && <I size={12} aria-hidden />}
       {children}
     </span>
@@ -37,14 +37,16 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div aria-hidden className={`skeleton ${className}`} />;
 }
 
-/** An empty state teaches the next step instead of saying "nothing here". */
-export function EmptyState({ icon, title, children, action }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
+/**
+ * An empty state says what is missing and the one thing to do about it: plain text, left-aligned, no illustration and no
+ * centred icon (that composition is the signature of generated UI). `icon` is accepted for call sites but not drawn.
+ */
+export function EmptyState({ title, children, action }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-      {icon && <div className="mb-1 text-muted">{icon}</div>}
-      <p className="font-display text-lg font-semibold">{title}</p>
-      {children && <p className="max-w-sm text-sm text-muted">{children}</p>}
-      {action && <div className="mt-2">{action}</div>}
+    <div className="max-w-md px-1 py-3">
+      <p className="text-sm font-medium">{title}</p>
+      {children && <p className="mt-0.5 text-[13px] leading-snug text-muted">{children}</p>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }

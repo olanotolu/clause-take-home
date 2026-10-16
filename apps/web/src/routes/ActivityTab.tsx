@@ -33,8 +33,8 @@ export function ActivityTab() {
     <div className="h-full min-h-0 overflow-y-auto bg-canvas">
       <div className="mx-auto max-w-3xl p-6 max-[640px]:p-3">
         <div className="mb-5">
-          <h2 className="font-display text-xl font-semibold">Activity</h2>
-          <p className="text-sm text-muted">Every version of this document, newest first. History is append-only: restoring creates a new version and nothing is ever deleted. CLAUSE CI runs and AI suggestions are not recorded here yet.</p>
+          <h2 className="font-display text-lg">Activity</h2>
+          <p className="text-[13px] text-muted">Newest first. Restoring makes a new version; nothing is deleted. CI runs and AI suggestions are not recorded.</p>
         </div>
         {items === null && <div className="space-y-3" aria-busy="true"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>}
         {items && items.length === 0 && <EmptyState title="No history yet">Versions appear here as the document changes.</EmptyState>}

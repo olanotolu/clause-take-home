@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "./icons.tsx";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../lib/cn.ts";
 
@@ -8,7 +8,7 @@ import { cn } from "../lib/cn.ts";
  * a plain ease, and only the properties that change are transitioned (never `all`).
  */
 const button = cva(
-  "inline-flex shrink-0 select-none items-center justify-center rounded-control font-medium transition-[transform,background-color,color,border-color] duration-100 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
+  "inline-flex shrink-0 select-none items-center justify-center rounded-control font-medium transition-[transform,background-color,color,border-color] duration-100 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
   {
     variants: {
       variant: {

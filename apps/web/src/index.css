@@ -58,8 +58,14 @@
   /* Contract text stays serif: it is the document, not the interface. */
   --font-doc: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 
-  --radius-control: 8px;
-  --radius-card: 12px;
+  /* The shell is a soft greige; the working area is a white panel floating inside it; lanes are a shade between. */
+  --color-shell: #efede9;
+  --color-lane: #f6f4f1;
+
+  --radius-control: 10px;
+  --radius-card: 18px;
+  --radius-panel: 24px;
+  --shadow-soft: 0 1px 2px rgb(20 20 22 / 0.05), 0 0 0 1px rgb(20 20 22 / 0.035);
   --shadow-lift: 0 0 0 1px rgb(20 20 22 / 0.08), 0 16px 40px -16px rgb(20 20 22 / 0.28);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -87,12 +93,15 @@
   --color-review: #f0bd62;
   --color-review-bg: rgb(214 150 20 / 0.2);
   --color-hit: rgb(250 204 21 / 0.28);
+  --color-shell: #060607;
+  --color-lane: rgb(255 255 255 / 0.035);
+  --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 16px 40px -16px rgb(0 0 0 / 0.7);
 }
 
 html, body, #root { height: 100%; }
 body {
-  background: var(--color-canvas);
+  background: var(--color-shell);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -126,8 +135,25 @@ input[type="date"] { min-height: 2.25rem; }
  * Press feedback is instant (see Button); list changes animate through auto-animate.
  */
 @keyframes rise { from { opacity: 0; transform: translateY(4px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes saved { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 45%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes strike { from { background-size: 0% 1.5px; } to { background-size: 100% 1.5px; } }
 @keyframes shimmer { to { background-position: -200% 0; } }
 .rise { animation: rise 180ms var(--ease-out) both; }
+/* Content swaps (route, tab, selected item): a short lift, never a slide across the screen. */
+.fade-up { animation: fade-up 160ms var(--ease-out) both; }
+/* Anchored popovers grow from the thing they belong to, not from nothing and not from the centre. */
+.pop { animation: pop 120ms var(--ease-out) both; transform-origin: var(--origin, bottom left); }
+.grow-x { transform-origin: left; animation: grow-x 480ms var(--ease-out) both; }
+/* A list that reveals once: each row waits a beat for the one before it (set --i on the row). */
+.stagger { animation: fade-up 220ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 32ms); }
+/* After a save, the sheet gives one soft ring so the new version is felt, then nothing. */
+.saved { animation: saved 900ms var(--ease-out) both; border-radius: var(--radius-card); }
+/* In a redline the removed text is struck through left to right and the added text settles in. */
+.redline .del { text-decoration: none; background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 58%; animation: strike 340ms 60ms var(--ease-out) both; }
+.redline .ins { animation: fade-up 260ms 160ms var(--ease-out) both; }
 .skeleton { background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in oklab, var(--color-line) 45%, var(--color-paper)) 50%, var(--color-line) 75%) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 6px; }
 
 /* Native dialogs: scale in from slightly smaller, never from nothing. */

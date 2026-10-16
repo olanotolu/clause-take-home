@@ -1,4 +1,4 @@
-import { Ban, BookOpenCheck, Check, Lock, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Ban, BookOpenCheck, Check, Lock, Plus, Sparkles, Trash2 } from "../ui/icons.tsx";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type ApplyResult, type PlaybookDetail, type PlaybookSummary, type RequirementKind } from "../lib/api.ts";
 import { navigate } from "../lib/router.ts";
@@ -60,10 +60,9 @@ export function PlaybooksView({ id }: { id: string | undefined }) {
     <div className="grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] max-[899px]:grid-cols-1 max-[899px]:overflow-y-auto">
       <aside aria-label="Playbooks" className="flex min-h-0 flex-col border-r border-line bg-canvas max-[899px]:border-b max-[899px]:border-r-0">
         <div className="flex items-center justify-between px-5 pb-2 pt-6">
-          <h1 className="font-display text-2xl font-semibold">Playbooks</h1>
+          <h1 className="font-display text-2xl">Playbooks</h1>
           <Button size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => setAdding(true)}>New</Button>
         </div>
-        <p className="px-5 pb-3 text-[13px] text-muted">Reusable sets of requirements. Apply one to a document to start from your standard positions.</p>
         {adding && (
           <form className="mx-4 mb-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); void create(); }}>
             <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={120} placeholder="Playbook name" aria-label="Playbook name" className={field} />
@@ -141,7 +140,7 @@ function PlaybookEditor({ pb, onChanged, onDeleted }: { pb: PlaybookDetail; onCh
 
         <section aria-labelledby="pb-rules">
           <h2 id="pb-rules" className="mb-2 text-sm font-semibold">Rules <span className="tnum font-normal text-muted">{pb.rules.length}</span></h2>
-          {pb.rules.length === 0 && <p className="rounded-control border border-dashed border-line-strong px-4 py-5 text-sm text-muted">No rules yet. Add the first one below.</p>}
+          {pb.rules.length === 0 && <p className="text-[13px] text-muted">No rules yet. Add the first one below.</p>}
           <ul className="space-y-2">
             {pb.rules.map((r) => (
               <li key={r.id} className="flex items-start gap-3 rounded-control border border-line bg-paper px-4 py-3">

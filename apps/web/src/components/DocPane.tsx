@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { cn } from "../lib/cn.ts";
 import { highlightPieces, redlinePieces, type Piece, type Range } from "../lib/segments.ts";
 import type { Applied } from "../lib/api.ts";
 
@@ -8,6 +9,8 @@ interface Props {
   selection: { start: number; end: number } | null;
   /** When set, render an inline redline of these spans instead of the plain document. */
   redline: Applied[] | null;
+  /** Plays the one-off "saved" ring around the sheet. */
+  flash?: boolean;
   onSelect: (range: { start: number; end: number } | null) => void;
 }
 
@@ -29,7 +32,7 @@ function boundary(container: HTMLElement, node: Node, offset: number, isEnd: boo
   return Number(span.dataset.start) + (isEnd ? (span.textContent?.length ?? 0) : 0);
 }
 
-export function DocPane({ content, hits, selection, redline, onSelect }: Props) {
+export function DocPane({ content, hits, selection, redline, flash = false, onSelect }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const pieces = useMemo(
     () => (redline ? redlinePieces(content, redline) : highlightPieces(content, [...hits, ...(selection ? [{ ...selection, kind: "sel" as const }] : [])])),
@@ -58,7 +61,7 @@ export function DocPane({ content, hits, selection, redline, onSelect }: Props) 
     <div
       ref={ref}
       onMouseUp={handleMouseUp}
-      className="doc mx-auto my-6 max-w-[780px] select-text rounded-card border border-line bg-paper px-12 py-10 max-[640px]:my-3 max-[640px]:px-5 max-[640px]:py-6"
+      className={cn("doc mx-auto my-6 max-w-[780px] select-text rounded-card border border-line bg-paper px-12 py-10 max-[640px]:my-3 max-[640px]:px-5 max-[640px]:py-6", redline && "redline", flash && "saved")}
       aria-label="Document text"
       data-testid="doc-text"
     >

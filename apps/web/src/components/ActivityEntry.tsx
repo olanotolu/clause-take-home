@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, ChevronUp, Download, FilePlus2, Pencil, Undo2 } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, Download, FilePlus2, Pencil, Undo2 } from "../ui/icons.tsx";
 import { useState } from "react";
 import type { Revision } from "../lib/api.ts";
 import { navigate } from "../lib/router.ts";

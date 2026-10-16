@@ -1,7 +1,8 @@
-import NumberFlow from "@number-flow/react";
-import { AlertTriangle, ArrowRight, Ban, Check, CheckCircle2, CircleSlash, Lock, ListChecks, Play, ShieldAlert, Sparkles, XCircle } from "lucide-react";
+import { Num } from "../ui/Num.tsx";
+import { AlertTriangle, ArrowRight, Ban, Check, CheckCircle2, CircleSlash, Lock, ListChecks, Play, ShieldAlert, Sparkles, XCircle } from "../ui/icons.tsx";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Applied, CheckOutcome, Delta, Evidence, RequirementKind, RequirementReport, Verdict } from "../lib/api.ts";
+import { cn } from "../lib/cn.ts";
 import { pct, shortModel } from "../lib/confidence.ts";
 import { navigate } from "../lib/router.ts";
 import { useSettings } from "../lib/settings.tsx";
@@ -68,12 +69,12 @@ function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: Require
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {attention === 0 ? <CheckCircle2 size={22} className="text-pass" aria-hidden /> : broken > 0 ? <ShieldAlert size={22} className="text-fail" aria-hidden /> : <AlertTriangle size={22} className="text-review" aria-hidden />}
         <h2 className="font-display text-xl font-semibold">
-          <span className="tnum"><NumberFlow value={holding} /> of {reqs.length}</span> requirement{reqs.length === 1 ? "" : "s"} hold{reqs.length === 1 ? "s" : ""}{hasEdit ? " after this edit" : " in the current text"}
+          <span className="tnum"><Num value={holding} /> of {reqs.length}</span> requirement{reqs.length === 1 ? "" : "s"} hold{reqs.length === 1 ? "s" : ""}{hasEdit ? " after this edit" : " in the current text"}
         </h2>
         {broken > 0 && <StatusPill tone="fail">{broken} broken by this edit</StatusPill>}
       </div>
       <div role="img" aria-label={segs.filter((s) => s.n).map((s) => `${s.n} ${s.label}`).join(", ")} className="mt-3 flex h-2 overflow-hidden rounded-full bg-line">
-        {segs.filter((s) => s.n).map((s) => <div key={s.label} className={s.cls} style={{ flex: s.n }} />)}
+        {segs.filter((s) => s.n).map((s, i) => <div key={s.label} className={cn("grow-x", s.cls)} style={{ flex: s.n, animationDelay: `${i * 90}ms` }} />)}
       </div>
       <p className="tnum mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
         <span>Checked against v{version}</span>
@@ -109,7 +110,7 @@ function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { 
   const p1 = r.after.judges?.find((j) => j.probability !== undefined)?.probability;
   const callout = r.after.verdict === "PASS" ? "bg-pass-bg text-ink" : r.after.verdict === "FAIL" ? "bg-fail-bg text-ink" : r.after.verdict === "NEEDS_REVIEW" ? "bg-review-bg text-ink" : "bg-line/60 text-ink";
   return (
-    <article aria-labelledby="ci-detail-h" className="min-w-0 space-y-4 rounded-card border border-line bg-paper p-5">
+    <article key={r.id} aria-labelledby="ci-detail-h" className="fade-up min-w-0 space-y-4 rounded-card border border-line bg-paper p-5">
       <header>
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
           <span className="inline-flex items-center gap-1 font-medium">{KIND_ICON[r.kind]}{KIND_WORD[r.kind]}</span>
@@ -207,7 +208,7 @@ export function CiTab() {
         </section>
 
         {ws.ci.status === "idle" && (
-          <div className="rounded-card border border-dashed border-line-strong bg-paper">
+          <div className="py-2">
             <EmptyState icon={<ListChecks size={26} aria-hidden />} title="No report for this version yet" action={<Button variant="secondary" onClick={() => navigate({ name: "doc", id: doc.id, tab: "edit" })}>Back to the document</Button>}>
               Add requirements from the Rules tab (select a clause and choose Protect), then run Clause CI. A report only describes the exact text and edit it ran on, so it disappears when either changes.
             </EmptyState>
@@ -226,7 +227,7 @@ export function CiTab() {
           <>
             <div className="rounded-control bg-canvas px-0 text-sm"><p className="flex items-center gap-2 text-muted"><CheckCircle2 size={15} className="text-pass" aria-hidden /> Edit mechanics: {report.mechanical.changes === 0 ? "no edit proposed" : `${plural(report.mechanical.changes, "change")} validated by the engine (target, version, no overlaps). Proven, not judged.`}</p></div>
             {report.requirements.length === 0 ? (
-              <div className="rounded-card border border-dashed border-line-strong bg-paper"><EmptyState icon={<ListChecks size={26} aria-hidden />} title="This document has no requirements yet">Select a clause in the document and choose Protect, or add a statement in the Rules tab, then run again.</EmptyState></div>
+              <div className="py-2"><EmptyState icon={<ListChecks size={26} aria-hidden />} title="This document has no requirements yet">Select a clause in the document and choose Protect, or add a statement in the Rules tab, then run again.</EmptyState></div>
             ) : (
               <>
                 <Summary reqs={report.requirements} ms={report.elapsedMs} judges={report.judges} version={report.version} strict={settings.strictness === "strict"} hasEdit={hasEdit} />
@@ -239,8 +240,8 @@ export function CiTab() {
                       </label>
                     </div>
                     <ul className="space-y-1.5">
-                      {list.map((r) => (
-                        <li key={r.id}>
+                      {list.map((r, i) => (
+                        <li key={r.id} className="stagger" style={{ "--i": i } as React.CSSProperties}>
                           <button onClick={() => setSelected(r.id)} aria-current={selected === r.id} className={`flex w-full items-start gap-3 rounded-control border px-3 py-2.5 text-left transition-colors ${selected === r.id ? "border-accent bg-accent-soft" : "border-line bg-paper hover:bg-canvas"}`}>
                             <span className="mt-0.5"><VerdictIcon v={r.after.verdict} /></span>
                             <span className="min-w-0 flex-1">

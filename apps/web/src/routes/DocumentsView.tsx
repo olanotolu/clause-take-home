@@ -1,4 +1,4 @@
-import { FilePlus2, LayoutTemplate, Search } from "lucide-react";
+import { FilePlus2, LayoutTemplate, Search } from "../ui/icons.tsx";
 import { useMemo, useState } from "react";
 import { navigate } from "../lib/router.ts";
 import { ago, kb } from "../lib/wordDelta.ts";
@@ -17,18 +17,15 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-canvas">
       <div className="mx-auto max-w-5xl p-8 max-[640px]:p-4">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-semibold">Documents</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted">Every edit is validated before it is saved, every version is kept, and each document can carry requirements that Clause CI checks edits against.</p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <h1 className="font-display text-2xl">Documents</h1>
           <div className="flex flex-wrap items-center gap-2">
-          <Button icon={<LayoutTemplate size={15} aria-hidden />} onClick={() => navigate({ name: "templates" })}>Templates</Button>
-          <Button variant="primary" icon={<FilePlus2 size={15} aria-hidden />} onClick={onNew}>New document</Button>
-          <div className="relative w-64 max-w-full">
-            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-            <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter documents by title" placeholder="Filter by title" className="h-9 w-full rounded-control border border-line-strong bg-paper pl-9 pr-3 text-sm" />
-          </div>
+            <div className="relative w-56 max-w-full">
+              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+              <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter documents by title" placeholder="Filter" className="h-9 w-full rounded-control border border-line-strong bg-paper pl-9 pr-3 text-sm" />
+            </div>
+            <Button icon={<LayoutTemplate size={15} aria-hidden />} onClick={() => navigate({ name: "templates" })}>Templates</Button>
+            <Button variant="primary" icon={<FilePlus2 size={15} aria-hidden />} onClick={onNew}>New document</Button>
           </div>
         </div>
 
@@ -36,7 +33,7 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
           {ws.docsStatus.kind === "loading" && <div className="space-y-2" aria-busy="true" aria-label="Loading documents">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>}
           {ws.docsStatus.kind === "error" && <p role="alert" className="rounded-control bg-fail-bg px-4 py-3 text-sm text-fail">{ws.docsStatus.message}</p>}
           {ws.docsStatus.kind === "ready" && ws.docs.length === 0 && (
-            <div className="rounded-card border border-dashed border-line-strong bg-paper">
+            <div className="py-2">
               <EmptyState icon={<FilePlus2 size={26} aria-hidden />} title="No documents yet" action={<div className="flex gap-2"><Button variant="primary" onClick={onNew}>New document</Button><Button icon={<LayoutTemplate size={15} aria-hidden />} onClick={() => navigate({ name: "templates" })}>Browse templates</Button></div>}>
                 Paste a contract, or start from one of the sample templates.
               </EmptyState>
@@ -51,7 +48,7 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
                 <tbody className="divide-y divide-line">
                   {rows.map((d) => (
                     <tr key={d.id} className="group cursor-pointer hover:bg-canvas" onClick={() => navigate({ name: "doc", id: d.id, tab: "edit" })}>
-                      <td className="px-4 py-3"><a href={`#/doc/${encodeURIComponent(d.id)}/edit`} className="font-display text-base font-semibold group-hover:text-accent" onClick={(e) => e.stopPropagation()}>{d.title}</a></td>
+                      <td className="px-4 py-3"><a href={`#/doc/${encodeURIComponent(d.id)}/edit`} className="font-medium group-hover:text-accent" onClick={(e) => e.stopPropagation()}>{d.title}</a></td>
                       <td className="tnum px-3 py-3 text-muted">v{d.version}</td>
                       <td className="tnum px-3 py-3 text-muted max-[640px]:hidden">{kb(d.size)}</td>
                       <td className="tnum px-4 py-3 text-muted">{ago(d.updatedAt)}</td>
@@ -64,11 +61,6 @@ export function DocumentsView({ onNew }: { onNew: () => void }) {
           )}
         </div>
 
-        {ws.docs.length > 0 && (
-          <p className="mt-6 max-w-2xl text-sm text-muted">
-            Try it: open a contract, select a phrase that appears more than once, choose <strong className="font-semibold text-ink">Protect</strong> to make it a requirement, replace it, then <strong className="font-semibold text-ink">Run Clause CI</strong> and watch what the edit breaks.
-          </p>
-        )}
       </div>
     </div>
   );

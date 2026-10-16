@@ -1,9 +1,10 @@
-import { AlertTriangle, CalendarDays, CheckCircle2, CircleSlash, FileText, Pencil, Play, Trash2, X, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarDays, CheckCircle2, CircleSlash, FileText, Pencil, Play, Trash2, X, XCircle } from "../ui/icons.tsx";
 import { useEffect, useState } from "react";
 import { api, PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES, type Priority, type Requirement, type RequestStatus, type RequestType, type Verdict, type WorkRequest } from "../lib/api.ts";
 import { dueLabel, PRIORITY_LABEL, STATUS_LABEL } from "../lib/requests.ts";
 import { navigate } from "../lib/router.ts";
 import { ago, kb } from "../lib/wordDelta.ts";
+import { cn } from "../lib/cn.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { StatusPill, type Tone } from "../ui/bits.tsx";
@@ -19,7 +20,7 @@ function VerdictIcon({ v }: { v: Verdict | null }) {
 }
 
 /** One request, with everything you need to act on it. Details are saved as you change them. */
-export function RequestPanel({ request, onClose }: { request: WorkRequest; onClose: () => void }) {
+export function RequestPanel({ request, open, onClose }: { request: WorkRequest; open: boolean; onClose: () => void }) {
   const ws = useWorkspace();
   const doc = ws.docs.find((d) => d.id === request.documentId) ?? null;
   const [rules, setRules] = useState<Requirement[] | null>(null);
@@ -46,10 +47,19 @@ export function RequestPanel({ request, onClose }: { request: WorkRequest; onClo
   const checking = ws.checkingRequest === request.id;
 
   return (
-    <aside aria-label="Request details" className="flex min-h-0 flex-col border-l border-line bg-paper max-[1279px]:fixed max-[1279px]:inset-y-0 max-[1279px]:right-0 max-[1279px]:z-30 max-[1279px]:w-[min(440px,100vw)] max-[1279px]:shadow-lift">
+    <aside
+      aria-label="Request details"
+      aria-hidden={!open}
+      inert={!open}
+      className={cn(
+        "flex min-h-0 w-[400px] shrink-0 flex-col border-l border-line bg-paper transition-[transform,opacity] duration-300 ease-[var(--ease-out)]",
+        "max-[1279px]:fixed max-[1279px]:inset-y-0 max-[1279px]:right-0 max-[1279px]:z-30 max-[1279px]:w-[min(440px,100vw)]",
+        open ? "opacity-100 max-[1279px]:translate-x-0 max-[1279px]:shadow-lift" : "opacity-0 max-[1279px]:translate-x-full",
+      )}
+    >
       <header className="flex items-start gap-3 border-b border-line px-5 py-4">
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-xl font-semibold leading-snug">{request.title}</h2>
+          <h2 className="font-display text-lg leading-snug">{request.title}</h2>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
             <StatusPill tone={STATUS_TONE[request.status]} icon={false}>{STATUS_LABEL[request.status]}</StatusPill>
             <span className="tnum">Created {ago(request.createdAt)}</span>
@@ -101,7 +111,7 @@ export function RequestPanel({ request, onClose }: { request: WorkRequest; onClo
           {rules === null ? (
             <p className="text-sm text-muted">Loading…</p>
           ) : rules.length === 0 && !request.ci?.goal ? (
-            <p className="rounded-control border border-dashed border-line-strong px-3 py-3 text-sm text-muted">{request.documentId ? "This document has no requirements. Add them in its Rules tab, or apply a playbook." : "No document is linked."}</p>
+            <p className="text-[13px] text-muted">{request.documentId ? "This document has no requirements. Add them in its Rules tab, or apply a playbook." : "No document is linked."}</p>
           ) : (
             <ul className="space-y-1.5">
               {request.ci?.goal && (
@@ -122,7 +132,7 @@ export function RequestPanel({ request, onClose }: { request: WorkRequest; onClo
               <span className="min-w-0 flex-1"><span className="font-display block truncate text-[15px] font-semibold">{doc.title}</span><span className="tnum text-xs text-muted">v{doc.version} · {kb(doc.size)}</span></span>
             </button>
           ) : (
-            <p className="rounded-control border border-dashed border-line-strong px-3 py-3 text-sm text-muted">{request.documentId ? "Loading…" : "No document is linked (it may have been deleted)."}</p>
+            <p className="text-[13px] text-muted">{request.documentId ? "Loading…" : "No document is linked (it may have been deleted)."}</p>
           )}
         </section>
       </div>

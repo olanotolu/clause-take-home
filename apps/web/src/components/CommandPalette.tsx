@@ -1,5 +1,5 @@
 import { Command } from "cmdk";
-import { FileText, Search as SearchIcon, TextSelect } from "lucide-react";
+import { FileText, Search as SearchIcon, TextSelect } from "../ui/icons.tsx";
 import { useEffect, useRef, useState } from "react";
 import { api, type DocResult, type Hit } from "../lib/api.ts";
 import { navigate } from "../lib/router.ts";

@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSettings } from "../lib/settings.tsx";
 import { AssistantPanel, type AssistantTab } from "../components/AssistantPanel.tsx";
 import { ChangesTray } from "../components/ChangesTray.tsx";
 import { DocPane } from "../components/DocPane.tsx";
@@ -10,9 +11,21 @@ export function EditTab() {
   const ws = useWorkspace();
   const doc = ws.doc!;
   const scroller = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<AssistantTab>("search");
+  const { settings } = useSettings();
+  const [tab, setTab] = useState<AssistantTab>(settings.aiTab ? "assistant" : "search");
   const [seed, setSeed] = useState<{ q: string; n: number } | null>(null);
   const redlineSpans = ws.redline && ws.preview.status === "valid" ? ws.preview.data.applied : null;
+
+  // A new version (applied, restored) gives the sheet one soft ring, so the change is felt rather than just announced.
+  const lastVersion = useRef(doc.version);
+  const [flash, setFlash] = useState(false);
+  useEffect(() => {
+    if (doc.version === lastVersion.current) return;
+    lastVersion.current = doc.version;
+    setFlash(true);
+    const t = setTimeout(() => setFlash(false), 1000);
+    return () => clearTimeout(t);
+  }, [doc.version]);
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] max-[899px]:grid-cols-1 max-[899px]:overflow-y-auto min-[900px]:overflow-hidden">
@@ -23,7 +36,7 @@ export function EditTab() {
           </p>
         )}
         <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto bg-canvas px-4 max-[640px]:px-2">
-          <DocPane content={doc.content} hits={ws.hits} selection={ws.selection} redline={redlineSpans} onSelect={ws.setSelection} />
+          <DocPane content={doc.content} hits={ws.hits} selection={ws.selection} redline={redlineSpans} flash={flash} onSelect={ws.setSelection} />
           {ws.selection && !redlineSpans && (
             <SelectionToolbar
               container={scroller}

@@ -1,8 +1,8 @@
-import { AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Trash2, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Trash2, XCircle } from "../ui/icons.tsx";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import NumberFlow from "@number-flow/react";
+import { Num } from "../ui/Num.tsx";
 import { useState } from "react";
-import { deltaLabel, plural, wordDelta } from "../lib/wordDelta.ts";
+import { deltaLabel, wordDelta } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { StatusPill } from "../ui/bits.tsx";
@@ -19,13 +19,8 @@ export function ChangesTray() {
   if (!doc) return null;
   const validNow = preview.status === "valid" && preview.data.wouldChange && !conflict;
 
-  if (staged.length === 0) {
-    return (
-      <div className="shrink-0 border-t border-line bg-paper px-5 py-3 text-sm text-muted max-[640px]:px-3">
-        No proposed changes. Select text in the document to change it, or ask the assistant.
-      </div>
-    );
-  }
+  // Nothing staged, nothing on screen: the tray rises in when the first change arrives.
+  if (staged.length === 0) return null;
 
   const status = conflict ? (
     <StatusPill tone="review">Out of date</StatusPill>
@@ -38,7 +33,7 @@ export function ChangesTray() {
   ) : null;
 
   return (
-    <section aria-label="Proposed changes" className="shrink-0 border-t border-line-strong bg-paper max-[899px]:sticky max-[899px]:bottom-0">
+    <section aria-label="Proposed changes" className="fade-up shrink-0 border-t border-line-strong bg-paper max-[899px]:sticky max-[899px]:bottom-0">
       {conflict && (
         <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-line bg-fail-bg px-5 py-2.5 text-sm text-fail max-[640px]:px-3">
           <AlertTriangle size={16} aria-hidden />
@@ -51,7 +46,7 @@ export function ChangesTray() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-2.5 max-[640px]:px-3">
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex items-center gap-1.5 text-sm font-semibold">
           {open ? <ChevronDown size={15} aria-hidden /> : <ChevronUp size={15} aria-hidden />}
-          Proposed changes <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs text-accent"><NumberFlow value={staged.length} /></span>
+          Proposed changes <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs text-accent"><Num value={staged.length} /></span>
         </button>
         <div aria-live="polite" className="min-w-0">{status}</div>
         <div className="ml-auto flex items-center gap-2">
@@ -96,11 +91,6 @@ export function ChangesTray() {
             )}
           </div>
         </div>
-      )}
-      {open && preview.status === "valid" && !conflict && (
-        <p className="flex items-center gap-1.5 px-5 pb-3 text-xs text-muted max-[640px]:px-3">
-          <CheckCircle2 size={13} className="text-pass" aria-hidden /> Every target resolves to exactly one passage, nothing overlaps, and v{doc.version} is still current. {plural(staged.length, "change")} will be saved as one version.
-        </p>
       )}
     </section>
   );

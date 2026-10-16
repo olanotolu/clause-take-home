@@ -1,4 +1,4 @@
-import { Ban, Check, Lock, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { Ban, Check, Lock, ShieldCheck, Sparkles, Trash2 } from "../ui/icons.tsx";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type PlaybookSummary, type Requirement, type RequirementKind } from "../lib/api.ts";
 import { navigate } from "../lib/router.ts";

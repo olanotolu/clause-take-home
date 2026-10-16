@@ -1,9 +1,10 @@
-import { Download, GitCompare, Play } from "lucide-react";
+import { Num } from "../ui/Num.tsx";
+import { Activity, Download, GitCompare, Info, Pencil, Play, ShieldCheck } from "../ui/icons.tsx";
 import { useEffect } from "react";
 import { DOC_TABS, navigate, type DocTab } from "../lib/router.ts";
 import { useSettings } from "../lib/settings.tsx";
 import { formatDate } from "../lib/settings-core.ts";
-import { kb } from "../lib/wordDelta.ts";
+import { ago, kb } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Button, buttonClass } from "../ui/Button.tsx";
 import { Skeleton } from "../ui/bits.tsx";
@@ -35,12 +36,19 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
   }
 
   const issues = ws.ci.status === "done" ? ws.ci.report.summary.regressed + ws.ci.report.summary.still_failing : 0;
+  const tabIcon: Record<DocTab, (on: boolean) => React.ReactNode> = {
+    edit: (on) => <Pencil size={18} weight={on ? "fill" : "regular"} aria-hidden />,
+    ci: (on) => <ShieldCheck size={18} weight={on ? "fill" : "regular"} aria-hidden />,
+    activity: (on) => <Activity size={18} weight={on ? "fill" : "regular"} aria-hidden />,
+    details: (on) => <Info size={18} weight={on ? "fill" : "regular"} aria-hidden />,
+  };
   const tabs: TabDef<DocTab>[] = DOC_TABS.map((t) => ({
     id: t,
+    icon: tabIcon[t],
     label: { edit: "Edit", ci: "Clause CI", activity: "Activity", details: "Details" }[t],
     badge:
-      t === "edit" && ws.staged.length > 0 ? <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs font-semibold text-accent">{ws.staged.length}</span> :
-      t === "ci" && issues > 0 ? <span className="tnum rounded-full bg-fail-bg px-1.5 text-xs font-semibold text-fail">{issues}</span> : undefined,
+      t === "edit" && ws.staged.length > 0 ? <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs font-medium text-accent"><Num value={ws.staged.length} /></span> :
+      t === "ci" && issues > 0 ? <span className="tnum rounded-full bg-fail-bg px-1.5 text-xs font-medium text-fail"><Num value={issues} /></span> : undefined,
   }));
   const canRedline = ws.preview.status === "valid";
 
@@ -49,9 +57,9 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
       <header className="shrink-0 border-b border-line bg-paper px-6 pt-4 max-[640px]:px-3">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <h1 className="font-display truncate text-2xl font-semibold max-[640px]:text-xl" title={doc.title}>{doc.title}</h1>
+            <h1 className="font-display truncate text-2xl max-[640px]:text-xl" title={doc.title}>{doc.title}</h1>
             <p className="tnum mt-0.5 text-[13px] text-muted">
-              v{doc.version} · {kb(new TextEncoder().encode(doc.content).length)} · updated {formatDate(doc.updatedAt, settings.dateFormat)}
+              v<Num value={doc.version} /> · {kb(new TextEncoder().encode(doc.content).length)} · updated <span title={formatDate(doc.updatedAt, settings.dateFormat)}>{ago(doc.updatedAt)}</span>
               {settings.showHash && <span className="ml-2 hidden font-mono text-xs sm:inline" title="SHA-256 of the current text">sha256 {doc.contentHash.slice(0, 10)}</span>}
             </p>
           </div>
@@ -88,10 +96,12 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
         <Tabs tabs={tabs} value={tab} onChange={(t) => navigate({ name: "doc", id: doc.id, tab: t })} label="Document sections" idPrefix="doc" className="-mb-px mt-2" />
       </header>
       <div id="doc-panel" role="tabpanel" aria-labelledby={`doc-${tab}`} className="min-h-0 flex-1">
-        {tab === "edit" && <EditTab />}
-        {tab === "ci" && <CiTab />}
-        {tab === "activity" && <ActivityTab />}
-        {tab === "details" && <DetailsTab />}
+        <div key={tab} className="fade-up h-full">
+          {tab === "edit" && <EditTab />}
+          {tab === "ci" && <CiTab />}
+          {tab === "activity" && <ActivityTab />}
+          {tab === "details" && <DetailsTab />}
+        </div>
       </div>
     </div>
   );

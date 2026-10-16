@@ -1,4 +1,4 @@
-import { Pencil, ShieldCheck, Search, X } from "lucide-react";
+import { Pencil, ShieldCheck, Search, X } from "../ui/icons.tsx";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { countOccurrences } from "../lib/segments.ts";
 import { plural } from "../lib/wordDelta.ts";
@@ -67,7 +67,7 @@ export function SelectionToolbar({ container, content, selection, onStage, onPro
   return (
     <div className="absolute z-20 w-[min(320px,calc(100%-16px))]" style={composing ? { top: pos.bottom + 8, left: pos.left } : { top: pos.top, left: pos.left, transform: "translateY(calc(-100% - 8px))" }}>
       {composing ? (
-        <div className="rise rounded-xl border border-line-strong bg-paper p-3 shadow-lift" role="group" aria-label="Replace selected passage">
+        <div className="pop rounded-card bg-paper p-3 shadow-lift [--origin:top_left]" role="group" aria-label="Replace selected passage">
           <label htmlFor="replace-text" className="mb-1 block text-xs font-medium text-muted">
             Replace with <span className="font-normal">· {occurrences === 1 ? "unique in this version" : `appears ${plural(occurrences, "time")}, anchored by its context`}</span>
           </label>
@@ -91,7 +91,7 @@ export function SelectionToolbar({ container, content, selection, onStage, onPro
           </div>
         </div>
       ) : (
-        <div role="toolbar" aria-label="Selected passage" className="rise inline-flex items-center gap-0.5 rounded-xl border border-line-strong bg-paper p-1 shadow-lift">
+        <div role="toolbar" aria-label="Selected passage" className="pop inline-flex items-center gap-0.5 rounded-card bg-paper p-1 shadow-lift [--origin:bottom_left]">
           <Button size="sm" variant="ghost" icon={<Pencil size={14} aria-hidden />} onClick={() => setComposing(true)}>Replace</Button>
           <Button size="sm" variant="ghost" icon={<ShieldCheck size={14} aria-hidden />} onClick={() => onProtect(selected)} title="Add a requirement that this exact passage must survive every edit">Protect</Button>
           <Button size="sm" variant="ghost" icon={<Search size={14} aria-hidden />} onClick={() => onFind(selected)} title="Find every occurrence">Find</Button>

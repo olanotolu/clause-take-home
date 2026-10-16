@@ -6,7 +6,8 @@ export interface TabDef<T extends string> {
   id: T;
   label: string;
   badge?: ReactNode;
-  icon?: ReactNode;
+  /** A node, or a function of "is this the active tab" so an icon can change weight when selected. */
+  icon?: ReactNode | ((active: boolean) => ReactNode);
 }
 
 interface Props<T extends string> {
@@ -50,7 +51,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label, idPrefix,
             onClick={() => onChange(t.id)}
             className={cn("relative inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-sm font-medium transition-colors duration-100", active ? "text-ink" : "text-muted hover:text-ink")}
           >
-            {t.icon}
+            {t.icon !== undefined && <span className={cn("flex", active && "text-accent")}>{typeof t.icon === "function" ? t.icon(active) : t.icon}</span>}
             {t.label}
             {t.badge}
             {active && <motion.span layoutId={`${idPrefix}-underline`} className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-accent" transition={{ type: "spring", bounce: 0.1, duration: 0.3 }} />}

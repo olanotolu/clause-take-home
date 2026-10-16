@@ -1,4 +1,4 @@
-import { ListChecks, Search, Sparkles } from "lucide-react";
+import { ListChecks, Search, Sparkles } from "../ui/icons.tsx";
 import { api } from "../lib/api.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { navigate } from "../lib/router.ts";

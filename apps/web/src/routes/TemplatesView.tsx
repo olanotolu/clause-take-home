@@ -1,4 +1,4 @@
-import { FilePlus2 } from "lucide-react";
+import { FilePlus2 } from "../ui/icons.tsx";
 import { useEffect, useMemo, useState } from "react";
 import { api, type Template } from "../lib/api.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
@@ -41,9 +41,8 @@ export function TemplatesView() {
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-canvas">
       <div className="mx-auto max-w-6xl p-8 max-[640px]:p-4">
-        <h1 className="font-display text-3xl font-semibold">Templates</h1>
-        <p className="mt-1 max-w-xl text-sm text-muted">Fictional sample contracts to start from. Using one makes your own copy; nothing links back to the template.</p>
-        <Tabs tabs={tabs} value={cat} onChange={(c) => { setCat(c); setPick(null); }} label="Template categories" idPrefix="tpl" className="mt-4 border-b border-line" />
+        <h1 className="font-display text-2xl">Templates</h1>
+        <Tabs tabs={tabs} value={cat} onChange={(c) => { setCat(c); setPick(null); }} label="Template categories" idPrefix="tpl" className="-ml-3 mt-3 border-b border-line" />
         <div id="tpl-panel" role="tabpanel" aria-labelledby={`tpl-${cat}`} className="mt-5 grid items-start gap-5 min-[900px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
           {failed && <p role="alert" className="rounded-control bg-fail-bg px-4 py-3 text-sm text-fail">Could not load templates.</p>}
           {!items && !failed && <><Skeleton className="h-64" /><Skeleton className="h-64" /></>}

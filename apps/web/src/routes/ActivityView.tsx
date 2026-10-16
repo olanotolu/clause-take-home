@@ -40,8 +40,8 @@ export function ActivityView() {
       <div className="mx-auto max-w-3xl p-8 max-[640px]:p-4">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl font-semibold">Activity</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted">The most recent versions across all documents. Only edits are recorded here: Clause CI runs and AI suggestions leave no trace yet.</p>
+            <h1 className="font-display text-2xl">Activity</h1>
+            <p className="mt-1 text-[13px] text-muted">Edits only. Clause CI runs and AI suggestions are not recorded.</p>
           </div>
           <select aria-label="Filter activity" value={filter} onChange={(e) => setFilter(e.target.value as Filter)} className="h-9 rounded-control border border-line-strong bg-paper px-2.5 text-sm">
             <option value="all">All activity</option><option value="edited">Edits</option><option value="restored">Restores</option><option value="created">New documents</option>

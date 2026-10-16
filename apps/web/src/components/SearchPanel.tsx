@@ -1,4 +1,4 @@
-import { Loader2, Search as SearchIcon } from "lucide-react";
+import { Loader2, Search as SearchIcon } from "../ui/icons.tsx";
 import { useEffect, useRef, useState } from "react";
 import { api, type DocResult, type Hit, type SearchPage } from "../lib/api.ts";
 import { EmptyState } from "../ui/bits.tsx";

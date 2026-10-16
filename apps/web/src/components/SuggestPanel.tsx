@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowRight, Sparkles, TriangleAlert } from "../ui/icons.tsx";
 import { useState } from "react";
 import { api, type ApiError, type Evidence, type SuggestResponse } from "../lib/api.ts";
 import { shortModel } from "../lib/confidence.ts";
