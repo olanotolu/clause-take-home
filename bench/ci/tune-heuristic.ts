@@ -38,7 +38,7 @@ writeFileSync(
       note: "Fixed BEFORE any judge ran on the test cases. tau was chosen on the dev split only.",
       heuristicTau: best.tau,
       heuristicDevMacroF1: Number(best.macroF1.toFixed(4)),
-      jevMinConfidence: 0.7,
+      jevMinChoiceProbability: 0.7,
       llmModel: "anthropic/claude-sonnet-5.5",
       jevModel: "typesafe-ai/jev-1.14.0",
       judgeTimeoutMs: 40000,
