@@ -204,6 +204,7 @@ export const RequirementOut = z.object({ id: z.string(), documentId: z.string(),
 
 export const CheckBody = ChangesBody.extend({
   goal: text().pipe(z.string().min(1).max(500)).optional().meta({ description: "What the edit is meant to achieve, in plain words. Judged like a requirement that should become true." }),
+  strictness: z.enum(["balanced", "strict"]).optional().meta({ description: "strict: a semantic PASS needs every judge to be at least 80% sure, otherwise NEEDS_REVIEW. Default balanced." }),
 });
 
 const VerdictSchema = z.enum(["PASS", "FAIL", "NEEDS_REVIEW", "UNAVAILABLE"]);
@@ -245,4 +246,22 @@ export const SuggestOut = z.object({
     z.object({ valid: z.literal(true), applied: z.array(AppliedOut), diff: z.string() }),
     z.object({ valid: z.literal(false), error: z.object({ type: z.string(), error: z.string(), details: z.record(z.string(), z.unknown()).optional() }) }),
   ]),
+});
+
+export const SettingsStatusOut = z.object({
+  version: z.string(),
+  storage: z.enum(["sqlite", "postgres"]),
+  access: z.literal("open").meta({ description: "There is no authentication: every visitor shares one workspace." }),
+  ai: z.object({
+    judges: z.array(z.string()).meta({ description: "Model ids that judge semantic requirements. Empty when none is configured." }),
+    suggestions: z.boolean(),
+    strictnessOptions: z.array(z.enum(["balanced", "strict"])),
+  }),
+  limits: z.object({
+    maxDocumentChars: z.number().int().nullable(),
+    maxJudgedChars: z.number().int(),
+    maxRequirementsPerDocument: z.number().int(),
+    checkPerHour: z.number().int(),
+    suggestPerHour: z.number().int(),
+  }),
 });

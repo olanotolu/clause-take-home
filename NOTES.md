@@ -156,3 +156,6 @@ The first Wilson-interval test asserted 81/100 -> upper bound 0.8777, a number I
 Rather than "fix the code to match", I cross-checked against statsmodels' `proportion_confint(method="wilson")`: 0.874852. Code was
 right to ~1e-5. The test now pins independently computed values. Lesson: a failing test can mean the *expectation* is wrong;
 check against a second implementation before deciding which side moves.
+
+## 2026-10-15 — Settings: what I refused to fake
+The mockup had SSO, Slack/Drive/M365, billing and a model picker. None exist here, and the deploy is open to everyone, so a server-side "settings" table would let any visitor change the shared AI bill. Decision: preferences live in the browser; server facts are read-only; unbuilt features are visibly disabled and labelled. My first idea for "risk sensitivity" was a probability threshold in the ensemble, but the ensemble decides by label, not thresholds, so inventing one would have been a new, unmeasured policy. The shipped version only demotes a PASS (never promotes anything) and is table-tested. Layout bugs found in the browser, not by tests: the settings view fought the app's 3-column grid on phones, and an auto-width grid column overflowed at 375px.

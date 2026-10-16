@@ -10,6 +10,7 @@ import { toHttp, type DomainError } from "./errors.ts";
 import { registerCheckRoutes } from "./routes/check.ts";
 import { registerDocumentRoutes } from "./routes/documents.ts";
 import { registerRequirementRoutes } from "./routes/requirements.ts";
+import { registerSettingsRoutes } from "./routes/settings.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
 import { registerSuggestRoutes } from "./routes/suggest.ts";
 import { noSemanticEvaluator } from "./review/runner.ts";
@@ -115,7 +116,11 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   registerDocumentRoutes(typed);
   registerSearchRoutes(typed);
   registerRequirementRoutes(typed);
-  registerCheckRoutes(typed, opts.semanticEvaluator ?? noSemanticEvaluator, opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" });
-  registerSuggestRoutes(typed, opts.suggestionProvider, opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" }, opts.semanticEvaluator ?? noSemanticEvaluator);
+  const checkLimit = opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" };
+  const suggestLimit = opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" };
+  const semantic = opts.semanticEvaluator ?? noSemanticEvaluator;
+  registerCheckRoutes(typed, semantic, checkLimit);
+  registerSuggestRoutes(typed, opts.suggestionProvider, suggestLimit, semantic);
+  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev" });
   return app;
 }

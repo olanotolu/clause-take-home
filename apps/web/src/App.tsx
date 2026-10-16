@@ -5,9 +5,11 @@ import { DocPane } from "./components/DocPane.tsx";
 import { HistoryPanel } from "./components/HistoryPanel.tsx";
 import { RequirementsPanel } from "./components/RequirementsPanel.tsx";
 import { SearchPanel } from "./components/SearchPanel.tsx";
+import { SettingsView } from "./components/Settings/SettingsView.tsx";
 import { SuggestPanel } from "./components/SuggestPanel.tsx";
 import { api, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type SearchPage } from "./lib/api.ts";
 import type { Range } from "./lib/segments.ts";
+import { useSettings } from "./lib/settings.tsx";
 
 type Tab = "search" | "change" | "rules" | "ai" | "history";
 
@@ -27,6 +29,8 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ci, setCi] = useState<{ status: "idle" } | { status: "loading" } | { status: "done"; report: CiReport } | { status: "error"; message: string }>({ status: "idle" });
   const [goal, setGoal] = useState("");
+  const [view, setView] = useState<"docs" | "settings">("docs");
+  const { settings } = useSettings();
   const nextId = useRef(1);
 
   const refreshDocs = useCallback(async () => {
@@ -71,13 +75,23 @@ export default function App() {
     });
   }, [doc, staged]);
 
+  // Preference: jump to the redline as soon as a staged change validates.
+  useEffect(() => {
+    if (settings.autoRedline && preview.status === "valid") setRedline(true);
+  }, [preview, settings.autoRedline]);
+
+  // The AI tab can be hidden in Settings; never leave the user on a tab that no longer exists.
+  useEffect(() => {
+    if (!settings.aiTab && tab === "ai") setTab("search");
+  }, [settings.aiTab, tab]);
+
   // A report describes one exact (document version, staged batch, requirements) combination; any change makes it stale.
   useEffect(() => setCi({ status: "idle" }), [doc, staged]);
 
   const runCi = async () => {
     if (!doc || staged.length === 0) return;
     setCi({ status: "loading" });
-    const r = await api.check(doc.id, doc.version, staged.map((s) => ({ operation: "replace" as const, target: s.target, replacement: s.replacement })), goal.trim() || undefined);
+    const r = await api.check(doc.id, doc.version, staged.map((s) => ({ operation: "replace" as const, target: s.target, replacement: s.replacement })), goal.trim() || undefined, settings.strictness);
     setCi(r.ok ? { status: "done", report: r.data } : { status: "error", message: r.error.error });
   };
   const showEvidence = (e: Evidence) => setSelection({ start: e.start, end: e.end });
@@ -109,6 +123,7 @@ export default function App() {
 
   const apply = async () => {
     if (!doc || staged.length === 0) return;
+    if (settings.confirmApply && !window.confirm(`Apply ${staged.length} change${staged.length === 1 ? "" : "s"} as a new version of “${doc.title}”? Earlier versions are kept.`)) return;
     setApplying(true);
     const r = await api.apply(doc.id, doc.version, staged.map((s) => ({ operation: "replace" as const, target: s.target, replacement: s.replacement })));
     setApplying(false);
@@ -191,9 +206,9 @@ export default function App() {
           {docs.map((d) => (
             <button
               key={d.id}
-              onClick={() => void openDoc(d.id)}
-              aria-current={doc?.id === d.id}
-              className={`mb-0.5 block w-full rounded-md px-3 py-2 text-left text-[13px] ${doc?.id === d.id ? "bg-rail-hi text-white" : "text-white/70 hover:bg-rail-hi/60"}`}
+              onClick={() => { setView("docs"); void openDoc(d.id); }}
+              aria-current={view === "docs" && doc?.id === d.id}
+              className={`mb-0.5 block w-full rounded-md px-3 py-2 text-left text-[13px] ${view === "docs" && doc?.id === d.id ? "bg-rail-hi text-white" : "text-white/70 hover:bg-rail-hi/60"}`}
             >
               <span className="block truncate font-medium">{d.title}</span>
               <span className="text-[11px] text-white/40">v{d.version} · {(d.size / 1024).toFixed(1)} KB</span>
@@ -201,9 +216,25 @@ export default function App() {
           ))}
           {status.kind === "ready" && docs.length === 0 && <p className="px-3 text-[13px] text-white/50">No documents yet. Add one below, or run <code>pnpm seed</code>.</p>}
         </nav>
+        <div className="border-t border-white/10 p-2">
+          <button
+            onClick={() => setView(view === "settings" ? "docs" : "settings")}
+            aria-current={view === "settings"}
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium ${view === "settings" ? "bg-rail-hi text-white" : "text-white/70 hover:bg-rail-hi/60"}`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" /></svg>
+            Settings
+          </button>
+        </div>
         <NewDocument onCreate={create} />
       </aside>
 
+      {view === "settings" ? (
+        <div className="col-span-2 col-start-2 row-start-1 min-h-0 max-[1100px]:col-span-1 max-[1100px]:row-span-2 max-[640px]:col-start-1 max-[640px]:row-start-2" data-testid="settings-view">
+          <SettingsView />
+        </div>
+      ) : (
+      <>
       <main className="flex min-h-0 flex-col">
         {status.kind === "error" && <p role="alert" className="m-6 rounded-lg bg-del-bg p-4 text-del">{status.message}</p>}
         {status.kind === "loading" && <p className="m-6 text-muted">Loading…</p>}
@@ -212,7 +243,7 @@ export default function App() {
             <header className="flex items-center gap-3 border-b border-line bg-paper px-6 py-3">
               <h1 className="min-w-0 truncate text-lg font-bold">{doc.title}</h1>
               <span className="rounded bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent" data-testid="version">v{doc.version}</span>
-              <span className="hidden font-mono text-[11px] text-muted sm:inline" title="SHA-256 of the current text">sha256 {doc.contentHash.slice(0, 10)}</span>
+              {settings.showHash && <span className="hidden font-mono text-[11px] text-muted sm:inline" title="SHA-256 of the current text">sha256 {doc.contentHash.slice(0, 10)}</span>}
               <div className="flex-1" />
               <div role="radiogroup" aria-label="View" className="flex gap-1 rounded-md bg-line/50 p-1 text-xs">
                 <button role="radio" aria-checked={!redline} onClick={() => setRedline(false)} className={`rounded px-3 py-1 font-medium ${!redline ? "bg-paper shadow-sm" : "text-muted"}`}>Original</button>
@@ -243,7 +274,7 @@ export default function App() {
 
       <aside className="flex min-h-0 flex-col border-l border-line bg-canvas max-[1100px]:col-span-2 max-[1100px]:border-l-0 max-[1100px]:border-t max-[640px]:col-span-1" aria-label="Inspector">
         <div role="tablist" className="flex border-b border-line bg-paper px-2 text-sm">
-          {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["rules", "Rules"], ["ai", "AI"], ["history", "History"]] as const).map(([k, label]) => (
+          {([["search", "Search"], ["change", `Changes${staged.length ? ` ${staged.length}` : ""}`], ["rules", "Rules"], ["ai", "AI"], ["history", "History"]] as const).filter(([k]) => k !== "ai" || settings.aiTab).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`border-b-2 px-3 py-2.5 font-medium ${tab === k ? "border-accent text-accent" : "border-transparent text-muted"}`}>
               {label}
             </button>
@@ -279,6 +310,8 @@ export default function App() {
           {tab === "history" && doc && <HistoryPanel docId={doc.id} version={doc.version} onRestore={(v) => void restore(v)} />}
         </div>
       </aside>
+      </>
+      )}
     </div>
   );
 }

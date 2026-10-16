@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Revision } from "../lib/api.ts";
+import { useSettings } from "../lib/settings.tsx";
+import { formatDate } from "../lib/settings-core.ts";
 
 const describe = (r: Revision) => {
   if (r.summary[0]?.created) return "Created";
@@ -11,6 +13,7 @@ const describe = (r: Revision) => {
 
 export function HistoryPanel({ docId, version, onRestore }: { docId: string; version: number; onRestore: (toVersion: number) => void }) {
   const [items, setItems] = useState<Revision[]>([]);
+  const { settings } = useSettings();
   useEffect(() => {
     let live = true;
     api.revisions(docId).then((r) => live && r.ok && setItems(r.data.items));
@@ -29,7 +32,7 @@ export function HistoryPanel({ docId, version, onRestore }: { docId: string; ver
     <ol className="relative min-h-0 flex-1 space-y-2 overflow-y-auto">
       {items.map((r) => (
         <li key={r.version} className="rounded-lg border border-line bg-paper p-3 text-sm">
-          <div className="flex justify-between"><span className="font-semibold">v{r.version}</span><span className="text-xs text-muted">{new Date(r.createdAt).toLocaleTimeString()}</span></div>
+          <div className="flex justify-between"><span className="font-semibold">v{r.version}</span><span className="text-xs text-muted">{formatDate(r.createdAt, settings.dateFormat)}</span></div>
           <p className="mt-1 text-[13px] text-ink/80">{describe(r)}</p>
           <div className="mt-1 flex items-center justify-between">
             <p className="font-mono text-[11px] text-muted">sha256 {r.contentHash.slice(0, 12)}</p>

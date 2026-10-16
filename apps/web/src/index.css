@@ -25,3 +25,20 @@ body { background: var(--color-canvas); color: var(--color-ink); font-family: ui
 .hit { background: var(--color-hit); border-radius: 2px; }
 .sel { background: #cfe0ff; outline: 1.5px solid var(--color-accent); border-radius: 2px; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* Dark theme: only the tokens change; utilities read them as CSS variables. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #14161b;
+  --color-paper: #1b1e25;
+  --color-ink: #e7e9ee;
+  --color-muted: #9aa3b2;
+  --color-line: #2c313c;
+  --color-accent: #6b9bff;
+  --color-del: #ff8b80;
+  --color-del-bg: #3d1b19;
+  --color-ins: #6fd9a0;
+  --color-ins-bg: #14301f;
+  --color-hit: #5a4d12;
+}
+:root[data-theme="dark"] .sel { background: #27407a; }

@@ -40,6 +40,13 @@ export interface CiReport {
   judges: string[];
   elapsedMs: number;
 }
+export interface SettingsStatus {
+  version: string;
+  storage: "sqlite" | "postgres";
+  access: "open";
+  ai: { judges: string[]; suggestions: boolean; strictnessOptions: ("balanced" | "strict")[] };
+  limits: { maxDocumentChars: number | null; maxJudgedChars: number; maxRequirementsPerDocument: number; checkPerHour: number; suggestPerHour: number };
+}
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
@@ -71,8 +78,9 @@ export const api = {
   requirements: (id: string) => call<{ items: Requirement[]; max: number }>("GET", `/documents/${id}/requirements`),
   addRequirement: (id: string, kind: RequirementKind, text: string) => call<Requirement>("POST", `/documents/${id}/requirements`, { kind, text }),
   deleteRequirement: (id: string, rid: string) => call<undefined>("DELETE", `/documents/${id}/requirements/${rid}`),
-  check: (id: string, expectedVersion: number, changes: Change[], goal?: string) =>
-    call<CiReport>("POST", `/documents/${id}/changes/check`, { expectedVersion, changes, ...(goal ? { goal } : {}) }),
+  check: (id: string, expectedVersion: number, changes: Change[], goal?: string, strictness?: "balanced" | "strict") =>
+    call<CiReport>("POST", `/documents/${id}/changes/check`, { expectedVersion, changes, ...(goal ? { goal } : {}), ...(strictness === "strict" ? { strictness } : {}) }),
+  settingsStatus: () => call<SettingsStatus>("GET", "/settings/status"),
   suggest: (id: string, instruction: string) => call<SuggestResponse>("POST", `/documents/${id}/suggest`, { instruction }),
   apply: (id: string, expectedVersion: number, changes: Change[]) => call<Receipt>("PATCH", `/documents/${id}`, { expectedVersion, changes }),
 };

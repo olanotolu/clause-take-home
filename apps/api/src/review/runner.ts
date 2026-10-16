@@ -2,6 +2,7 @@ import type { Result } from "@clause/core";
 import { preview, type ChangeRequest } from "../documents.ts";
 import type { DomainError } from "../errors.ts";
 import type { Store } from "../store/types.ts";
+import { applyStrictness, type Strictness } from "./ensemble.ts";
 import { deltaOf, summarize } from "./delta.ts";
 import { evaluateDeterministic } from "./deterministic.ts";
 import type { Check, CiReport, RequirementReport, SemanticEvaluator } from "./types.ts";
@@ -9,6 +10,8 @@ import type { Check, CiReport, RequirementReport, SemanticEvaluator } from "./ty
 export interface CheckRequest extends ChangeRequest {
   /** What the edit is supposed to achieve, in the user's words. Judged like a requirement that should become true. */
   goal?: string | undefined;
+  /** `strict` demotes low-confidence semantic PASSes to NEEDS_REVIEW. Default `balanced` changes nothing. */
+  strictness?: Strictness | undefined;
 }
 
 /** Used when no model is configured: semantic requirements answer UNAVAILABLE, exact ones still run. */
@@ -55,8 +58,8 @@ export async function runCi(store: Store, id: string, req: CheckRequest, semanti
       }
       const isGoal = item.kind === "goal";
       const [before, after]: [Check, Check] = await Promise.all([
-        safely(semantic, { requirement: item.text, text: doc.content, isGoal }),
-        safely(semantic, { requirement: item.text, text: result.content, isGoal }),
+        safely(semantic, { requirement: item.text, text: doc.content, isGoal }).then((c) => applyStrictness(c, req.strictness)),
+        safely(semantic, { requirement: item.text, text: result.content, isGoal }).then((c) => applyStrictness(c, req.strictness)),
       ]);
       return { id: item.id, kind: item.kind, text: item.text, before, after, delta: deltaOf(before.verdict, after.verdict), touchedBy: [] };
     }),

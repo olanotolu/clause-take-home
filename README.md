@@ -106,6 +106,12 @@ curl -s "localhost:3000/documents/$ID/search?q=shall%20not%20disclose&mode=exact
 - **Verified** by reading the generated XML back independently: *Accept all* reproduces the new text and *Reject all* reproduces the old text exactly, over a set of tricky pairs (empty paragraphs, emoji, `<`/`&`, repeated blank lines), and the sample opens in an unrelated library (`python-docx`). **I have not opened it in Microsoft Word itself**; please do that once with the sample.
 - Plain text only: there is no original Word formatting, numbering or tables to preserve, so none is produced. Versions larger than 1,000,000 characters return `413` instead of attempting a super-linear diff.
 
+### Settings screen
+
+The sidebar's **Settings** page shows what the server is doing (`GET /settings/status`: judge model ids, storage backend, limits; read-only, no secrets) and keeps per-browser preferences in `localStorage` (theme, date format, hide the AI tab, confirm before apply, auto-open the redline, show hashes).
+One preference reaches the server: **Risk sensitivity = Strict** sends `strictness: "strict"` to `/changes/check`, which demotes a semantic PASS to NEEDS_REVIEW when any judge is under 80% sure. It can only make a check more cautious.
+Everything else the product design shows (SSO, integrations, billing, team, playbooks) is rendered as a disabled row labelled "Not in this prototype". The workspace is open and shared, so settings are deliberately not security or cost controls: model choice stays in the server environment.
+
 ## Performance
 
 Measured by `pnpm bench` on a deterministic synthetic 10 MiB contract (10,306,991 chars; seeded-random clause paragraphs with newlines, accents, `§`, one rare token). Machine: Apple M4 (10 cores), 32 GiB, macOS, Node 26.7.0, SQLite 3.53.4. **Not an idle machine** (load average ≈ 8 from other apps), so treat figures as ±30%. Medians of 5 runs where marked.

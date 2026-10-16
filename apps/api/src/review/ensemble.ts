@@ -57,3 +57,21 @@ export function combineJudges(text: string, outcomes: readonly JudgeOutcome[]): 
   const prefix = verdict === "PASS" ? "Holds" : verdict === "FAIL" ? (lead.label === "contradicted" ? "Contradicted" : "Not stated") : "Unclear";
   return { verdict, detail: `${prefix}: ${said}${partial}`, evidence, judges };
 }
+
+export type Strictness = "balanced" | "strict";
+
+/** Under `strict`, a PASS needs every answering judge to be at least this sure. Only used when the caller asks for it. */
+export const STRICT_MIN_P = 0.8;
+
+/**
+ * Optional second look at a semantic check. `balanced` (the default) returns it untouched. `strict` demotes a PASS to
+ * NEEDS_REVIEW when any judge's probability that the requirement holds is below STRICT_MIN_P. It can only make a
+ * check more cautious: FAIL, NEEDS_REVIEW and UNAVAILABLE never change, and nothing is ever promoted to PASS.
+ */
+export function applyStrictness(check: Check, strictness: Strictness | undefined): Check {
+  if (strictness !== "strict" || check.verdict !== "PASS") return check;
+  const unsure = (check.judges ?? []).filter((j) => j.probability !== undefined && j.probability < STRICT_MIN_P);
+  if (unsure.length === 0) return check;
+  const who = unsure.map((j) => `${j.id} ${(j.probability! * 100).toFixed(0)}%`).join(", ");
+  return { ...check, verdict: "NEEDS_REVIEW", detail: `Strict mode: holds, but not confidently enough (${who}; needs ${STRICT_MIN_P * 100}%). ${check.detail}` };
+}
