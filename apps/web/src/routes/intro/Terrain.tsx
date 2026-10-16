@@ -13,7 +13,7 @@ interface Props {
 }
 
 /**
- * The camera holds a framing for each beat and moves between them in the gaps, like cuts that are dollies instead:
+ * The camera holds a framing for each beat and moves between them in the gaps, like cuts that are dollies:
  * a new heading and a new lens (a tighter or wider shot) per beat, eased, never a straight linear glide.
  */
 const SHOTS = [
@@ -49,8 +49,10 @@ function compile(gl: WebGL2RenderingContext, type: number, src: string) {
 }
 
 /**
- * Draws the dune field. The render resolution adapts: if frames run long it steps down, and it never goes below a
- * soft floor, so a slow GPU gets a softer picture instead of a stutter. Automated browsers get a small, cheap one.
+ * Draws the dune field, and only when something changed. While you scroll or move the pointer it renders at a low
+ * resolution so it stays at frame rate; when you stop, it draws once more, sharp, and then the GPU goes idle. That
+ * idle frame is the one most people are looking at, and it costs nothing, which keeps every other animation on the
+ * page smooth. If frames still run long while moving, the moving resolution steps down.
  */
 export function Terrain({ p, px, py, reduce, onFail }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -82,58 +84,98 @@ export function Terrain({ p, px, py, reduce, onFail }: Props) {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const u = (name: string) => gl.getUniformLocation(program, name);
-    const uRes = u("uRes"), uTime = u("uTime"), uScroll = u("uScroll"), uIntro = u("uIntro"), uAnimate = u("uAnimate"), uPointer = u("uPointer"), uYaw = u("uYaw"), uFocal = u("uFocal");
+    const uRes = u("uRes"), uTime = u("uTime"), uScroll = u("uScroll"), uIntro = u("uIntro"), uPointer = u("uPointer"), uYaw = u("uYaw"), uFocal = u("uFocal");
 
     const automated = navigator.webdriver === true;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let scale = automated ? 0.18 : 0.72;
+    let moveScale = automated ? 0.18 : 0.5;
+    const sharpScale = automated ? 0.18 : 0.85;
+    let scale = moveScale;
     let w = 0;
     let h = 0;
     const fit = () => {
       w = Math.max(2, Math.round(canvas.clientWidth * dpr * scale));
       h = Math.max(2, Math.round(canvas.clientHeight * dpr * scale));
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, w, h);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
     };
     fit();
-    window.addEventListener("resize", fit);
 
+    // Open the page with ?perf (for example /?perf#/welcome) to see, once a second in the console, how many frames were
+    // actually drawn, how long the frames took, and the resolution it chose. Idle should read 0 drawn.
+    const perf = new URLSearchParams(window.location.search).has("perf");
+    let drawn = 0;
+    let dtSum = 0;
+    let dtN = 0;
+    const perfTimer = perf ? window.setInterval(() => {
+      console.info(`[intro] drawn ${drawn}/s, frame ${dtN ? (dtSum / dtN).toFixed(1) : "-"} ms, moving scale ${moveScale.toFixed(2)}, canvas ${w}x${h}`);
+      drawn = 0; dtSum = 0; dtN = 0;
+    }, 1000) : 0;
+
+    const INTRO_S = 2.4;
     const start = performance.now();
     let last = start;
+    let lastChange = start;
+    let key = "";
+    let drewSharp = false;
     let slow = 0;
-    let fast = 0;
     let raf = 0;
     let running = true;
+    let dirty = true;
+    const markDirty = () => { dirty = true; };
+    window.addEventListener("resize", markDirty);
+
     const draw = (now: number) => {
       if (!running) return;
+      raf = requestAnimationFrame(draw);
       const dt = now - last;
       last = now;
-      if (!automated && !reduce) {
-        // Step the resolution down if frames run long, and back up if there is plenty of headroom.
-        if (dt > 26) { slow++; fast = 0; } else if (dt < 15) { fast++; slow = 0; } else { slow = 0; fast = 0; }
-        if (slow > 18 && scale > 0.34) { scale = Math.max(0.34, scale * 0.86); slow = 0; fit(); }
-        if (fast > 240 && scale < 0.85) { scale = Math.min(0.85, scale * 1.1); fast = 0; fit(); }
-      }
       const elapsed = (now - start) / 1000;
-      const intro = reduce ? 1 : 1 - Math.pow(1 - Math.min(elapsed / 3.4, 1), 3);
+      const intro = reduce ? 1 : 1 - Math.pow(1 - Math.min(elapsed / INTRO_S, 1), 3);
+      const scroll = Math.min(Math.max(p.get(), 0), 1);
+      const ptrX = reduce ? 0 : px.get();
+      const ptrY = reduce ? 0 : py.get();
+      const next = `${scroll.toFixed(4)}|${ptrX.toFixed(3)}|${ptrY.toFixed(3)}|${intro.toFixed(3)}`;
+      if (next !== key || dirty) {
+        key = next;
+        lastChange = now;
+        drewSharp = false;
+        dirty = false;
+        scale = moveScale;
+        // Step the moving resolution down if frames run long while animating.
+        if (!automated) {
+          if (dt > 24) slow++; else slow = 0;
+          if (slow > 12 && moveScale > 0.3) { moveScale = Math.max(0.3, moveScale * 0.85); scale = moveScale; slow = 0; }
+        }
+      } else if (!drewSharp && now - lastChange > 220) {
+        // Still for a moment: one sharp frame, then nothing until something moves again.
+        scale = sharpScale;
+        drewSharp = true;
+      } else {
+        return;
+      }
+      fit();
+      drawn++;
+      dtSum += dt;
+      dtN++;
+      const shot = shotAt(scroll);
       gl.uniform2f(uRes, w, h);
       gl.uniform1f(uTime, elapsed);
-      gl.uniform1f(uScroll, Math.min(Math.max(p.get(), 0), 1));
+      gl.uniform1f(uScroll, scroll);
       gl.uniform1f(uIntro, intro);
-      gl.uniform1f(uAnimate, reduce ? 0 : 1);
-      gl.uniform2f(uPointer, reduce ? 0 : px.get(), reduce ? 0 : py.get());
-      const shot = shotAt(Math.min(Math.max(p.get(), 0), 1));
+      gl.uniform2f(uPointer, ptrX, ptrY);
       gl.uniform1f(uYaw, shot.yaw);
       gl.uniform1f(uFocal, shot.focal);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
 
     const onVisibility = () => {
       if (document.hidden) { running = false; cancelAnimationFrame(raf); }
-      else if (!running) { running = true; last = performance.now(); raf = requestAnimationFrame(draw); }
+      else if (!running) { running = true; last = performance.now(); dirty = true; raf = requestAnimationFrame(draw); }
     };
     const onLost = (e: Event) => { e.preventDefault(); running = false; onFail(); };
     document.addEventListener("visibilitychange", onVisibility);
@@ -141,8 +183,9 @@ export function Terrain({ p, px, py, reduce, onFail }: Props) {
 
     return () => {
       running = false;
+      window.clearInterval(perfTimer);
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", fit);
+      window.removeEventListener("resize", markDirty);
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onLost);
       gl.deleteBuffer(buf);

@@ -51,9 +51,9 @@ export function Cursor({ reduce }: { reduce: boolean }) {
     <motion.div aria-hidden className="pointer-events-none fixed left-0 top-0 z-[80]" style={{ x: sx, y: sy }}>
       <motion.div
         className="-translate-x-1/2 -translate-y-1/2 grid place-items-center overflow-hidden rounded-full text-[12px] font-bold tracking-[0.04em]"
-        animate={{ width: size, height: size, backgroundColor: label ? BONE : "rgba(246,234,210,0.0)", borderColor: "rgba(246,234,210,0.9)" }}
+        animate={{ width: size, height: size, backgroundColor: label ? BONE : "rgba(246,234,210,0.0)", borderColor: "rgba(246,234,210,0.95)" }}
         transition={{ type: "spring", stiffness: 320, damping: 26 }}
-        style={{ borderWidth: label ? 0 : 1.5, borderStyle: "solid", color: INK, mixBlendMode: label ? "normal" : "difference" }}
+        style={{ borderWidth: label ? 0 : 1.5, borderStyle: "solid", color: INK, boxShadow: "0 0 0 1px rgba(20,10,5,0.45)" }}
       >
         <motion.span animate={{ opacity: label ? 1 : 0, scale: label ? 1 : 0.6 }} transition={{ duration: 0.18 }}>{label}</motion.span>
       </motion.div>
@@ -84,15 +84,15 @@ export function useTilt(reduce: boolean) {
   return { rx, ry, glare, handlers };
 }
 
-/** One character of a split headline: it rises out of its mask and comes into focus, on a spring. */
+/** One character of a split headline: it rises out of its mask on a spring (transform and opacity only, so it stays on the GPU). */
 export function Char({ children, delay, reduce }: { children: string; delay: number; reduce: boolean }) {
   return (
     <motion.span
       aria-hidden
       className="inline-block"
-      initial={reduce ? false : { y: "115%", rotate: 9, opacity: 0, filter: "blur(10px)" }}
-      animate={{ y: 0, rotate: 0, opacity: 1, filter: "blur(0px)" }}
-      transition={{ type: "spring", stiffness: 130, damping: 17, delay }}
+      initial={reduce ? false : { y: "115%", rotate: 7, opacity: 0 }}
+      animate={{ y: 0, rotate: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 210, damping: 21, delay }}
     >
       {children}
     </motion.span>

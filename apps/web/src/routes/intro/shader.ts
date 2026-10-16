@@ -27,7 +27,7 @@ float noise(vec2 x) {
 
 float dune(vec2 p) {
   p = mat2(0.80, -0.60, 0.60, 0.80) * p; // slant the crests across the view so the light can rake them
-  vec2 w = p + 22.0 * vec2(noise(p * 0.011), noise(p * 0.011 + 7.3));
+  vec2 w = p + 22.0 * noise(p * 0.011) * vec2(1.0, 0.8);
   float h = 0.0;
   float a = 8.5;
   vec2 q = vec2(w.x * 0.011, w.y * 0.034);
@@ -64,16 +64,14 @@ vec3 skyColor(vec3 rd, vec3 sun, float day) {
 
 void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
-  float t0 = uTime * uAnimate;
 
   // Camera: high over the field, glides forward with the scroll, rises a little so it opens up, drifts on its own.
-  vec3 ro = vec3(uPointer.x * 4.0 + sin(t0 * 0.07) * 1.5, 0.0, uScroll * 170.0 + t0 * 0.35);
+  vec3 ro = vec3(uPointer.x * 4.0, 0.0, uScroll * 170.0);
   ro.y = dune(ro.xz) + 15.0 + uScroll * 16.0;
   float pitch = -0.17 - uScroll * 0.12 - uPointer.y * 0.06;
   vec3 fwd = normalize(vec3(sin(uYaw + uPointer.x * 0.1) * cos(pitch), sin(pitch), cos(uYaw + uPointer.x * 0.1) * cos(pitch)));
   vec3 right = normalize(cross(vec3(0, 1, 0), fwd));
   vec3 up = cross(fwd, right);
-  uv.y += uAnimate * 0.0016 * sin(uv.x * 70.0 + uTime * 1.6) * smoothstep(0.1, -0.05, uv.y);
   vec3 rd = normalize(uv.x * right + uv.y * up + uFocal * fwd);
 
   // The day: dawn at the top of the page, high gold light by the end. The sun climbs out of the dark in the opening.
@@ -87,18 +85,18 @@ void main() {
   float t = 0.4;
   float tPrev = t;
   bool hit = false;
-  for (int i = 0; i < 150; i++) {
+  for (int i = 0; i < 124; i++) {
     vec3 p = ro + rd * t;
     float d = p.y - dune(p.xz);
     if (d < 0.0015 * t) { hit = true; break; }
     tPrev = t;
-    t += max(0.45 * d, 0.005 * t);
-    if (t > 520.0) break;
+    t += max(0.5 * d, 0.0058 * t);
+    if (t > 420.0) break;
   }
   if (hit) {
     // Bisect between the last point above the surface and the first below it, so the silhouette is smooth, not stepped.
     float lo = tPrev, hi = t;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 4; i++) {
       float mid = 0.5 * (lo + hi);
       vec3 q = ro + rd * mid;
       if (q.y - dune(q.xz) > 0.0) lo = mid; else hi = mid;
@@ -113,12 +111,12 @@ void main() {
     // Soft shadows from the sun across the dunes.
     float sh = 1.0;
     float s = 0.25;
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 20; i++) {
       vec3 q = p + n * 0.05 + sun * s;
       float d = q.y - dune(q.xz);
       sh = min(sh, clamp(7.0 * d / s, 0.0, 1.0));
-      s += clamp(d, 0.25, 7.0);
-      if (sh < 0.02 || s > 150.0) break;
+      s += clamp(d, 0.35, 9.0);
+      if (sh < 0.02 || s > 120.0) break;
     }
     float dif = max(dot(n, sun), 0.0) * sh;
     float grain = noise(p.xz * 0.5) * 0.5 + noise(p.xz * 2.7) * 0.5;

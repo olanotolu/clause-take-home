@@ -80,9 +80,9 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
   const track = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ container: scroller, target: track, offset: ["start start", "end end"] });
   // Smoothing the raw scroll lets the camera glide instead of stepping with the wheel.
-  const p = useSpring(scrollYProgress, { stiffness: 90, damping: 24, mass: 0.8 });
-  const px = useSpring(useMotionValue(0), { stiffness: 40, damping: 16 });
-  const py = useSpring(useMotionValue(0), { stiffness: 40, damping: 16 });
+  const p = useSpring(scrollYProgress, { stiffness: 210, damping: 30, mass: 0.6 });
+  const px = useSpring(useMotionValue(0), { stiffness: 90, damping: 20 });
+  const py = useSpring(useMotionValue(0), { stiffness: 90, damping: 20 });
   const skip = useRef<HTMLButtonElement>(null);
   const [atEnd, setAtEnd] = useState(false);
   const [still, setStill] = useState(false);
@@ -119,7 +119,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
       style={{ background: INK }}
     >
       <Cursor reduce={reduce} />
-      <div ref={track} className="relative h-[560vh]">
+      <div ref={track} className="relative h-[440vh]">
         <div className="sticky top-0 h-screen overflow-hidden" style={{ background: STILL }}>
           {!still && <Terrain p={p} px={px} py={py} reduce={reduce} onFail={failed} />}
           {/* Keeps the type readable whatever the light is doing behind it. */}
@@ -127,7 +127,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
 
           <div className="relative mx-auto h-full max-w-[1240px] px-7 max-[640px]:px-5">
             <div className="absolute inset-x-7 top-6 z-20 flex items-center justify-between max-[640px]:inset-x-5">
-              <motion.span initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, delay: 0.8 }} className="flex items-center gap-3 text-[13px] font-extrabold tracking-[0.34em]" style={{ color: BONE }}>
+              <motion.span initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.3 }} className="flex items-center gap-3 text-[13px] font-extrabold tracking-[0.34em]" style={{ color: BONE }}>
                 <span aria-hidden className="block size-[15px] rounded-[4px] border-2" style={{ borderColor: BONE, borderRightColor: "transparent" }} />
                 CLAUSE
               </motion.span>
@@ -147,14 +147,14 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                       const before = HEADLINE.slice(0, li).flat().length + wi;
                       return (
                         <span key={w} className="mr-[0.2em] inline-block overflow-hidden align-bottom pb-[0.14em] pr-[0.04em]">
-                          {w.split("").map((c, ci) => <Char key={`${ci}-${c}`} reduce={reduce} delay={1.0 + before * 0.09 + ci * 0.028}>{c}</Char>)}
+                          {w.split("").map((c, ci) => <Char key={`${ci}-${c}`} reduce={reduce} delay={0.3 + before * 0.07 + ci * 0.02}>{c}</Char>)}
                         </span>
                       );
                     })}
                   </span>
                 ))}
               </h1>
-              <motion.div initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, delay: 2.1, ease: EASE }} className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
+              <motion.div initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 1.05, ease: EASE }} className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
                 <p className="max-w-[36ch] text-[clamp(0.95rem,1.4vw,1.15rem)] leading-snug" style={{ color: "rgb(246 234 210 / .86)" }}>
                   A contract redlining and search service that refuses to guess.
                 </p>

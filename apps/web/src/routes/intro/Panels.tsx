@@ -25,7 +25,7 @@ function Receipt({ p, at, code, name, label, children, reduce }: { p: MotionValu
   const head = useTransform(p, [at, at + 0.012], [0, 1], { clamp: true });
   const { rx, ry, glare, handlers } = useTilt(reduce);
   return (
-    <motion.figure aria-label={label} {...handlers} className="relative w-full max-w-[480px] rounded-[16px] border px-5 pb-3 pt-4 max-[640px]:px-4" style={{ rotateX: rx, rotateY: ry, transformPerspective: 900, color: BONE, background: "rgb(18 9 4 / .6)", borderColor: "rgb(246 234 210 / .24)", backdropFilter: "blur(10px)", fontVariantNumeric: "tabular-nums" }}>
+    <motion.figure aria-label={label} {...handlers} className="relative w-full max-w-[480px] rounded-[16px] border px-5 pb-3 pt-4 max-[640px]:px-4" style={{ rotateX: rx, rotateY: ry, transformPerspective: 900, color: BONE, background: "rgb(20 10 5 / .74)", borderColor: "rgb(246 234 210 / .24)", fontVariantNumeric: "tabular-nums" }}>
       <motion.div style={{ opacity: head, borderColor: "rgb(246 234 210 / .3)" }} className="flex items-baseline gap-3 border-b pb-3">
         <span className="text-[44px] font-light leading-none tracking-[-0.03em] max-[640px]:text-[34px]">{code}</span>
         <span className="text-[13px] font-bold uppercase tracking-[0.14em]">{name}</span>
