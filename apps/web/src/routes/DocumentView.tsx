@@ -5,8 +5,9 @@ import { useSettings } from "../lib/settings.tsx";
 import { formatDate } from "../lib/settings-core.ts";
 import { kb } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
-import { Button } from "../ui/Button.tsx";
+import { Button, buttonClass } from "../ui/Button.tsx";
 import { Skeleton } from "../ui/bits.tsx";
+import { Segmented } from "../ui/Segmented.tsx";
 import { Tabs, type TabDef } from "../ui/Tabs.tsx";
 import { ActivityTab } from "./ActivityTab.tsx";
 import { CiTab } from "./CiTab.tsx";
@@ -56,15 +57,18 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
           </div>
           <div className="flex flex-wrap items-center gap-2 max-[640px]:gap-1.5">
             {tab === "edit" && (
-              <div role="radiogroup" aria-label="View" className="flex gap-0.5 rounded-control bg-line/60 p-0.5 text-[13px]">
-                <button role="radio" aria-checked={!ws.redline} onClick={() => ws.setRedline(false)} className={`h-8 rounded-md px-3 font-medium ${!ws.redline ? "bg-paper text-ink shadow-sm" : "text-muted"}`}>Original</button>
-                <button role="radio" aria-checked={ws.redline} disabled={!canRedline} title={canRedline ? "Show staged changes as a redline" : "Stage a valid change to preview its redline"} onClick={() => ws.setRedline(true)} className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 font-medium disabled:opacity-40 ${ws.redline ? "bg-paper text-ink shadow-sm" : "text-muted"}`}>
-                  <GitCompare size={13} aria-hidden />Redline
-                </button>
-              </div>
+              <Segmented
+                value={ws.redline ? "redline" : "original"}
+                onChange={(v) => ws.setRedline(v === "redline")}
+                label="View"
+                options={[
+                  { value: "original", label: "Original" },
+                  { value: "redline", label: <><GitCompare size={13} aria-hidden />Redline</>, disabled: !canRedline, title: canRedline ? "Show staged changes as a redline" : "Stage a valid change to preview its redline" },
+                ]}
+              />
             )}
             {doc.version > 1 ? (
-              <a href={`/api/documents/${doc.id}/export.docx?from=1&to=${doc.version}`} download className="inline-flex h-9 items-center gap-2 rounded-control border border-line-strong bg-paper px-3.5 text-sm font-semibold hover:bg-canvas" title={`Word file with every change from v1 to v${doc.version} as tracked changes`}>
+              <a href={`/api/documents/${doc.id}/export.docx?from=1&to=${doc.version}`} download className={buttonClass({ variant: "secondary" })} title={`Word file with every change from v1 to v${doc.version} as tracked changes`}>
                 <Download size={15} aria-hidden /><span className="max-[640px]:sr-only">Export .docx</span>
               </a>
             ) : (

@@ -1,102 +1,142 @@
 @import "tailwindcss";
 
 /*
- * CLAUSE design tokens. One blue accent (actions, selection, focus), semantic status pairs (always icon + words, never
- * colour alone), warm neutrals. Dark theme overrides the same names below; Tailwind utilities read them as variables.
+ * CLAUSE design tokens, in the product register: chroma-0 neutrals (no warm cast, so signals read as signals), hairline
+ * borders at 6% ink, one blue accent for actions, selection and focus, and status pairs that always carry an icon and
+ * words. Flat and border-led: shadows exist only on overlays. Dark theme overrides the same names below.
  */
+@font-face {
+  font-family: "STK Miso";
+  src: url("/fonts/STKMisoVariableComplete.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+/* Metric-matched fallback so text does not jump when the real face arrives. */
+@font-face {
+  font-family: "STK Miso fallback";
+  src: local(Arial);
+  size-adjust: 105.428%;
+  ascent-override: 89.6344%;
+  descent-override: 24.1871%;
+  line-gap-override: 0%;
+  font-weight: 100 900;
+}
+
 @theme {
-  --color-canvas: #f6f4ef;
-  --color-paper: #fffefc;
-  --color-ink: #1b1d22;
-  --color-muted: #5f6672;
-  --color-line: #e6e2d9;
-  --color-line-strong: #d2ccbf;
+  --color-canvas: #fafafa;
+  --color-paper: #ffffff;
+  --color-ink: #141416;
+  --color-muted: #5e6169;
+  --color-line: rgb(20 20 22 / 0.06);
+  --color-line-strong: rgb(20 20 22 / 0.15);
 
-  --color-rail: #121419;
-  --color-rail-hi: #1e212a;
-  --color-rail-ink: #e8eaee;
-  --color-rail-muted: #8f97a6;
+  --color-rail: #f4f4f5;
+  --color-rail-hi: rgb(20 20 22 / 0.06);
+  --color-rail-ink: #141416;
+  --color-rail-muted: #62656c;
 
-  --color-accent: #1f5be8;
+  --color-accent: #235a96;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #e8efff;
+  --color-accent-soft: rgb(35 90 150 / 0.09);
 
-  --color-pass: #0d7340;
-  --color-pass-bg: #def4e6;
-  --color-fail: #b42318;
-  --color-fail-bg: #fde8e6;
-  --color-review: #8a5207;
-  --color-review-bg: #fcefd0;
+  --color-pass: #146b45;
+  --color-pass-bg: rgb(36 164 107 / 0.13);
+  --color-fail: #b3261e;
+  --color-fail-bg: rgb(214 69 55 / 0.1);
+  --color-review: #8a5300;
+  --color-review-bg: rgb(214 150 20 / 0.15);
 
   /* aliases kept for the redline classes and older components */
   --color-del: var(--color-fail);
   --color-del-bg: var(--color-fail-bg);
   --color-ins: var(--color-pass);
   --color-ins-bg: var(--color-pass-bg);
-  --color-hit: #fff1a8;
+  --color-hit: rgb(250 204 21 / 0.4);
 
+  --font-sans: "STK Miso", "STK Miso fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "STK Miso", "STK Miso fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Contract text stays serif: it is the document, not the interface. */
   --font-doc: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 
   --radius-control: 8px;
   --radius-card: 12px;
-  --shadow-lift: 0 1px 2px rgb(20 22 28 / 0.06), 0 8px 24px -12px rgb(20 22 28 / 0.18);
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-lift: 0 0 0 1px rgb(20 20 22 / 0.08), 0 16px 40px -16px rgb(20 20 22 / 0.28);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-canvas: #101216;
-  --color-paper: #171a20;
-  --color-ink: #e8eaee;
-  --color-muted: #9aa3b2;
-  --color-line: #272b34;
-  --color-line-strong: #363b47;
-  --color-rail: #0b0c10;
-  --color-rail-hi: #181b22;
-  --color-accent: #7aa2ff;
-  --color-accent-ink: #0c1424;
-  --color-accent-soft: #1b2540;
-  --color-pass: #6fd9a0;
-  --color-pass-bg: #123222;
-  --color-fail: #ff9185;
-  --color-fail-bg: #3b1b19;
-  --color-review: #f2c46f;
-  --color-review-bg: #36280d;
-  --color-hit: #5a4d12;
+  --color-canvas: #0b0b0c;
+  --color-paper: #141416;
+  --color-ink: #f2f2f4;
+  --color-muted: #9b9ea8;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.16);
+  --color-rail: #09090a;
+  --color-rail-hi: rgb(255 255 255 / 0.07);
+  --color-rail-ink: #f2f2f4;
+  --color-rail-muted: #9b9ea8;
+  --color-accent: #7fb0ec;
+  --color-accent-ink: #08111d;
+  --color-accent-soft: rgb(127 176 236 / 0.13);
+  --color-pass: #5fd69c;
+  --color-pass-bg: rgb(36 164 107 / 0.18);
+  --color-fail: #ff8f84;
+  --color-fail-bg: rgb(214 69 55 / 0.2);
+  --color-review: #f0bd62;
+  --color-review-bg: rgb(214 150 20 / 0.2);
+  --color-hit: rgb(250 204 21 / 0.28);
+  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 16px 40px -16px rgb(0 0 0 / 0.7);
 }
 
 html, body, #root { height: 100%; }
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-.font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+/* Headings and titles share the interface voice; weight, not a second typeface, makes the hierarchy. */
+.font-display { font-family: var(--font-display); font-weight: 600; letter-spacing: 0; }
 .tnum { font-variant-numeric: tabular-nums; }
 .doc { font-family: var(--font-doc); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; font-size: 16px; }
-.del { background: var(--color-del-bg); color: var(--color-del); text-decoration: line-through; text-decoration-thickness: 1.5px; border-radius: 2px; }
-.ins { background: var(--color-ins-bg); color: var(--color-ins); border-radius: 2px; }
-.hit { background: var(--color-hit); border-radius: 2px; }
-.sel { background: color-mix(in oklab, var(--color-accent) 22%, transparent); outline: 1.5px solid var(--color-accent); border-radius: 2px; }
-.ev { background: color-mix(in oklab, var(--color-review) 22%, transparent); border-radius: 2px; box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-review) 22%, transparent); }
+.del { background: var(--color-del-bg); color: var(--color-del); text-decoration: line-through; text-decoration-thickness: 1.5px; border-radius: 3px; }
+.ins { background: var(--color-ins-bg); color: var(--color-ins); border-radius: 3px; }
+.hit { background: var(--color-hit); border-radius: 3px; }
+.sel { background: color-mix(in oklab, var(--color-accent) 22%, transparent); outline: 1.5px solid var(--color-accent); border-radius: 3px; }
+.ev { background: color-mix(in oklab, var(--color-review) 24%, transparent); border-radius: 3px; box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-review) 24%, transparent); }
 
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
-::selection { background: color-mix(in oklab, var(--color-accent) 30%, transparent); }
+::selection { background: color-mix(in oklab, var(--color-accent) 28%, transparent); }
 textarea, input, select { color: inherit; }
-input::placeholder, textarea::placeholder { color: var(--color-muted); opacity: 0.8; }
+input::placeholder, textarea::placeholder { color: var(--color-muted); opacity: 0.85; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+input[type="date"] { min-height: 2.25rem; }
 
 /* scrollbars: quiet, themed */
 * { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
 
-@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/*
+ * Motion: ease-out for anything entering, under 250ms, and nothing animates for keyboard-driven actions.
+ * Press feedback is instant (see Button); list changes animate through auto-animate.
+ */
+@keyframes rise { from { opacity: 0; transform: translateY(4px) scale(0.985); } to { opacity: 1; transform: none; } }
 @keyframes shimmer { to { background-position: -200% 0; } }
-.rise { animation: rise 200ms var(--ease-out) both; }
-.skeleton { background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in oklab, var(--color-line) 55%, var(--color-paper)) 50%, var(--color-line) 75%) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 6px; }
+.rise { animation: rise 180ms var(--ease-out) both; }
+.skeleton { background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in oklab, var(--color-line) 45%, var(--color-paper)) 50%, var(--color-line) 75%) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 6px; }
+
+/* Native dialogs: scale in from slightly smaller, never from nothing. */
+dialog[open] { animation: rise 180ms var(--ease-out) both; }
+dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+
+/* sonner, restyled to the product register */
+[data-sonner-toaster] { --width: 380px; font-family: var(--font-sans); }
+[data-sonner-toast] { border-radius: var(--radius-card) !important; border: 0 !important; box-shadow: var(--shadow-lift) !important; background: var(--color-paper) !important; color: var(--color-ink) !important; font-size: 13.5px !important; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }

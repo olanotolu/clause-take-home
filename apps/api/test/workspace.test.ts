@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { snapshotOf } from "../src/review/snapshot.ts";
 import type { CiReport, SemanticEvaluator } from "../src/review/types.ts";
-import { SEED_PLAYBOOKS, SEED_REQUESTS } from "../src/seed-workspace.ts";
+import { DEMO_DOCUMENT_TITLE, SEED_PLAYBOOKS, SEED_REQUESTS, seedDemoRequirements } from "../src/seed-workspace.ts";
 import { MAX_REQUIREMENTS_PER_DOCUMENT } from "../src/store/types.ts";
 import { createDoc, patch, quote, testApp, testStore } from "./helpers.ts";
 
@@ -208,6 +208,27 @@ describe("sample workspace seeding (runs on whichever backend the suite uses)", 
       expect(await store.seedRequestsIfEmpty(SEED_REQUESTS)).toBe(0);
       const reqs = await store.listRequests();
       expect(reqs.every((r) => r.documentId !== null)).toBe(true);
+    } finally {
+      await store.close();
+    }
+  });
+});
+
+describe("seedDemoRequirements", () => {
+  it("applies the NDA playbook to the sample NDA once, and leaves a document that already has requirements alone", async () => {
+    const store = await testStore();
+    try {
+      expect(await seedDemoRequirements(store)).toBe(0); // no document, no playbook yet
+      await store.seedIfEmpty([{ title: DEMO_DOCUMENT_TITLE, content: "text" }, { title: "Other", content: "text" }]);
+      expect(await seedDemoRequirements(store)).toBe(0); // no playbook yet
+      await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS);
+      const nda = SEED_PLAYBOOKS.find((p) => p.name === "NDA Playbook")!;
+      expect(await seedDemoRequirements(store)).toBe(nda.rules.length);
+      expect(await seedDemoRequirements(store)).toBe(0); // second run changes nothing
+      const docs = (await store.listDocuments(10, 0)).items;
+      const demo = docs.find((d) => d.title === DEMO_DOCUMENT_TITLE)!;
+      expect((await store.listRequirements(demo.id)).map((r) => r.text)).toEqual(nda.rules.map((r) => r.text));
+      expect(await store.listRequirements(docs.find((d) => d.title === "Other")!.id)).toEqual([]);
     } finally {
       await store.close();
     }

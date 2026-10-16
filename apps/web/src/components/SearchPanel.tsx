@@ -2,6 +2,7 @@ import { Loader2, Search as SearchIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api, type DocResult, type Hit, type SearchPage } from "../lib/api.ts";
 import { EmptyState } from "../ui/bits.tsx";
+import { Segmented } from "../ui/Segmented.tsx";
 
 interface Props {
   /** Bumped by the parent after a commit so results never show stale text. */
@@ -76,13 +77,7 @@ export function SearchPanel({ refreshKey, seed, onOpen, onPick, onResults }: Pro
           className="h-9 w-full rounded-control border border-line-strong bg-paper pl-9 pr-3 text-sm"
         />
       </div>
-      <div role="radiogroup" aria-label="Search mode" className="flex gap-1 rounded-control bg-line/60 p-1 text-xs">
-        {(["words", "exact"] as const).map((m) => (
-          <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className={`h-7 flex-1 rounded-md px-2 font-medium transition-colors ${mode === m ? "bg-paper text-ink shadow-sm" : "text-muted hover:text-ink"}`}>
-            {m === "words" ? "Words, ranked" : "Exact, literal"}
-          </button>
-        ))}
-      </div>
+      <Segmented value={mode} onChange={setMode} label="Search mode" className="w-full [&>*]:flex-1 [&_button]:flex-1" options={[{ value: "words", label: "Words, ranked" }, { value: "exact", label: "Exact, literal" }]} />
       <p className="text-xs text-muted">{mode === "words" ? "Stemmed words, ranked by BM25." : "Case-sensitive text. Every hit has exact offsets."}</p>
 
       <div aria-live="polite" className="flex items-center gap-1.5 text-xs text-muted">

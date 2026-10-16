@@ -1,3 +1,4 @@
+import NumberFlow from "@number-flow/react";
 import { AlertTriangle, ArrowRight, Ban, Check, CheckCircle2, CircleSlash, Lock, ListChecks, Play, ShieldAlert, Sparkles, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Applied, CheckOutcome, Delta, Evidence, RequirementKind, RequirementReport, Verdict } from "../lib/api.ts";
@@ -7,6 +8,7 @@ import { useSettings } from "../lib/settings.tsx";
 import { plural } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
+import { TextShimmer } from "../ui/motion/text-shimmer.tsx";
 import { EmptyState, Pill, Skeleton, StatusPill, type Tone } from "../ui/bits.tsx";
 
 const VERDICT_TONE: Record<Verdict, Tone> = { PASS: "pass", FAIL: "fail", NEEDS_REVIEW: "review", UNAVAILABLE: "neutral" };
@@ -66,7 +68,7 @@ function Summary({ reqs, ms, judges, version, strict, hasEdit }: { reqs: Require
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {attention === 0 ? <CheckCircle2 size={22} className="text-pass" aria-hidden /> : broken > 0 ? <ShieldAlert size={22} className="text-fail" aria-hidden /> : <AlertTriangle size={22} className="text-review" aria-hidden />}
         <h2 className="font-display text-xl font-semibold">
-          <span className="tnum">{holding} of {reqs.length}</span> requirement{reqs.length === 1 ? "" : "s"} hold{reqs.length === 1 ? "s" : ""}{hasEdit ? " after this edit" : " in the current text"}
+          <span className="tnum"><NumberFlow value={holding} /> of {reqs.length}</span> requirement{reqs.length === 1 ? "" : "s"} hold{reqs.length === 1 ? "s" : ""}{hasEdit ? " after this edit" : " in the current text"}
         </h2>
         {broken > 0 && <StatusPill tone="fail">{broken} broken by this edit</StatusPill>}
       </div>
@@ -215,7 +217,7 @@ export function CiTab() {
           <div className="space-y-3" aria-busy="true" aria-label="Running Clause CI">
             <Skeleton className="h-28 w-full" />
             <div className="grid gap-4 min-[900px]:grid-cols-[320px_minmax(0,1fr)]"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>
-            <p className="text-sm text-muted">Running exact checks, then asking the judges. Usually a few seconds.</p>
+            <TextShimmer as="p" className="text-sm">Running exact checks, then asking the judges. Usually a few seconds.</TextShimmer>
           </div>
         )}
         {ws.ci.status === "error" && <p role="alert" className="flex gap-2 rounded-control bg-fail-bg px-4 py-3 text-sm text-fail"><XCircle size={16} className="mt-0.5 shrink-0" aria-hidden />{ws.ci.message}</p>}

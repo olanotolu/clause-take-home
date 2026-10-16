@@ -1,15 +1,19 @@
-import { AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Loader2, Trash2, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Trash2, XCircle } from "lucide-react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
+import NumberFlow from "@number-flow/react";
 import { useState } from "react";
 import { deltaLabel, plural, wordDelta } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { StatusPill } from "../ui/bits.tsx";
+import { TextShimmer } from "../ui/motion/text-shimmer.tsx";
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
 /** The batch you are about to apply: every change, whether the engine accepts it, and the one button that saves. */
 export function ChangesTray() {
   const ws = useWorkspace();
+  const [list] = useAutoAnimate<HTMLUListElement>({ duration: 180, easing: "ease-out" });
   const [open, setOpen] = useState(() => typeof window === "undefined" || window.matchMedia("(min-width: 700px)").matches);
   const { staged, preview, conflict, doc } = ws;
   if (!doc) return null;
@@ -26,7 +30,7 @@ export function ChangesTray() {
   const status = conflict ? (
     <StatusPill tone="review">Out of date</StatusPill>
   ) : preview.status === "loading" ? (
-    <span className="inline-flex items-center gap-1 text-xs text-muted"><Loader2 size={12} className="animate-spin" aria-hidden /> Validating against v{doc.version}…</span>
+    <TextShimmer as="span" className="text-xs">{`Validating against v${doc.version}…`}</TextShimmer>
   ) : preview.status === "valid" ? (
     preview.data.wouldChange ? <StatusPill tone="pass">Valid · v{doc.version} → v{doc.version + 1}</StatusPill> : <StatusPill tone="neutral">Identical text, nothing would change</StatusPill>
   ) : preview.status === "invalid" ? (
@@ -47,7 +51,7 @@ export function ChangesTray() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-2.5 max-[640px]:px-3">
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex items-center gap-1.5 text-sm font-semibold">
           {open ? <ChevronDown size={15} aria-hidden /> : <ChevronUp size={15} aria-hidden />}
-          Proposed changes <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs text-accent">{staged.length}</span>
+          Proposed changes <span className="tnum rounded-full bg-accent-soft px-1.5 text-xs text-accent"><NumberFlow value={staged.length} /></span>
         </button>
         <div aria-live="polite" className="min-w-0">{status}</div>
         <div className="ml-auto flex items-center gap-2">
@@ -59,7 +63,7 @@ export function ChangesTray() {
       </div>
 
       {open && (
-        <ul className="max-h-[34vh] space-y-1.5 overflow-y-auto px-5 pb-3 max-[640px]:px-3">
+        <ul ref={list} className="max-h-[34vh] space-y-1.5 overflow-y-auto px-5 pb-3 max-[640px]:px-3">
           {staged.map((s) => {
             const d = wordDelta(s.text, s.replacement);
             const quote = "quote" in s.target ? s.target.quote : null;

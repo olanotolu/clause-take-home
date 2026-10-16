@@ -1,7 +1,12 @@
-import { Activity, BookOpenCheck, CheckCircle2, ChevronRight, FileText, Info, LayoutDashboard, LayoutTemplate, Plus, Search, Settings, X, XCircle } from "lucide-react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
+import NumberFlow from "@number-flow/react";
+import { Activity, BookOpenCheck, ChevronRight, FileText, LayoutDashboard, LayoutTemplate, Plus, Search, Settings } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { Toaster } from "sonner";
 import { api, type SettingsStatus } from "../lib/api.ts";
+import { cn } from "../lib/cn.ts";
 import { navigate, useRoute, type Route } from "../lib/router.ts";
+import { useSettings } from "../lib/settings.tsx";
 import { kb } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
@@ -12,8 +17,8 @@ import { NewDocumentDialog } from "./NewDocumentDialog.tsx";
 function Logo() {
   return (
     <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="var(--color-rail-hi)" />
-      <path d="M21 11.5A6.5 6.5 0 1021 20.5" fill="none" stroke="var(--color-accent)" strokeWidth="3" strokeLinecap="round" />
+      <rect width="32" height="32" rx="8" fill="var(--color-ink)" />
+      <path d="M21 11.5A6.5 6.5 0 1021 20.5" fill="none" stroke="var(--color-paper)" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -34,26 +39,13 @@ function activeKey(route: Route): string {
 
 const CRUMB: Partial<Record<Route["name"], string>> = { home: "Workspace", documents: "Documents", playbooks: "Playbooks", activity: "Activity", templates: "Templates", settings: "Settings" };
 
-function ToastRegion() {
-  const { toasts, dismissToast } = useWorkspace();
-  return (
-    <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(380px,calc(100vw-32px))] flex-col gap-2 max-[899px]:bottom-20">
-      {toasts.map((t) => (
-        <div key={t.id} className="rise pointer-events-auto flex items-start gap-2.5 rounded-xl border border-line-strong bg-paper p-3 text-sm shadow-lift">
-          {t.tone === "pass" ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-pass" aria-hidden /> : t.tone === "fail" ? <XCircle size={16} className="mt-0.5 shrink-0 text-fail" aria-hidden /> : <Info size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />}
-          <p className="min-w-0 flex-1">{t.text}</p>
-          <button onClick={() => dismissToast(t.id)} aria-label="Dismiss" className="shrink-0 rounded p-0.5 text-muted hover:text-ink"><X size={14} aria-hidden /></button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function Shell({ children }: { children: ReactNode }) {
   const route = useRoute();
   const ws = useWorkspace();
+  const { settings } = useSettings();
   const [palette, setPalette] = useState(false);
   const [status, setStatus] = useState<SettingsStatus | null>(null);
+  const [docList] = useAutoAnimate<HTMLElement>({ duration: 180, easing: "ease-out" });
 
   useEffect(() => {
     void api.settingsStatus().then((r) => r.ok && setStatus(r.data));
@@ -77,10 +69,10 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="grid h-full grid-cols-[256px_minmax(0,1fr)] max-[1279px]:grid-cols-[64px_minmax(0,1fr)] max-[899px]:grid-cols-1 max-[899px]:grid-rows-[minmax(0,1fr)_auto]">
-      <aside className="flex min-h-0 flex-col bg-rail text-rail-ink max-[899px]:hidden" aria-label="Primary">
+      <aside className="flex min-h-0 flex-col border-r border-line bg-rail text-rail-ink max-[899px]:hidden" aria-label="Primary">
         <div className="flex h-14 items-center gap-2.5 px-4 max-[1279px]:justify-center max-[1279px]:px-0">
           <Logo />
-          <span className="text-[15px] font-bold tracking-wide max-[1279px]:sr-only">CLAUSE</span>
+          <span className="text-[15px] font-semibold tracking-wide max-[1279px]:sr-only">CLAUSE</span>
         </div>
         <nav aria-label="Main" className="space-y-0.5 px-2">
           {NAV.map(({ key, label, icon: Icon, route: target }) => (
@@ -89,21 +81,26 @@ export function Shell({ children }: { children: ReactNode }) {
               onClick={() => (target ? navigate(target) : setPalette(true))}
               aria-current={current === key ? "page" : undefined}
               title={label}
-              className={`flex h-9 w-full items-center gap-3 rounded-control px-3 text-left text-[13px] font-medium transition-colors max-[1279px]:justify-center max-[1279px]:px-0 ${
-                current === key ? "bg-rail-hi text-white" : "text-rail-muted hover:bg-rail-hi/70 hover:text-white"
-              }`}
+              className={cn(
+                "flex h-9 w-full items-center gap-3 rounded-control px-3 text-left text-[13px] font-medium transition-colors duration-100 max-[1279px]:justify-center max-[1279px]:px-0",
+                current === key ? "bg-rail-hi text-rail-ink" : "text-rail-muted hover:bg-rail-hi hover:text-rail-ink",
+              )}
             >
               <Icon size={17} aria-hidden />
               <span className="max-[1279px]:sr-only">{label}</span>
               {key === "search" && <span className="ml-auto max-[1279px]:hidden"><Kbd>⌘K</Kbd></span>}
-              {key === "home" && openRequests > 0 && <span className="tnum ml-auto rounded-full bg-rail-hi px-1.5 text-xs text-rail-ink max-[1279px]:hidden" aria-label={`${openRequests} open requests`}>{openRequests}</span>}
+              {key === "home" && openRequests > 0 && (
+                <span className="tnum ml-auto rounded-full bg-rail-hi px-1.5 text-xs text-rail-ink max-[1279px]:hidden" aria-label={`${openRequests} open requests`}>
+                  <NumberFlow value={openRequests} />
+                </span>
+              )}
             </button>
           ))}
         </nav>
 
         <div className="mt-4 flex min-h-0 flex-1 flex-col max-[1279px]:hidden">
           <p className="px-5 pb-1.5 text-xs font-medium text-rail-muted">Recent</p>
-          <nav aria-label="Document list" className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2">
+          <nav aria-label="Document list" ref={docList} className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2">
             {ws.docs.map((d) => {
               const on = route.name === "doc" && route.id === d.id;
               return (
@@ -111,7 +108,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   key={d.id}
                   onClick={() => navigate({ name: "doc", id: d.id, tab: "edit" })}
                   aria-current={on ? "page" : undefined}
-                  className={`block w-full rounded-control px-3 py-1.5 text-left transition-colors ${on ? "bg-rail-hi text-white" : "text-rail-ink/75 hover:bg-rail-hi/70"}`}
+                  className={cn("block w-full rounded-control px-3 py-1.5 text-left transition-colors duration-100", on ? "bg-rail-hi text-rail-ink" : "text-rail-ink/80 hover:bg-rail-hi")}
                 >
                   <span className="block truncate text-[13px] font-medium">{d.title}</span>
                   <span className="tnum text-[11px] text-rail-muted">v{d.version} · {kb(d.size)}</span>
@@ -122,7 +119,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </nav>
         </div>
 
-        <div className="mt-auto border-t border-white/10 p-3 text-xs text-rail-muted max-[1279px]:hidden">
+        <div className="mt-auto border-t border-line p-3 text-xs text-rail-muted max-[1279px]:hidden">
           <p className="tnum">{ws.docs.length} document{ws.docs.length === 1 ? "" : "s"} · {kb(totalBytes)}</p>
           <p className="mt-0.5">
             Open workspace{status ? ` · ${status.storage === "postgres" ? "Postgres" : "SQLite"}` : ""}{status && status.version !== "dev" ? ` · ${status.version}` : ""}
@@ -139,13 +136,13 @@ export function Shell({ children }: { children: ReactNode }) {
               <>
                 <ChevronRight size={14} aria-hidden />
                 <span className="truncate font-medium text-ink">{crumbDoc?.title ?? "…"}</span>
-                {crumbDoc && <span className="tnum shrink-0 rounded bg-accent-soft px-1.5 py-px text-xs font-semibold text-accent" data-testid="version">v{crumbDoc.version}</span>}
+                {crumbDoc && <span className="tnum shrink-0 rounded-md bg-accent-soft px-1.5 py-px text-xs font-medium text-accent" data-testid="version">v{crumbDoc.version}</span>}
               </>
             )}
           </nav>
           <button
             onClick={() => setPalette(true)}
-            className="ml-auto flex h-9 min-w-0 flex-1 items-center gap-2 rounded-control border border-line-strong bg-canvas px-3 text-left text-sm text-muted hover:border-muted max-[1100px]:ml-0 min-[1101px]:max-w-lg min-[1101px]:flex-none min-[1101px]:basis-96"
+            className="ml-auto flex h-9 min-w-0 flex-1 items-center gap-2 rounded-control border border-line-strong bg-canvas px-3 text-left text-sm text-muted transition-colors duration-100 hover:border-muted max-[1100px]:ml-0 min-[1101px]:max-w-lg min-[1101px]:flex-none min-[1101px]:basis-96"
           >
             <Search size={15} aria-hidden />
             <span className="min-w-0 flex-1 truncate">Search documents and clauses…</span>
@@ -160,7 +157,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <nav aria-label="Main (mobile)" className="hidden overflow-x-auto border-t border-line bg-rail text-rail-ink max-[899px]:flex">
         {NAV.map(({ key, label, icon: Icon, route: target }) => (
-          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={`flex h-14 min-w-[76px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${current === key ? "text-white" : "text-rail-muted"}`}>
+          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={cn("flex h-14 min-w-[76px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", current === key ? "text-rail-ink" : "text-rail-muted")}>
             <Icon size={18} aria-hidden />
             {label}
           </button>
@@ -169,7 +166,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
       <NewDocumentDialog open={ws.newDocOpen} onClose={() => ws.setNewDocOpen(false)} />
-      <ToastRegion />
+      <Toaster position="bottom-right" theme={settings.theme} offset={16} mobileOffset={{ bottom: 76, left: 12, right: 12 }} closeButton />
     </div>
   );
 }

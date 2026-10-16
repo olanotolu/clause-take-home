@@ -1,4 +1,5 @@
 import { selectorFor, type Target } from "@clause/engine";
+import { toast as sonner } from "sonner";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, type ApiError, type Change, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type Preview, type RequestCreate, type RequestPatch, type RequestStatus, type SearchPage, type WorkRequest } from "./api.ts";
 import { navigate, useRoute } from "./router.ts";
@@ -23,9 +24,7 @@ export type PreviewState =
 export type CiState = { status: "idle" } | { status: "loading" } | { status: "done"; report: CiReport } | { status: "error"; message: string };
 
 export interface Toast {
-  id: number;
   tone: "info" | "pass" | "fail";
-  text: string;
 }
 
 interface Workspace {
@@ -51,9 +50,7 @@ interface Workspace {
   ci: CiState;
   goal: string;
   setGoal: (g: string) => void;
-  toasts: Toast[];
   toast: (text: string, tone?: Toast["tone"]) => void;
-  dismissToast: (id: number) => void;
   openDoc: (id: string) => Promise<void>;
   refreshDocs: () => Promise<DocSummary[]>;
   stage: (replacement: string) => void;
@@ -125,16 +122,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [requestsStatus, setRequestsStatus] = useState<Workspace["requestsStatus"]>({ kind: "loading" });
   const [checkingRequest, setCheckingRequest] = useState<string | null>(null);
   const [newRequest, setNewRequest] = useState<Workspace["newRequest"]>({ open: false });
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
-  const toastId = useRef(1);
 
+  // sonner owns stacking, timing, swipe-to-dismiss and the aria-live region; failures stay a little longer than successes.
   const toast = useCallback((text: string, tone: Toast["tone"] = "info") => {
-    const id = toastId.current++;
-    setToasts((t) => [...t.slice(-3), { id, tone, text }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 6000);
+    if (tone === "pass") sonner.success(text, { duration: 5000 });
+    else if (tone === "fail") sonner.error(text, { duration: 8000 });
+    else sonner(text, { duration: 5000 });
   }, []);
-  const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
   const refreshDocs = useCallback(async () => {
     const r = await api.list();
@@ -364,7 +359,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const value: Workspace = {
     docs, docsStatus, doc, opening, selection, setSelection, staged, preview, redline, setRedline, hits, setSearchPage, conflict, applying,
-    refreshKey, rulesKey, bumpRules: () => setRulesKey((k) => k + 1), ci, goal, setGoal, toasts, toast, dismissToast, openDoc, refreshDocs, stage,
+    refreshKey, rulesKey, bumpRules: () => setRulesKey((k) => k + 1), ci, goal, setGoal, toast, openDoc, refreshDocs, stage,
     removeStaged: (id) => setStaged((s) => s.filter((x) => x.id !== id)), clearStaged: () => setStaged([]), apply, reload, stageSuggested, restore,
     create, runCi, showEvidence, pickHit, protect, proposedText, newDocOpen, setNewDocOpen,
     requests, requestsStatus, refreshRequests, createRequest, patchRequest, removeRequest, checkingRequest, checkRequest, newRequest, setNewRequest,

@@ -1,5 +1,9 @@
+import { closestCorners, DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent, type KeyboardCoordinateGetter } from "@dnd-kit/core";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
+import NumberFlow from "@number-flow/react";
 import { AlertTriangle, CalendarDays, CheckCircle2, Inbox, LayoutGrid, List, Loader, Plus } from "lucide-react";
-import { useMemo, useState, type DragEvent, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { cn } from "../lib/cn.ts";
 import { PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES, type RequestStatus, type WorkRequest } from "../lib/api.ts";
 import { applyFilters, byStatus, dueLabel, PRIORITY_LABEL, STATUS_LABEL, type Filters } from "../lib/requests.ts";
 import { navigate, useRoute } from "../lib/router.ts";
@@ -7,6 +11,7 @@ import { ago } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { RequestPanel } from "../components/RequestPanel.tsx";
 import { Button } from "../ui/Button.tsx";
+import { Segmented } from "../ui/Segmented.tsx";
 import { EmptyState, Skeleton, StatusPill } from "../ui/bits.tsx";
 
 const COLUMN_ICON: Record<RequestStatus, ReactNode> = {
@@ -18,16 +23,34 @@ const COLUMN_ICON: Record<RequestStatus, ReactNode> = {
 const PRIORITY_DOT = { high: "bg-fail", medium: "bg-review", low: "bg-line-strong" } as const;
 const select = "h-9 rounded-control border border-line-strong bg-paper px-2.5 text-sm";
 
-function Card({ r, selected, onOpen }: { r: WorkRequest; selected: boolean; onOpen: () => void }) {
+/** Arrow keys move a picked-up card one column at a time (and a little vertically), so the board works without a pointer. */
+const COLUMN_PITCH = 290;
+const moveByColumn: KeyboardCoordinateGetter = (event, { currentCoordinates }) => {
+  switch (event.code) {
+    case "ArrowRight": return { ...currentCoordinates, x: currentCoordinates.x + COLUMN_PITCH };
+    case "ArrowLeft": return { ...currentCoordinates, x: currentCoordinates.x - COLUMN_PITCH };
+    case "ArrowDown": return { ...currentCoordinates, y: currentCoordinates.y + 60 };
+    case "ArrowUp": return { ...currentCoordinates, y: currentCoordinates.y - 60 };
+    default: return undefined;
+  }
+};
+
+/** Screen-reader announcements for picking up and dropping a card, in the product's own words. */
+const boardAnnouncements = (requests: WorkRequest[]) => {
+  const title = (id: string | number) => requests.find((r) => r.id === id)?.title ?? "request";
+  const col = (id: string | number | undefined) => (typeof id === "string" && id in STATUS_LABEL ? STATUS_LABEL[id as RequestStatus] : "its column");
+  return {
+    onDragStart: ({ active }: { active: { id: string | number } }) => `Picked up ${title(active.id)}. Arrow keys move it between columns, Space drops it, Escape cancels.`,
+    onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => (over ? `${title(active.id)} is over ${col(over.id)}.` : undefined),
+    onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => (over ? `Moved ${title(active.id)} to ${col(over.id)}.` : `${title(active.id)} was dropped outside a column; nothing changed.`),
+    onDragCancel: ({ active }: { active: { id: string | number } }) => `Cancelled. ${title(active.id)} stays where it was.`,
+  };
+};
+
+function CardBody({ r }: { r: WorkRequest }) {
   const due = dueLabel(r.dueDate, r.status);
   return (
-    <button
-      draggable
-      onDragStart={(e: DragEvent) => { e.dataTransfer.setData("text/plain", r.id); e.dataTransfer.effectAllowed = "move"; }}
-      onClick={onOpen}
-      aria-current={selected}
-      className={`block w-full cursor-grab rounded-control border bg-paper p-3.5 text-left transition-colors active:cursor-grabbing ${selected ? "border-accent ring-1 ring-accent" : "border-line hover:border-line-strong"}`}
-    >
+    <>
       <span className="flex items-start justify-between gap-2">
         <span className="font-display text-[15px] font-semibold leading-snug">{r.title}</span>
         <span className="mt-1.5 flex shrink-0 items-center gap-1 text-xs text-muted" title={`${PRIORITY_LABEL[r.priority]} priority`}>
@@ -45,27 +68,46 @@ function Card({ r, selected, onOpen }: { r: WorkRequest; selected: boolean; onOp
         {due ? <span className={`flex items-center gap-1 ${due.overdue ? "font-semibold text-fail" : ""}`}><CalendarDays size={12} aria-hidden />{due.text}</span> : <span />}
         <span className="tnum">{ago(r.updatedAt)}</span>
       </span>
+    </>
+  );
+}
+
+function Card({ r, selected, onOpen }: { r: WorkRequest; selected: boolean; onOpen: () => void }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: r.id });
+  return (
+    <button
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={onOpen}
+      aria-current={selected}
+      className={cn(
+        "block w-full cursor-grab touch-manipulation rounded-card border bg-paper p-3.5 text-left transition-[border-color,opacity] duration-100 active:cursor-grabbing",
+        selected ? "border-accent" : "border-line hover:border-line-strong",
+        isDragging && "opacity-40",
+      )}
+    >
+      <CardBody r={r} />
     </button>
   );
 }
 
-function Column({ status, items, selectedId, onOpen, onDropId, onAdd }: { status: RequestStatus; items: WorkRequest[]; selectedId: string | null; onOpen: (id: string) => void; onDropId: (id: string, s: RequestStatus) => void; onAdd: () => void }) {
-  const [over, setOver] = useState(false);
+function Column({ status, items, selectedId, onOpen, onAdd }: { status: RequestStatus; items: WorkRequest[]; selectedId: string | null; onOpen: (id: string) => void; onAdd: () => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  const [list] = useAutoAnimate<HTMLUListElement>({ duration: 180, easing: "ease-out" });
   return (
     <section
+      ref={setNodeRef}
       aria-label={`${STATUS_LABEL[status]}, ${items.length} request${items.length === 1 ? "" : "s"}`}
-      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOver(true); }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData("text/plain"); if (id) onDropId(id, status); }}
-      className={`flex min-h-[200px] min-w-[260px] flex-col rounded-card border p-2 transition-colors ${over ? "border-accent bg-accent-soft" : "border-line bg-line/30"}`}
+      className={cn("flex min-h-[200px] min-w-[260px] flex-col rounded-card border p-2 transition-colors duration-100", isOver ? "border-accent bg-accent-soft" : "border-line bg-ink/[0.025]")}
     >
       <header className="flex items-center gap-2 px-1.5 pb-2 pt-1">
         {COLUMN_ICON[status]}
-        <h3 className="text-sm font-semibold">{STATUS_LABEL[status]}</h3>
-        <span className="tnum rounded-full bg-line px-1.5 text-xs font-medium text-muted">{items.length}</span>
-        <button onClick={onAdd} aria-label={`Add a request to ${STATUS_LABEL[status]}`} className="ml-auto rounded p-1 text-muted hover:bg-line hover:text-ink"><Plus size={15} aria-hidden /></button>
+        <h3 className="text-sm font-medium">{STATUS_LABEL[status]}</h3>
+        <span className="tnum rounded-full bg-ink/[0.07] px-1.5 text-xs font-medium text-muted"><NumberFlow value={items.length} /></span>
+        <button onClick={onAdd} aria-label={`Add a request to ${STATUS_LABEL[status]}`} className="ml-auto rounded-md p-1 text-muted transition-colors duration-100 hover:bg-ink/[0.07] hover:text-ink"><Plus size={15} aria-hidden /></button>
       </header>
-      <ul className="flex min-h-0 flex-1 flex-col gap-2">
+      <ul ref={list} className="flex min-h-0 flex-1 flex-col gap-2">
         {items.map((r) => <li key={r.id}><Card r={r} selected={r.id === selectedId} onOpen={() => onOpen(r.id)} /></li>)}
         {items.length === 0 && <li className="px-2 py-6 text-center text-xs text-muted">Nothing here. Drag a request in, or add one.</li>}
       </ul>
@@ -86,6 +128,17 @@ export function WorkspaceView() {
   const open = (id: string) => navigate({ name: "home", request: id });
   const close = () => navigate({ name: "home" });
   const openCount = ws.requests.filter((r) => r.status !== "completed").length;
+
+  // A drag only starts after 6px of movement, so a plain click still opens the request.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: moveByColumn }));
+  const [dragging, setDragging] = useState<WorkRequest | null>(null);
+  const onDragStart = (e: DragStartEvent) => setDragging(ws.requests.find((r) => r.id === e.active.id) ?? null);
+  const onDragEnd = (e: DragEndEvent) => {
+    setDragging(null);
+    const target = e.over?.id;
+    const r = ws.requests.find((x) => x.id === e.active.id);
+    if (r && typeof target === "string" && (REQUEST_STATUSES as readonly string[]).includes(target) && r.status !== target) void ws.patchRequest(r.id, { status: target as RequestStatus });
+  };
   const scopes: { id: Filters["scope"]; label: string; n: number }[] = [
     { id: "all", label: "All requests", n: ws.requests.length },
     { id: "open", label: "Open", n: openCount },
@@ -119,10 +172,7 @@ export function WorkspaceView() {
               <select aria-label="Filter by priority" value={filters.priority} onChange={(e) => setFilters((f) => ({ ...f, priority: e.target.value as Filters["priority"] }))} className={select}>
                 <option value="all">All priorities</option>{PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
               </select>
-              <div role="radiogroup" aria-label="View" className="flex gap-0.5 rounded-control bg-line/60 p-0.5 text-[13px]">
-                <button role="radio" aria-checked={view === "board"} onClick={() => setView("board")} className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 font-medium ${view === "board" ? "bg-paper text-ink shadow-sm" : "text-muted"}`}><LayoutGrid size={14} aria-hidden />Board</button>
-                <button role="radio" aria-checked={view === "list"} onClick={() => setView("list")} className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 font-medium ${view === "list" ? "bg-paper text-ink shadow-sm" : "text-muted"}`}><List size={14} aria-hidden />List</button>
-              </div>
+              <Segmented value={view} onChange={setView} label="View" options={[{ value: "board", label: <><LayoutGrid size={14} aria-hidden />Board</> }, { value: "list", label: <><List size={14} aria-hidden />List</> }]} />
             </div>
           </div>
         </div>
@@ -138,11 +188,16 @@ export function WorkspaceView() {
             </div>
           )}
           {ws.requestsStatus.kind === "ready" && ws.requests.length > 0 && view === "board" && (
-            <div className="grid grid-cols-[repeat(4,minmax(260px,1fr))] gap-3 overflow-x-auto pb-2 max-[640px]:grid-cols-1">
-              {REQUEST_STATUSES.map((s) => (
-                <Column key={s} status={s} items={cols[s]} selectedId={selectedId} onOpen={open} onDropId={(id, st) => { const r = ws.requests.find((x) => x.id === id); if (r && r.status !== st) void ws.patchRequest(id, { status: st }); }} onAdd={() => ws.setNewRequest({ open: true, status: s })} />
-              ))}
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)} accessibility={{ announcements: boardAnnouncements(ws.requests) }}>
+              <div className="grid grid-cols-[repeat(4,minmax(260px,1fr))] gap-3 overflow-x-auto pb-2 max-[640px]:grid-cols-1">
+                {REQUEST_STATUSES.map((s) => (
+                  <Column key={s} status={s} items={cols[s]} selectedId={selectedId} onOpen={open} onAdd={() => ws.setNewRequest({ open: true, status: s })} />
+                ))}
+              </div>
+              <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}>
+                {dragging ? <div className="w-[260px] rotate-1 cursor-grabbing rounded-card border border-line-strong bg-paper p-3.5 text-left shadow-lift"><CardBody r={dragging} /></div> : null}
+              </DragOverlay>
+            </DndContext>
           )}
           {ws.requestsStatus.kind === "ready" && ws.requests.length > 0 && view === "list" && (
             <div className="overflow-x-auto rounded-card border border-line bg-paper">

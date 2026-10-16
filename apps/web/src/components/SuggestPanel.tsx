@@ -5,6 +5,7 @@ import { shortModel } from "../lib/confidence.ts";
 import type { Staged } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { EmptyState, StatusPill } from "../ui/bits.tsx";
+import { TextShimmer } from "../ui/motion/text-shimmer.tsx";
 
 type State = { status: "idle" } | { status: "loading" } | { status: "error"; error: ApiError } | { status: "done"; data: SuggestResponse };
 
@@ -70,6 +71,7 @@ export function SuggestPanel({ docId, docVersion, onStage, onOpenCi }: Props) {
 
       <div aria-live="polite" className="flex flex-col gap-3">
         {state.status === "idle" && <EmptyState icon={<Sparkles size={22} aria-hidden />} title="Describe the change you want">The assistant turns it into exact, validated edits and checks them against your requirements before you stage anything.</EmptyState>}
+        {state.status === "loading" && <TextShimmer as="p" className="px-1 text-sm">Reading the document and drafting an edit…</TextShimmer>}
         {state.status === "error" && (
           <p role="alert" className="flex gap-2 rounded-control bg-fail-bg px-3 py-2 text-sm text-fail">
             <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden />

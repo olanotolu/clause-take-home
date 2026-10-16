@@ -1,4 +1,6 @@
+import { motion } from "motion/react";
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import { cn } from "../lib/cn.ts";
 
 export interface TabDef<T extends string> {
   id: T;
@@ -17,8 +19,11 @@ interface Props<T extends string> {
   className?: string;
 }
 
-/** WAI-ARIA tabs with roving tabindex: arrow keys, Home and End move between tabs. */
-export function Tabs<T extends string>({ tabs, value, onChange, label, idPrefix, className = "" }: Props<T>) {
+/**
+ * WAI-ARIA tabs with roving tabindex: arrow keys, Home and End move between tabs. The underline slides to the active
+ * tab on a spring (it retargets from where it is, so quick clicks never queue up behind a finished animation).
+ */
+export function Tabs<T extends string>({ tabs, value, onChange, label, idPrefix, className }: Props<T>) {
   const refs = useRef(new Map<T, HTMLButtonElement>());
   const onKey = (e: KeyboardEvent) => {
     const i = tabs.findIndex((t) => t.id === value);
@@ -30,7 +35,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label, idPrefix,
     refs.current.get(t.id)?.focus();
   };
   return (
-    <div role="tablist" aria-label={label} onKeyDown={onKey} className={`flex gap-1 overflow-x-auto ${className}`}>
+    <div role="tablist" aria-label={label} onKeyDown={onKey} className={cn("flex gap-1 overflow-x-auto", className)}>
       {tabs.map((t) => {
         const active = t.id === value;
         return (
@@ -43,13 +48,12 @@ export function Tabs<T extends string>({ tabs, value, onChange, label, idPrefix,
             aria-controls={`${idPrefix}-panel`}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(t.id)}
-            className={`relative inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-sm font-medium transition-colors duration-150 after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full ${
-              active ? "text-ink after:bg-accent" : "text-muted after:bg-transparent hover:text-ink"
-            }`}
+            className={cn("relative inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-sm font-medium transition-colors duration-100", active ? "text-ink" : "text-muted hover:text-ink")}
           >
             {t.icon}
             {t.label}
             {t.badge}
+            {active && <motion.span layoutId={`${idPrefix}-underline`} className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-accent" transition={{ type: "spring", bounce: 0.1, duration: 0.3 }} />}
           </button>
         );
       })}

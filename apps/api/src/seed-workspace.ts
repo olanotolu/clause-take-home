@@ -1,4 +1,4 @@
-import type { SeedPlaybook, SeedRequest } from "./store/types.ts";
+import { MAX_REQUIREMENTS_PER_DOCUMENT, type SeedPlaybook, type SeedRequest, type Store } from "./store/types.ts";
 
 /** Fictional sample playbooks and requests that go with the fictional sample contracts. Loaded only into an empty table. */
 export const SEED_PLAYBOOKS: SeedPlaybook[] = [
@@ -51,3 +51,29 @@ export const SEED_REQUESTS: SeedRequest[] = [
   { documentTitle: "SaaS Agreement - Initech", title: "Add termination for convenience", goal: "Either party may terminate for convenience on thirty (30) days written notice.", status: "in_progress", priority: "low", type: "Commercial" },
   { documentTitle: "Employee Confidentiality Agreement - Stark", title: "Confirm invention assignment wording", goal: "The employee assigns inventions made in the course of employment to the Employer.", status: "completed", priority: "low", type: "Employment" },
 ];
+
+/** The sample document that ships with the NDA playbook already applied, so the first Clause CI run has something to check. */
+export const DEMO_DOCUMENT_TITLE = "Mutual NDA - Acme Corp";
+export const DEMO_PLAYBOOK_NAME = "NDA Playbook";
+
+/**
+ * Applies the NDA playbook to the sample NDA, once: only if that document has no requirements at all, and skipping any
+ * rule it already has. Uses only the public store API, so it behaves the same on SQLite and Postgres. (Not a single
+ * transaction: two cold starts racing could both pass the emptiness check, but the per-rule duplicate check below and
+ * the per-document limit keep the worst case to a few repeated rules, never a crash.)
+ */
+export async function seedDemoRequirements(store: Store): Promise<number> {
+  const doc = (await store.listDocuments(100, 0)).items.find((d) => d.title === DEMO_DOCUMENT_TITLE);
+  const summary = (await store.listPlaybooks()).find((p) => p.name === DEMO_PLAYBOOK_NAME);
+  if (!doc || !summary) return 0;
+  const have = await store.listRequirements(doc.id);
+  if (have.length > 0) return 0;
+  const playbook = await store.getPlaybook(summary.id);
+  let added = 0;
+  for (const rule of playbook?.rules ?? []) {
+    if (have.length + added >= MAX_REQUIREMENTS_PER_DOCUMENT) break;
+    await store.addRequirement(doc.id, { kind: rule.kind, text: rule.text });
+    added++;
+  }
+  return added;
+}
