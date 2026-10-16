@@ -48,10 +48,8 @@ export function registerDocumentRoutes(app: App): void {
   app.patch("/documents/:id", { schema: { params: IdParams, body: ChangesBody, response: { 200: ReceiptOut, ...errors(400, 404, 409, 412, 413, 422, 500) } } }, async (req, reply) => {
     const r = await docs.apply(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!r.ok) return reply.problem(r.error);
-    if (r.value.changed) {
-      const doc = (await app.store.getDocument(req.params.id))!;
-      reply.header("ETag", docs.etagOf(doc));
-    }
+    // From the receipt, never a re-read: a writer (or a delete) can land between our commit and this line.
+    reply.header("ETag", docs.etagOf({ version: r.value.version, contentHash: r.value.afterHash }));
     return r.value;
   });
 
@@ -77,7 +75,7 @@ export function registerDocumentRoutes(app: App): void {
   app.post("/documents/:id/revert", { schema: { params: IdParams, body: RevertBody, response: { 200: ReceiptOut, ...errors(400, 404, 409, 412, 500) } } }, async (req, reply) => {
     const r = await docs.revert(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!r.ok) return reply.problem(r.error);
-    if (r.value.changed) reply.header("ETag", docs.etagOf((await app.store.getDocument(req.params.id))!));
+    reply.header("ETag", docs.etagOf({ version: r.value.version, contentHash: r.value.afterHash }));
     return r.value;
   });
 
