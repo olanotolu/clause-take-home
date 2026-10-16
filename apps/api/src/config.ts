@@ -19,6 +19,14 @@ export type Backend = "sqlite" | "postgres";
  *   on Vercel (VERCEL is set)        postgres
  *   otherwise                        sqlite
  */
+/**
+ * The build shown in Settings. Vercel only sets VERCEL_GIT_COMMIT_SHA when it can read git metadata from the deploy (it
+ * arrives empty for a deploy made from a worktree), so a deploy script can pass CLAUSE_BUILD_SHA explicitly.
+ */
+export function buildVersion(env: Record<string, string | undefined>): string {
+  return (env.CLAUSE_BUILD_SHA || env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7) || "dev";
+}
+
 export function chooseBackend(env: Record<string, string | undefined>): Backend {
   if (env.CLAUSE_STORAGE === "postgres" || env.CLAUSE_STORAGE === "sqlite") return env.CLAUSE_STORAGE;
   if (env.CLAUSE_STORAGE) throw new Error(`CLAUSE_STORAGE must be "sqlite" or "postgres", got "${env.CLAUSE_STORAGE}"`);

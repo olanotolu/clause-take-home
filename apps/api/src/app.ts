@@ -18,6 +18,7 @@ import { registerTemplateRoutes } from "./routes/templates.ts";
 import { registerSearchRoutes } from "./routes/search.ts";
 import { registerSuggestRoutes } from "./routes/suggest.ts";
 import { noSemanticEvaluator } from "./review/runner.ts";
+import { buildVersion } from "./config.ts";
 import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { IntegrationError } from "./integrations/service.ts";
 import type { SemanticEvaluator } from "./review/types.ts";
@@ -133,6 +134,6 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   registerActivityRoutes(typed);
   registerTemplateRoutes(typed);
   registerIntegrationRoutes(typed);
-  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, suggestionModel: opts.suggestionProvider?.model ?? null, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev" });
+  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, suggestionModel: opts.suggestionProvider?.model ?? null, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: buildVersion(process.env) });
   return app;
 }
