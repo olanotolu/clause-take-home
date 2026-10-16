@@ -33,7 +33,7 @@ That table is the heart of Part I. Everything else is built to make it trustwort
 
 ## The fastest way to see it
 
-On the live site: open a contract, select a phrase that appears more than once, stage a replacement, and click **Redline**. The change shows struck-through/inserted, and nothing is saved until you press **Apply**. Then open the **History** tab, restore an old version (it becomes a *new* version; history is never rewritten) or download the Word redline.
+On the live site, start on the **Workspace** board (sample requests, one per piece of legal work). Open *Mutual confidentiality for Acme*, press **Run Clause CI** to audit the contract against its requirements, then **Open in editor**. Select a phrase that appears more than once and choose **Protect** (it becomes a requirement), or **Replace** it, then **Run Clause CI** again to see what the edit breaks. Nothing is saved until you press **Apply**. The **Activity** tab shows every version; restoring one makes a *new* version (history is never rewritten), and the Word redline downloads from there.
 
 Locally (Node 24+ and pnpm):
 
@@ -69,6 +69,16 @@ There's no native build step: storage is Node's built-in `node:sqlite`, and Type
 **9. Where it got ambitious: CLAUSE CI.** (Next section.)
 
 **10. Settings.** A page that shows what the server is doing and keeps a few per-browser preferences. The product design I was working from also showed SSO, Slack, billing and so on. None of that exists here, so those rows are visibly disabled and say "Not in this prototype" instead of pretending.
+
+**11. A real interface.** The first UI was three columns and a tab strip, and it looked like it. I rebuilt it as an app: a router (deep links and the back button work), a left rail, ⌘K search that jumps to the exact passage, and a document page with an Edit / Clause CI / Activity / Details structure. Editing happens in the document: select text and a small toolbar offers **Replace**, **Protect** (one click to turn a clause into a requirement) and **Find**. Proposed changes sit in a tray that says whether the engine accepts them before you can Apply. Light and dark themes, keyboard operable, works down to a phone.
+
+**12. The rest of the workspace, built for real.** The design I was given also had a requests board, playbooks, a global activity feed and templates, and I did not want them to be pictures. So they have tables, endpoints and tests on both databases:
+- **Requests** (`/requests`): a unit of legal work on a document (what was asked, priority, due date, status). Drag cards between Inbox, In progress, Needs review and Completed. **Run Clause CI** on a request audits the document's *current* text against its requirements and the request's own outcome, stores what it found, and moves an open request to Needs review if something fails. It never moves one to Completed; a person does that.
+- **Playbooks** (`/playbooks`): named, reusable sets of requirements. Applying one copies its rules onto a document as ordinary requirements (duplicates skipped, the 8-per-document limit respected, and the response says what was skipped and why).
+- **Activity** (`/activity`): the newest versions across all documents. It records edits only.
+- **Templates** (`/templates`): the sample contracts as starting points.
+
+What I deliberately did *not* draw, because there is nothing behind it: assignees, teams and avatars, comments, notifications, integrations, billing, a storage meter, and Jev's numbers. Requests have no owner field because this app has no users.
 
 I went well past the suggested time-box. Treat steps 1-5 as the actual assignment and the rest as extras you're free to ignore.
 
@@ -156,6 +166,13 @@ curl -s -X PATCH localhost:3000/documents/$ID -H 'content-type: application/json
 | `POST /documents/:id/changes/check` | run requirements (+ optional `goal`, `strictness`) against an edit |
 | `POST /documents/:id/suggest` | optional AI proposal; never applies |
 | `GET /settings/status` | read-only server facts (judge models, storage, limits); no secrets |
+| `GET/POST /requests`, `GET/PATCH/DELETE /requests/:id` | units of legal work; `?status=` filters the list |
+| `POST /requests/:id/check` | Clause CI audit of the linked document's current text; stores the result on the request |
+| `GET/POST /playbooks`, `GET/PATCH/DELETE /playbooks/:id` | reusable sets of requirements |
+| `POST /playbooks/:id/rules`, `DELETE /playbooks/:id/rules/:rid` | add or remove a rule |
+| `POST /documents/:id/apply-playbook` | copy a playbook's rules onto a document as requirements |
+| `GET /activity?limit` | newest versions across all documents |
+| `GET /templates` | the sample contracts, for starting a new document |
 
 A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus the exact spans that changed. It states which bytes changed. It does not claim the change is legally right.
 
@@ -172,7 +189,7 @@ A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus
 ## How I know the tests are any good
 
 ```bash
-pnpm test             # 269 pass, 7 skipped (the Postgres-only ones; see below)
+pnpm test             # 295 pass, 7 skipped on SQLite (the skips are Postgres-only); 301 pass on Postgres
 pnpm typecheck        # strict TypeScript across core, API and web
 pnpm bench            # the performance table
 pnpm mutate           # bounded mutation run on the engine, about 30 s
@@ -202,7 +219,9 @@ CI runs the suite on Node 24 and 26 with SQLite, plus a Postgres 16 job.
 - **No authentication, tenancy or audit log.** The demo is deliberately open. Rate limits exist on the two paid routes (20 suggestions and 60 checks per IP per hour) but are in-memory and per-instance: a brake, not a quota. Nothing here is SOC 2 or GDPR compliant and I don't claim it; `INFRA.md` is the design for getting there.
 - **Jev is unmeasured**, as above. The ensemble of Jev plus LLM was never evaluated.
 - **I haven't opened the Word export in Microsoft Word itself.** It round-trips under accept/reject tests and opens in `python-docx`. Please open [`samples/mutual-nda-redline.docx`](samples/mutual-nda-redline.docx) once.
-- **The web UI has almost no automated tests** (only the settings parsing). I exercised it by hand in a browser. The backend is where the tests are.
+- **The web UI has only unit tests for its pure logic** (router, due dates, filters, word counts, settings parsing). The screens themselves I drove by hand in a browser at desktop, tablet and phone widths, in light and dark. The backend is where the real tests are.
+- **Requests have no owner and no notifications**, because there are no users. Status moves are manual; the only automatic move is Clause CI sending a request with failing requirements to Needs review. Activity covers edits only, not CI runs or AI suggestions.
+- **The sample requests and playbooks on the live site are fictional**, seeded once with the sample contracts.
 - **Production writes weren't tested on the live site**: I confirmed search, the AI check and settings there, but left the sample contracts at v1 rather than editing them.
 - **Plain text only.** No Word/PDF import, no formatting. Words-mode highlights on documents over 256 KiB mark the first occurrence, not FTS5's "best window". Exact search is case-sensitive only.
 - The benchmark is **NDAs only, English, small samples** (see its limits).

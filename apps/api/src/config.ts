@@ -4,6 +4,7 @@ import { lazyStore } from "./store/lazy.ts";
 import { createPostgresStore, POSTGRES_MAX_CONTENT_CHARS } from "./store/postgres.ts";
 import { createSqliteStore } from "./store/sqlite.ts";
 import { SEED_DOCUMENTS } from "./seed-data.ts";
+import { SEED_PLAYBOOKS, SEED_REQUESTS } from "./seed-workspace.ts";
 import type { Store } from "./store/types.ts";
 
 /** Same file whether you run from the repo root (`pnpm seed`) or from apps/api (`pnpm dev`). Override with CLAUSE_DB. */
@@ -43,7 +44,12 @@ export function lazyStoreFromEnv(env: Record<string, string | undefined>, hooks:
   const kind = chooseBackend(env);
   return lazyStore({ kind, maxContentChars: kind === "postgres" ? POSTGRES_MAX_CONTENT_CHARS : Number.POSITIVE_INFINITY }, async () => {
     const store = await storeFromEnv(env, hooks);
-    if (env.CLAUSE_SEED === "1") await store.seedIfEmpty(SEED_DOCUMENTS);
+    if (env.CLAUSE_SEED === "1") {
+      await store.seedIfEmpty(SEED_DOCUMENTS);
+      // Independent of the documents check, so a database seeded before these tables existed still gets them (once).
+      await store.seedPlaybooksIfEmpty(SEED_PLAYBOOKS);
+      await store.seedRequestsIfEmpty(SEED_REQUESTS);
+    }
     return store;
   });
 }

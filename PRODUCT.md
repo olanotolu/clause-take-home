@@ -19,8 +19,8 @@ The mechanics of an edit are proven by a deterministic engine (receipts with has
 One open, shared workspace on a public URL (no sign-in), SQLite locally and Postgres on Vercel. Documents are plain text. History is append-only; undo creates a new version. AI features need an OpenRouter key and are rate limited per IP.
 
 ## Capabilities and Constraints
-Real: documents, versions and restore, word and exact search with verified offsets, redline preview, Word tracked-changes export, AI suggestions (proposal only), CLAUSE CI requirements and reports, read-only server status, per-browser settings.
-Not built, must not be depicted as working: Requests board, Playbooks, comments, team and roles, notifications, integrations, billing and storage plans, authentication, Jev results (the Jev judge exists but was never measured).
+Real: documents, versions and restore, word and exact search with verified offsets, redline preview, Word tracked-changes export, AI suggestions (proposal only), CLAUSE CI requirements and reports, requests (a board of legal work tracked per document, with a Clause CI audit), playbooks (reusable requirement sets), cross-document activity, templates, read-only server status, per-browser settings.
+Not built, must not be depicted as working: assignees, teams and roles, comments, notifications, integrations, billing and storage plans, authentication, Jev results (the Jev judge exists but was never measured).
 
 ## Brand Commitments
 Name CLAUSE; the logo mark in the repository; "CLAUSE CI" for the checking feature. The owner supplied seven mockups (workspace, document editor with AI assistant, Clause CI results, activity, playbooks, templates, settings) as the binding visual brief.

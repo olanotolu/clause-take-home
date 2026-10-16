@@ -47,6 +47,43 @@ export interface SettingsStatus {
   ai: { judges: string[]; suggestions: boolean; strictnessOptions: ("balanced" | "strict")[] };
   limits: { maxDocumentChars: number | null; maxJudgedChars: number; maxRequirementsPerDocument: number; checkPerHour: number; suggestPerHour: number };
 }
+export type RequestStatus = "inbox" | "in_progress" | "needs_review" | "completed";
+export type Priority = "low" | "medium" | "high";
+export type RequestType = "NDA" | "Commercial" | "Employment" | "Data & Privacy" | "Other";
+export const REQUEST_STATUSES: readonly RequestStatus[] = ["inbox", "in_progress", "needs_review", "completed"];
+export const REQUEST_TYPES: readonly RequestType[] = ["NDA", "Commercial", "Employment", "Data & Privacy", "Other"];
+export const PRIORITIES: readonly Priority[] = ["low", "medium", "high"];
+export interface CiSnapshot {
+  version: number;
+  checkedAt: string;
+  total: number;
+  holding: number;
+  attention: number;
+  judges: string[];
+  goal?: Verdict;
+  requirements: { text: string; kind: RequirementKind; verdict: Verdict }[];
+}
+export interface WorkRequest {
+  id: string;
+  documentId: string | null;
+  title: string;
+  goal: string;
+  status: RequestStatus;
+  priority: Priority;
+  type: RequestType;
+  dueDate: string | null;
+  ci: CiSnapshot | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface RequestCreate { documentId?: string; title: string; goal: string; status?: RequestStatus; priority?: Priority; type?: RequestType; dueDate?: string | null }
+export type RequestPatch = Partial<Pick<WorkRequest, "title" | "goal" | "status" | "priority" | "type" | "dueDate">>;
+export interface PlaybookRule { id: string; playbookId: string; title: string; kind: RequirementKind; text: string; createdAt: string }
+export interface Playbook { id: string; name: string; description: string; createdAt: string; updatedAt: string }
+export interface PlaybookSummary extends Playbook { ruleCount: number }
+export interface PlaybookDetail extends Playbook { rules: PlaybookRule[] }
+export interface ApplyResult { added: Requirement[]; skipped: { title: string; reason: "duplicate" | "limit" }[] }
+export interface ActivityItem { documentId: string; title: string; version: number; contentHash: string; createdAt: string; summary: Revision["summary"] }
 export interface Template { id: string; title: string; category: "NDA" | "Commercial" | "Employment" | "Data & Privacy"; content: string }
 export interface Change { operation: "replace"; target: Target; replacement: string }
 
@@ -81,6 +118,20 @@ export const api = {
   deleteRequirement: (id: string, rid: string) => call<undefined>("DELETE", `/documents/${id}/requirements/${rid}`),
   check: (id: string, expectedVersion: number, changes: Change[], goal?: string, strictness?: "balanced" | "strict") =>
     call<CiReport>("POST", `/documents/${id}/changes/check`, { expectedVersion, changes, ...(goal ? { goal } : {}), ...(strictness === "strict" ? { strictness } : {}) }),
+  requests: () => call<{ items: WorkRequest[] }>("GET", "/requests"),
+  createRequest: (b: RequestCreate) => call<WorkRequest>("POST", "/requests", b),
+  patchRequest: (id: string, b: RequestPatch) => call<WorkRequest>("PATCH", `/requests/${id}`, b),
+  deleteRequest: (id: string) => call<undefined>("DELETE", `/requests/${id}`),
+  checkRequest: (id: string) => call<{ request: WorkRequest; moved: boolean }>("POST", `/requests/${id}/check`),
+  playbooks: () => call<{ items: PlaybookSummary[] }>("GET", "/playbooks"),
+  playbook: (id: string) => call<PlaybookDetail>("GET", `/playbooks/${id}`),
+  createPlaybook: (name: string, description: string) => call<Playbook>("POST", "/playbooks", { name, description }),
+  patchPlaybook: (id: string, b: { name?: string; description?: string }) => call<Playbook>("PATCH", `/playbooks/${id}`, b),
+  deletePlaybook: (id: string) => call<undefined>("DELETE", `/playbooks/${id}`),
+  addRule: (id: string, b: { title: string; kind: RequirementKind; text: string }) => call<PlaybookRule>("POST", `/playbooks/${id}/rules`, b),
+  deleteRule: (id: string, rid: string) => call<undefined>("DELETE", `/playbooks/${id}/rules/${rid}`),
+  applyPlaybook: (docId: string, playbookId: string) => call<ApplyResult>("POST", `/documents/${docId}/apply-playbook`, { playbookId }),
+  activity: (limit = 60) => call<{ items: ActivityItem[] }>("GET", `/activity?limit=${limit}`),
   templates: () => call<{ items: Template[] }>("GET", "/templates"),
   settingsStatus: () => call<SettingsStatus>("GET", "/settings/status"),
   suggest: (id: string, instruction: string) => call<SuggestResponse>("POST", `/documents/${id}/suggest`, { instruction }),

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import { openDb, transaction, type Db } from "../db.ts";
+import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
 import { InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
 
 const OPEN = "\u0002";
@@ -179,6 +180,114 @@ export function sqliteStore(db: Db): Store {
 
     async deleteRequirement(documentId, id) {
       return db.prepare("DELETE FROM requirements WHERE document_id = ? AND id = ?").run(documentId, id).changes === 1;
+    },
+
+    async listRecentRevisions(limit) {
+      const rows = db
+        .prepare("SELECT r.document_id, d.title, r.version, r.content_hash, r.created_at, r.summary FROM revisions r JOIN documents d ON d.id = r.document_id ORDER BY r.created_at DESC, r.version DESC LIMIT ?")
+        .all(limit) as unknown as { document_id: string; title: string; version: number; content_hash: string; created_at: string; summary: string }[];
+      return rows.map((r) => ({ documentId: r.document_id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, summary: JSON.parse(r.summary) }));
+    },
+
+    async listRequests() {
+      return (db.prepare(`SELECT ${REQUEST_COLUMNS} FROM requests ORDER BY updated_at DESC, seq DESC`).all() as unknown as RequestRow[]).map(toRequest);
+    },
+
+    async getRequest(id) {
+      const r = db.prepare(`SELECT ${REQUEST_COLUMNS} FROM requests WHERE id = ?`).get(id) as unknown as RequestRow | undefined;
+      return r && toRequest(r);
+    },
+
+    async insertRequest(input) {
+      const id = newId("wrq");
+      const now = new Date().toISOString();
+      db.prepare("INSERT INTO requests (id, document_id, title, goal, status, priority, type, due_date, ci, created_at, updated_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM requests))").run(id, input.documentId, input.title, input.goal, input.status, input.priority, input.type, input.dueDate, now, now);
+      return (await this.getRequest(id))!;
+    },
+
+    async updateRequest(id, patch) {
+      const cols = requestPatchColumns(patch);
+      const now = new Date().toISOString();
+      const set = [...cols.map(([c]) => `${c} = ?`), "updated_at = ?"].join(", ");
+      const res = db.prepare(`UPDATE requests SET ${set} WHERE id = ?`).run(...cols.map(([, v]) => v), now, id);
+      return res.changes === 1 ? this.getRequest(id) : undefined;
+    },
+
+    async deleteRequest(id) {
+      return db.prepare("DELETE FROM requests WHERE id = ?").run(id).changes === 1;
+    },
+
+    async listPlaybooks() {
+      const rows = db.prepare("SELECT p.id, p.name, p.description, p.created_at, p.updated_at, (SELECT count(*) FROM playbook_rules r WHERE r.playbook_id = p.id) AS rule_count FROM playbooks p ORDER BY p.seq").all() as unknown as (PlaybookRow & { rule_count: number })[];
+      return rows.map((r) => ({ ...toPlaybook(r), ruleCount: Number(r.rule_count) }));
+    },
+
+    async getPlaybook(id) {
+      const p = db.prepare("SELECT id, name, description, created_at, updated_at FROM playbooks WHERE id = ?").get(id) as unknown as PlaybookRow | undefined;
+      if (!p) return undefined;
+      const rules = db.prepare("SELECT id, playbook_id, title, kind, text, created_at FROM playbook_rules WHERE playbook_id = ? ORDER BY seq").all(id) as unknown as RuleRow[];
+      return { ...toPlaybook(p), rules: rules.map(toRule) };
+    },
+
+    async insertPlaybook(input) {
+      const id = newId("pbk");
+      const now = new Date().toISOString();
+      db.prepare("INSERT INTO playbooks (id, name, description, created_at, updated_at, seq) VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM playbooks))").run(id, input.name, input.description, now, now);
+      return { id, name: input.name, description: input.description, createdAt: now, updatedAt: now };
+    },
+
+    async updatePlaybook(id, patch) {
+      const now = new Date().toISOString();
+      const cur = db.prepare("SELECT id, name, description, created_at, updated_at FROM playbooks WHERE id = ?").get(id) as unknown as PlaybookRow | undefined;
+      if (!cur) return undefined;
+      const name = patch.name ?? cur.name;
+      const description = patch.description ?? cur.description;
+      db.prepare("UPDATE playbooks SET name = ?, description = ?, updated_at = ? WHERE id = ?").run(name, description, now, id);
+      return { id, name, description, createdAt: cur.created_at, updatedAt: now };
+    },
+
+    async deletePlaybook(id) {
+      return db.prepare("DELETE FROM playbooks WHERE id = ?").run(id).changes === 1;
+    },
+
+    async addPlaybookRule(playbookId, input) {
+      if (!db.prepare("SELECT 1 FROM playbooks WHERE id = ?").get(playbookId)) return undefined;
+      const id = newId("rul");
+      const now = new Date().toISOString();
+      db.prepare("INSERT INTO playbook_rules (id, playbook_id, title, kind, text, created_at, seq) VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM playbook_rules WHERE playbook_id = ?))").run(id, playbookId, input.title, input.kind, input.text, now, playbookId);
+      db.prepare("UPDATE playbooks SET updated_at = ? WHERE id = ?").run(now, playbookId);
+      return { id, playbookId, title: input.title, kind: input.kind, text: input.text, createdAt: now };
+    },
+
+    async deletePlaybookRule(playbookId, ruleId) {
+      return db.prepare("DELETE FROM playbook_rules WHERE playbook_id = ? AND id = ?").run(playbookId, ruleId).changes === 1;
+    },
+
+    async seedPlaybooksIfEmpty(items) {
+      return transaction(db, () => {
+        if ((db.prepare("SELECT count(*) AS n FROM playbooks").get() as { n: number }).n > 0) return 0;
+        const now = new Date().toISOString();
+        items.forEach((pb, i) => {
+          const pid = newId("pbk");
+          db.prepare("INSERT INTO playbooks (id, name, description, created_at, updated_at, seq) VALUES (?, ?, ?, ?, ?, ?)").run(pid, pb.name, pb.description, now, now, i + 1);
+          pb.rules.forEach((r, j) => db.prepare("INSERT INTO playbook_rules (id, playbook_id, title, kind, text, created_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?)").run(newId("rul"), pid, r.title, r.kind, r.text, now, j + 1));
+        });
+        return items.length;
+      });
+    },
+
+    async seedRequestsIfEmpty(items) {
+      return transaction(db, () => {
+        if ((db.prepare("SELECT count(*) AS n FROM requests").get() as { n: number }).n > 0) return 0;
+        let n = 0;
+        for (const it of items) {
+          const doc = db.prepare("SELECT id FROM documents WHERE title = ? ORDER BY seq LIMIT 1").get(it.documentTitle) as { id: string } | undefined;
+          if (!doc) continue;
+          const now = new Date(Date.now() - (items.length - n) * 3_600_000).toISOString();
+          db.prepare("INSERT INTO requests (id, document_id, title, goal, status, priority, type, due_date, ci, created_at, updated_at, seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)").run(newId("wrq"), doc.id, it.title, it.goal, it.status, it.priority, it.type, it.dueInDays === undefined ? null : dueIn(it.dueInDays), now, now, ++n);
+        }
+        return n;
+      });
     },
 
     async seedIfEmpty(items) {

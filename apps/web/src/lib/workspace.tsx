@@ -1,6 +1,6 @@
 import { selectorFor, type Target } from "@clause/engine";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, type ApiError, type Change, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type Preview, type SearchPage } from "./api.ts";
+import { api, type ApiError, type Change, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type Preview, type RequestCreate, type RequestPatch, type RequestStatus, type SearchPage, type WorkRequest } from "./api.ts";
 import { navigate, useRoute } from "./router.ts";
 import type { Range } from "./segments.ts";
 import { useSettings } from "./settings.tsx";
@@ -70,6 +70,19 @@ interface Workspace {
   protect: (text: string) => Promise<void>;
   /** The text a CLAUSE CI report was judged against on the "after" side. */
   proposedText: string;
+  requests: WorkRequest[];
+  requestsStatus: { kind: "loading" | "error" | "ready"; message?: string };
+  refreshRequests: () => Promise<void>;
+  createRequest: (input: RequestCreate) => Promise<WorkRequest | null>;
+  /** Optimistic: the board moves immediately and snaps back with a message if the server refuses. */
+  patchRequest: (id: string, patch: RequestPatch) => Promise<void>;
+  removeRequest: (id: string) => Promise<void>;
+  /** Id of the request whose Clause CI audit is running. */
+  checkingRequest: string | null;
+  checkRequest: (id: string) => Promise<void>;
+  /** The "New request" dialog; `status` preselects the column it was opened from. */
+  newRequest: { open: boolean; status?: RequestStatus; documentId?: string };
+  setNewRequest: (v: { open: boolean; status?: RequestStatus; documentId?: string }) => void;
   /** The "New document" dialog lives in the shell; anything can ask for it. */
   newDocOpen: boolean;
   setNewDocOpen: (v: boolean) => void;
@@ -108,6 +121,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [ciRaw, setCiRaw] = useState<{ key: string; state: CiState } | null>(null);
   const [goal, setGoal] = useState("");
   const [newDocOpen, setNewDocOpen] = useState(false);
+  const [requests, setRequests] = useState<WorkRequest[]>([]);
+  const [requestsStatus, setRequestsStatus] = useState<Workspace["requestsStatus"]>({ kind: "loading" });
+  const [checkingRequest, setCheckingRequest] = useState<string | null>(null);
+  const [newRequest, setNewRequest] = useState<Workspace["newRequest"]>({ open: false });
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
   const toastId = useRef(1);
@@ -148,7 +165,54 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setGoal("");
   }, [toast]);
 
+  const refreshRequests = useCallback(async () => {
+    const r = await api.requests();
+    if (r.ok) {
+      setRequests(r.data.items);
+      setRequestsStatus({ kind: "ready" });
+    } else setRequestsStatus({ kind: "error", message: r.error.error });
+  }, []);
+
   useEffect(() => void refreshDocs(), [refreshDocs]);
+  useEffect(() => void refreshRequests(), [refreshRequests]);
+
+  const createRequest = useCallback(async (input: RequestCreate) => {
+    const r = await api.createRequest(input);
+    if (!r.ok) {
+      toast(r.error.error, "fail");
+      return null;
+    }
+    setRequests((cur) => [r.data, ...cur]);
+    return r.data;
+  }, [toast]);
+
+  const patchRequest = useCallback(async (id: string, patch: RequestPatch) => {
+    let before: WorkRequest | undefined;
+    setRequests((cur) => cur.map((x) => (x.id === id ? ((before = x), { ...x, ...patch, updatedAt: new Date().toISOString() }) : x)));
+    const r = await api.patchRequest(id, patch);
+    if (r.ok) setRequests((cur) => cur.map((x) => (x.id === id ? r.data : x)));
+    else {
+      if (before) setRequests((cur) => cur.map((x) => (x.id === id ? before! : x)));
+      toast(r.error.error, "fail");
+    }
+  }, [toast]);
+
+  const removeRequest = useCallback(async (id: string) => {
+    const r = await api.deleteRequest(id);
+    if (!r.ok) return toast(r.error.error, "fail");
+    setRequests((cur) => cur.filter((x) => x.id !== id));
+    toast("Request deleted. The document and its history are untouched.");
+  }, [toast]);
+
+  const checkRequest = useCallback(async (id: string) => {
+    setCheckingRequest(id);
+    const r = await api.checkRequest(id);
+    setCheckingRequest(null);
+    if (!r.ok) return toast(r.error.error, "fail");
+    setRequests((cur) => cur.map((x) => (x.id === id ? r.data.request : x)));
+    const ci = r.data.request.ci;
+    if (ci) toast(ci.attention === 0 ? `All ${ci.total} requirement${ci.total === 1 ? "" : "s"} hold in v${ci.version}.` : `${ci.attention} of ${ci.total} requirement${ci.total === 1 ? "" : "s"} need attention${r.data.moved ? "; moved to Needs review" : ""}.`, ci.attention === 0 ? "pass" : "fail");
+  }, [toast]);
 
   // The route is the source of truth for which document is open.
   const routeDocId = route.name === "doc" ? route.id : null;
@@ -303,6 +367,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     refreshKey, rulesKey, bumpRules: () => setRulesKey((k) => k + 1), ci, goal, setGoal, toasts, toast, dismissToast, openDoc, refreshDocs, stage,
     removeStaged: (id) => setStaged((s) => s.filter((x) => x.id !== id)), clearStaged: () => setStaged([]), apply, reload, stageSuggested, restore,
     create, runCi, showEvidence, pickHit, protect, proposedText, newDocOpen, setNewDocOpen,
+    requests, requestsStatus, refreshRequests, createRequest, patchRequest, removeRequest, checkingRequest, checkRequest, newRequest, setNewRequest,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

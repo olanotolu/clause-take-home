@@ -4,8 +4,12 @@ export type DocTab = "edit" | "ci" | "activity" | "details";
 export const DOC_TABS: readonly DocTab[] = ["edit", "ci", "activity", "details"];
 
 export type Route =
-  | { name: "home" }
+  /** The workspace board. `request` names the request whose panel is open. */
+  | { name: "home"; request?: string }
+  | { name: "documents" }
   | { name: "doc"; id: string; tab: DocTab }
+  | { name: "playbooks"; id?: string }
+  | { name: "activity" }
   | { name: "templates" }
   | { name: "settings" };
 
@@ -13,6 +17,23 @@ export type Route =
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   const [head, a, b] = parts;
+  const decode = (v: string): string | null => {
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return null;
+    }
+  };
+  if (head === "request" && a) {
+    const id = decode(a);
+    return id === null ? { name: "home" } : { name: "home", request: id };
+  }
+  if (head === "documents") return { name: "documents" };
+  if (head === "activity") return { name: "activity" };
+  if (head === "playbooks") {
+    const id = a ? decode(a) : null;
+    return id ? { name: "playbooks", id } : { name: "playbooks" };
+  }
   if (head === "doc" && a) {
     let id: string;
     try {
@@ -30,7 +51,10 @@ export function parseRoute(hash: string): Route {
 
 export function buildRoute(r: Route): string {
   switch (r.name) {
-    case "home": return "#/";
+    case "home": return r.request ? `#/request/${encodeURIComponent(r.request)}` : "#/";
+    case "documents": return "#/documents";
+    case "activity": return "#/activity";
+    case "playbooks": return r.id ? `#/playbooks/${encodeURIComponent(r.id)}` : "#/playbooks";
     case "templates": return "#/templates";
     case "settings": return "#/settings";
     case "doc": return `#/doc/${encodeURIComponent(r.id)}/${r.tab}`;

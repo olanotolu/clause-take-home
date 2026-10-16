@@ -1,6 +1,9 @@
 import { Ban, Check, Lock, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { api, type Requirement, type RequirementKind } from "../lib/api.ts";
+import { api, type PlaybookSummary, type Requirement, type RequirementKind } from "../lib/api.ts";
+import { navigate } from "../lib/router.ts";
+import { plural } from "../lib/wordDelta.ts";
+import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { EmptyState } from "../ui/bits.tsx";
 
@@ -31,6 +34,25 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const ws = useWorkspace();
+  const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
+  const [pick, setPick] = useState("");
+
+  useEffect(() => {
+    let live = true;
+    void api.playbooks().then((r) => live && r.ok && setPlaybooks(r.data.items));
+    return () => { live = false; };
+  }, []);
+
+  const applyPlaybook = async () => {
+    const r = await api.applyPlaybook(docId, pick);
+    if (!r.ok) return ws.toast(r.error.error, "fail");
+    const { added, skipped } = r.data;
+    ws.toast(added.length ? `Added ${plural(added.length, "requirement")}${skipped.length ? `; skipped ${skipped.length} (${skipped.every((x) => x.reason === "duplicate") ? "already there" : "limit reached"})` : ""}.` : `Nothing added: ${skipped.length ? (skipped.every((x) => x.reason === "duplicate") ? "the document already has these rules" : "the document is at its limit") : "the playbook has no rules"}.`, added.length ? "pass" : "info");
+    setPick("");
+    await load();
+    onChanged();
+  };
 
   const load = useCallback(async () => {
     const r = await api.requirements(docId);
@@ -61,6 +83,21 @@ export function RequirementsPanel({ docId, selectedText, reloadKey, onChanged }:
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
       <p className="text-[13px] text-muted">Requirements are this document's test suite. CLAUSE CI checks every proposed edit against them and tells you which an edit keeps, breaks, or newly satisfies.</p>
+
+      {playbooks.length > 0 && (
+        <section aria-labelledby="req-pb" className="rounded-control border border-line bg-paper p-3">
+          <h3 id="req-pb" className="mb-2 text-sm font-semibold">Start from a playbook</h3>
+          <div className="flex gap-2">
+            <label htmlFor="req-pb-pick" className="sr-only">Playbook</label>
+            <select id="req-pb-pick" value={pick} onChange={(e) => setPick(e.target.value)} className="h-9 min-w-0 flex-1 rounded-control border border-line-strong bg-canvas px-2 text-sm">
+              <option value="">Choose a playbook</option>
+              {playbooks.map((p) => <option key={p.id} value={p.id}>{p.name} ({plural(p.ruleCount, "rule")})</option>)}
+            </select>
+            <Button size="sm" variant="primary" disabled={!pick} onClick={() => void applyPlaybook()}>Apply</Button>
+          </div>
+          <button onClick={() => navigate({ name: "playbooks", ...(pick && { id: pick }) })} className="mt-2 text-xs font-medium text-accent underline underline-offset-2">Manage playbooks</button>
+        </section>
+      )}
 
       <section aria-labelledby="req-list">
         <h3 id="req-list" className="mb-2 text-sm font-semibold">Requirements <span className="tnum font-normal text-muted">{items.length}/{max}</span></h3>

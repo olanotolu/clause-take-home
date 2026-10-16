@@ -10,6 +10,12 @@ export type DomainError =
   | { type: "TOO_LARGE_FOR_BACKEND"; chars: number; max: number }
   | { type: "REQUIREMENT_NOT_FOUND"; id: string }
   | { type: "REQUIREMENT_LIMIT"; max: number }
+  | { type: "REQUEST_NOT_FOUND"; id: string }
+  | { type: "REQUEST_HAS_NO_DOCUMENT"; id: string }
+  | { type: "PLAYBOOK_NOT_FOUND"; id: string }
+  | { type: "PLAYBOOK_RULE_NOT_FOUND"; id: string }
+  | { type: "PLAYBOOK_LIMIT"; max: number }
+  | { type: "PLAYBOOK_RULE_LIMIT"; max: number }
   | { type: "VERSION_CONFLICT"; expectedVersion: number; currentVersion: number }
   | { type: "PRECONDITION_FAILED"; expected: string; current: string }
   | { type: "CONTRADICTORY_PRECONDITIONS"; ifMatchVersion: number; expectedVersion: number }
@@ -44,6 +50,18 @@ export function toHttp(e: DomainError): HttpError {
       return { status: 404, type: e.type, error: `Requirement ${e.id} not found` };
     case "REQUIREMENT_LIMIT":
       return { status: 422, type: e.type, error: `A document can have at most ${e.max} requirements`, details: { max: e.max } };
+    case "REQUEST_NOT_FOUND":
+      return { status: 404, type: e.type, error: `Request ${e.id} not found` };
+    case "REQUEST_HAS_NO_DOCUMENT":
+      return { status: 409, type: e.type, error: `Request ${e.id} is not linked to a document (it was deleted), so there is nothing to check` };
+    case "PLAYBOOK_NOT_FOUND":
+      return { status: 404, type: e.type, error: `Playbook ${e.id} not found` };
+    case "PLAYBOOK_RULE_NOT_FOUND":
+      return { status: 404, type: e.type, error: `Playbook rule ${e.id} not found` };
+    case "PLAYBOOK_LIMIT":
+      return { status: 422, type: e.type, error: `At most ${e.max} playbooks`, details: { max: e.max } };
+    case "PLAYBOOK_RULE_LIMIT":
+      return { status: 422, type: e.type, error: `A playbook can have at most ${e.max} rules`, details: { max: e.max } };
     case "VERSION_CONFLICT":
       return {
         status: 409,

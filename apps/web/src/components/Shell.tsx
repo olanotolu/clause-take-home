@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, FileText, Info, LayoutTemplate, Plus, Search, Settings, X, XCircle } from "lucide-react";
+import { Activity, BookOpenCheck, CheckCircle2, ChevronRight, FileText, Info, LayoutDashboard, LayoutTemplate, Plus, Search, Settings, X, XCircle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type SettingsStatus } from "../lib/api.ts";
 import { navigate, useRoute, type Route } from "../lib/router.ts";
@@ -19,15 +19,20 @@ function Logo() {
 }
 
 const NAV: { key: string; label: string; icon: typeof FileText; route?: Route }[] = [
-  { key: "home", label: "Documents", icon: FileText, route: { name: "home" } },
+  { key: "home", label: "Workspace", icon: LayoutDashboard, route: { name: "home" } },
+  { key: "documents", label: "Documents", icon: FileText, route: { name: "documents" } },
   { key: "search", label: "Search", icon: Search },
+  { key: "playbooks", label: "Playbooks", icon: BookOpenCheck, route: { name: "playbooks" } },
   { key: "templates", label: "Templates", icon: LayoutTemplate, route: { name: "templates" } },
+  { key: "activity", label: "Activity", icon: Activity, route: { name: "activity" } },
   { key: "settings", label: "Settings", icon: Settings, route: { name: "settings" } },
 ];
 
 function activeKey(route: Route): string {
-  return route.name === "doc" ? "home" : route.name;
+  return route.name === "doc" ? "documents" : route.name;
 }
+
+const CRUMB: Partial<Record<Route["name"], string>> = { home: "Workspace", documents: "Documents", playbooks: "Playbooks", activity: "Activity", templates: "Templates", settings: "Settings" };
 
 function ToastRegion() {
   const { toasts, dismissToast } = useWorkspace();
@@ -68,6 +73,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const current = activeKey(route);
   const totalBytes = ws.docs.reduce((n, d) => n + d.size, 0);
   const crumbDoc = route.name === "doc" ? ws.doc : null;
+  const openRequests = ws.requests.filter((r) => r.status !== "completed").length;
 
   return (
     <div className="grid h-full grid-cols-[256px_minmax(0,1fr)] max-[1279px]:grid-cols-[64px_minmax(0,1fr)] max-[899px]:grid-cols-1 max-[899px]:grid-rows-[minmax(0,1fr)_auto]">
@@ -90,6 +96,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <Icon size={17} aria-hidden />
               <span className="max-[1279px]:sr-only">{label}</span>
               {key === "search" && <span className="ml-auto max-[1279px]:hidden"><Kbd>⌘K</Kbd></span>}
+              {key === "home" && openRequests > 0 && <span className="tnum ml-auto rounded-full bg-rail-hi px-1.5 text-xs text-rail-ink max-[1279px]:hidden" aria-label={`${openRequests} open requests`}>{openRequests}</span>}
             </button>
           ))}
         </nav>
@@ -126,7 +133,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 min-w-0 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-paper px-5 max-[899px]:px-3">
           <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm text-muted max-[1100px]:hidden">
-            <button onClick={() => navigate({ name: "home" })} className="rounded px-1 hover:text-ink">Documents</button>
+            <button onClick={() => navigate({ name: route.name === "doc" ? "documents" : "home" })} className="rounded px-1 hover:text-ink">{route.name === "doc" ? "Documents" : "Workspace"}</button>
+            {route.name !== "doc" && route.name !== "home" && <><ChevronRight size={14} aria-hidden /><span className="font-medium text-ink">{CRUMB[route.name]}</span></>}
             {route.name === "doc" && (
               <>
                 <ChevronRight size={14} aria-hidden />
@@ -134,8 +142,6 @@ export function Shell({ children }: { children: ReactNode }) {
                 {crumbDoc && <span className="tnum shrink-0 rounded bg-accent-soft px-1.5 py-px text-xs font-semibold text-accent" data-testid="version">v{crumbDoc.version}</span>}
               </>
             )}
-            {route.name === "templates" && <><ChevronRight size={14} aria-hidden /><span className="font-medium text-ink">Templates</span></>}
-            {route.name === "settings" && <><ChevronRight size={14} aria-hidden /><span className="font-medium text-ink">Settings</span></>}
           </nav>
           <button
             onClick={() => setPalette(true)}
@@ -145,16 +151,16 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="min-w-0 flex-1 truncate">Search documents and clauses…</span>
             <span className="max-[640px]:hidden"><Kbd>⌘K</Kbd></span>
           </button>
-          <Button variant="primary" icon={<Plus size={16} aria-hidden />} onClick={() => ws.setNewDocOpen(true)}>
-            <span className="max-[640px]:sr-only">New document</span>
+          <Button variant="primary" icon={<Plus size={16} aria-hidden />} onClick={() => ws.setNewRequest({ open: true, ...(crumbDoc && { documentId: crumbDoc.id }) })}>
+            <span className="max-[640px]:sr-only">New request</span>
           </Button>
         </header>
         <main className="min-h-0 flex-1">{children}</main>
       </div>
 
-      <nav aria-label="Main (mobile)" className="hidden grid-cols-4 border-t border-line bg-rail text-rail-ink max-[899px]:grid">
+      <nav aria-label="Main (mobile)" className="hidden overflow-x-auto border-t border-line bg-rail text-rail-ink max-[899px]:flex">
         {NAV.map(({ key, label, icon: Icon, route: target }) => (
-          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={`flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${current === key ? "text-white" : "text-rail-muted"}`}>
+          <button key={key} onClick={() => (target ? navigate(target) : setPalette(true))} aria-current={current === key ? "page" : undefined} className={`flex h-14 min-w-[76px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${current === key ? "text-white" : "text-rail-muted"}`}>
             <Icon size={18} aria-hidden />
             {label}
           </button>

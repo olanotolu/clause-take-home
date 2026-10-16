@@ -6,7 +6,7 @@ import { useWorkspace } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { EmptyState, Skeleton } from "../ui/bits.tsx";
 
-export function HomeView({ onNew }: { onNew: () => void }) {
+export function DocumentsView({ onNew }: { onNew: () => void }) {
   const ws = useWorkspace();
   const [q, setQ] = useState("");
   const rows = useMemo(() => {
@@ -22,9 +22,13 @@ export function HomeView({ onNew }: { onNew: () => void }) {
             <h1 className="font-display text-3xl font-semibold">Documents</h1>
             <p className="mt-1 max-w-xl text-sm text-muted">Every edit is validated before it is saved, every version is kept, and each document can carry requirements that Clause CI checks edits against.</p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          <Button icon={<LayoutTemplate size={15} aria-hidden />} onClick={() => navigate({ name: "templates" })}>Templates</Button>
+          <Button variant="primary" icon={<FilePlus2 size={15} aria-hidden />} onClick={onNew}>New document</Button>
           <div className="relative w-64 max-w-full">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
             <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter documents by title" placeholder="Filter by title" className="h-9 w-full rounded-control border border-line-strong bg-paper pl-9 pr-3 text-sm" />
+          </div>
           </div>
         </div>
 

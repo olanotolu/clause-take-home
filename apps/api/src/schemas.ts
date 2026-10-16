@@ -273,3 +273,98 @@ export const TemplateOut = z.object({
   category: z.enum(["NDA", "Commercial", "Employment", "Data & Privacy"]),
   content: z.string(),
 });
+
+// ---------------------------------------------------------------- requests (units of legal work)
+
+const IsoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD").refine(
+    (s) => {
+      // Date.parse rolls "2026-02-31" over to March 3, so require the parsed date to print back as the same day.
+      const d = new Date(`${s}T00:00:00Z`);
+      return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+    },
+    { message: "not a real date" },
+  );
+
+export const RequestStatusSchema = z.enum(["inbox", "in_progress", "needs_review", "completed"]);
+export const PrioritySchema = z.enum(["low", "medium", "high"]);
+export const RequestTypeSchema = z.enum(["NDA", "Commercial", "Employment", "Data & Privacy", "Other"]);
+
+const CiSnapshotOut = z.object({
+  version: z.number().int(),
+  checkedAt: z.string(),
+  total: z.number().int(),
+  holding: z.number().int(),
+  attention: z.number().int(),
+  judges: z.array(z.string()),
+  goal: VerdictSchema.optional(),
+  requirements: z.array(z.object({ text: z.string(), kind: RequirementKindSchema, verdict: VerdictSchema })),
+});
+
+export const RequestOut = z.object({
+  id: z.string(),
+  documentId: z.string().nullable(),
+  title: z.string(),
+  goal: z.string(),
+  status: RequestStatusSchema,
+  priority: PrioritySchema,
+  type: RequestTypeSchema,
+  dueDate: z.string().nullable(),
+  ci: CiSnapshotOut.nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const RequestCreateBody = z.strictObject({
+  documentId: z.string().min(1).max(64).optional().meta({ description: "The document this request is about. Must exist." }),
+  title: text().pipe(z.string().trim().min(1).max(200)),
+  goal: text().pipe(z.string().trim().min(1).max(500)).meta({ description: "The requested outcome, in plain words. Also judged against the document by Clause CI." }),
+  status: RequestStatusSchema.default("inbox"),
+  priority: PrioritySchema.default("medium"),
+  type: RequestTypeSchema.default("Other"),
+  dueDate: IsoDay.nullable().default(null),
+});
+
+export const RequestPatchBody = z
+  .strictObject({
+    title: text().pipe(z.string().trim().min(1).max(200)).optional(),
+    goal: text().pipe(z.string().trim().min(1).max(500)).optional(),
+    status: RequestStatusSchema.optional(),
+    priority: PrioritySchema.optional(),
+    type: RequestTypeSchema.optional(),
+    dueDate: IsoDay.nullable().optional(),
+  })
+  .refine((b) => Object.keys(b).length > 0, { message: "send at least one field to change" });
+
+export const RequestIdParams = z.object({ id: z.string().min(1).max(64) });
+
+export const RequestCheckOut = z.object({
+  request: RequestOut,
+  /** True when the audit found problems and moved the request into Needs review. It never moves a request to Completed. */
+  moved: z.boolean(),
+});
+
+// ---------------------------------------------------------------- playbooks
+
+export const PlaybookRuleOut = z.object({ id: z.string(), playbookId: z.string(), title: z.string(), kind: RequirementKindSchema, text: z.string(), createdAt: z.string() });
+export const PlaybookOut = z.object({ id: z.string(), name: z.string(), description: z.string(), createdAt: z.string(), updatedAt: z.string() });
+export const PlaybookSummaryOut = PlaybookOut.extend({ ruleCount: z.number().int() });
+export const PlaybookDetailOut = PlaybookOut.extend({ rules: z.array(PlaybookRuleOut) });
+export const PlaybookBody = z.strictObject({ name: text().pipe(z.string().trim().min(1).max(120)), description: text().pipe(z.string().trim().max(500)).default("") });
+export const PlaybookPatchBody = z
+  .strictObject({ name: text().pipe(z.string().trim().min(1).max(120)).optional(), description: text().pipe(z.string().trim().max(500)).optional() })
+  .refine((b) => Object.keys(b).length > 0, { message: "send at least one field to change" });
+export const PlaybookRuleBody = z.strictObject({ title: text().pipe(z.string().trim().min(1).max(160)), kind: RequirementKindSchema, text: text().pipe(z.string().min(1).max(2000)) });
+export const PlaybookIdParams = z.object({ id: z.string().min(1).max(64) });
+export const PlaybookRuleParams = PlaybookIdParams.extend({ rid: z.string().min(1).max(64) });
+export const ApplyPlaybookBody = z.strictObject({ playbookId: z.string().min(1).max(64) });
+export const ApplyPlaybookOut = z.object({
+  added: z.array(RequirementOut),
+  skipped: z.array(z.object({ title: z.string(), reason: z.enum(["duplicate", "limit"]) })),
+});
+
+// ---------------------------------------------------------------- activity across documents
+
+export const ActivityOut = z.object({
+  items: z.array(z.object({ documentId: z.string(), title: z.string(), version: z.number().int(), contentHash: z.string(), createdAt: z.string(), summary: z.unknown() })),
+});
+export const ActivityQuery = z.object({ limit: withDefault(strictInt(1, 100), 40) });

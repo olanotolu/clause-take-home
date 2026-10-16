@@ -74,6 +74,42 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX requirements_document_idx ON requirements (document_id, seq);
   `,
+  `
+  CREATE TABLE requests (
+    id          TEXT PRIMARY KEY,
+    document_id TEXT REFERENCES documents(id) ON DELETE SET NULL,
+    title       TEXT NOT NULL,
+    goal        TEXT NOT NULL,
+    status      TEXT NOT NULL CHECK (status IN ('inbox', 'in_progress', 'needs_review', 'completed')),
+    priority    TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high')),
+    type        TEXT NOT NULL CHECK (type IN ('NDA', 'Commercial', 'Employment', 'Data & Privacy', 'Other')),
+    due_date    TEXT,
+    ci          TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    seq         INTEGER NOT NULL
+  );
+  CREATE INDEX requests_status_idx ON requests (status, updated_at DESC);
+
+  CREATE TABLE playbooks (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    seq         INTEGER NOT NULL
+  );
+  CREATE TABLE playbook_rules (
+    id          TEXT PRIMARY KEY,
+    playbook_id TEXT NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+    title       TEXT NOT NULL,
+    kind        TEXT NOT NULL CHECK (kind IN ('present', 'absent', 'unchanged', 'semantic')),
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    seq         INTEGER NOT NULL
+  );
+  CREATE INDEX playbook_rules_idx ON playbook_rules (playbook_id, seq);
+  `,
 ];
 
 export function openDb(path: string): Db {

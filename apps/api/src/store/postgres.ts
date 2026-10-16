@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sha256 } from "@clause/core";
 import pg from "pg";
+import { dueIn, newId, REQUEST_COLUMNS, requestPatchColumns, toPlaybook, toRequest, toRule, type PlaybookRow, type RequestRow, type RuleRow } from "./shared.ts";
 import { ContentTooLargeError, InvalidQueryError, queryTerms, type Requirement, type RequirementKind, type DocumentRecord, type DocumentSummary, type ExactCandidate, type RankedDocument, type RevisionInfo, type Store } from "./types.ts";
 
 /**
@@ -67,6 +68,42 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX requirements_document_idx ON requirements (document_id, seq);
   `,
+  `
+  CREATE TABLE requests (
+    id          TEXT PRIMARY KEY,
+    document_id TEXT REFERENCES documents(id) ON DELETE SET NULL,
+    title       TEXT NOT NULL,
+    goal        TEXT NOT NULL,
+    status      TEXT NOT NULL CHECK (status IN ('inbox', 'in_progress', 'needs_review', 'completed')),
+    priority    TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high')),
+    type        TEXT NOT NULL CHECK (type IN ('NDA', 'Commercial', 'Employment', 'Data & Privacy', 'Other')),
+    due_date    TEXT,
+    ci          TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    seq         BIGINT GENERATED ALWAYS AS IDENTITY
+  );
+  CREATE INDEX requests_status_idx ON requests (status, updated_at DESC);
+
+  CREATE TABLE playbooks (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    seq         BIGINT GENERATED ALWAYS AS IDENTITY
+  );
+  CREATE TABLE playbook_rules (
+    id          TEXT PRIMARY KEY,
+    playbook_id TEXT NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+    title       TEXT NOT NULL,
+    kind        TEXT NOT NULL CHECK (kind IN ('present', 'absent', 'unchanged', 'semantic')),
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    seq         BIGINT GENERATED ALWAYS AS IDENTITY
+  );
+  CREATE INDEX playbook_rules_idx ON playbook_rules (playbook_id, seq);
+  `,
 ];
 
 interface Row {
@@ -127,6 +164,11 @@ async function migrate(pool: pg.Pool): Promise<void> {
   } finally {
     client.release();
   }
+}
+
+async function fetchRequest(pool: pg.Pool, id: string) {
+  const r = (await pool.query<RequestRow>(`SELECT ${REQUEST_COLUMNS} FROM requests WHERE id = $1`, [id])).rows[0];
+  return r && toRequest(r);
 }
 
 export async function createPostgresStore(opts: PostgresOptions): Promise<Store> {
@@ -276,6 +318,119 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
 
     async deleteRequirement(documentId, id) {
       return (await pool.query("DELETE FROM requirements WHERE document_id = $1 AND id = $2", [documentId, id])).rowCount === 1;
+    },
+
+    async listRecentRevisions(limit) {
+      const r = await pool.query<{ document_id: string; title: string; version: number; content_hash: string; created_at: string; summary: string }>(
+        "SELECT r.document_id, d.title, r.version, r.content_hash, r.created_at, r.summary FROM revisions r JOIN documents d ON d.id = r.document_id ORDER BY r.created_at DESC, r.version DESC LIMIT $1",
+        [limit],
+      );
+      return r.rows.map((x) => ({ documentId: x.document_id, title: x.title, version: x.version, contentHash: x.content_hash, createdAt: x.created_at, summary: JSON.parse(x.summary) }));
+    },
+
+    async listRequests() {
+      return (await pool.query<RequestRow>(`SELECT ${REQUEST_COLUMNS} FROM requests ORDER BY updated_at DESC, seq DESC`)).rows.map(toRequest);
+    },
+
+    async getRequest(id) {
+      return fetchRequest(pool, id);
+    },
+
+    async insertRequest(input) {
+      const id = newId("wrq");
+      const now = new Date().toISOString();
+      await pool.query("INSERT INTO requests (id, document_id, title, goal, status, priority, type, due_date, ci, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $9)", [id, input.documentId, input.title, input.goal, input.status, input.priority, input.type, input.dueDate, now]);
+      return (await fetchRequest(pool, id))!;
+    },
+
+    async updateRequest(id, patch) {
+      const cols = requestPatchColumns(patch);
+      const now = new Date().toISOString();
+      const set = [...cols.map(([c], i) => `${c} = $${i + 1}`), `updated_at = $${cols.length + 1}`].join(", ");
+      const res = await pool.query(`UPDATE requests SET ${set} WHERE id = $${cols.length + 2}`, [...cols.map(([, v]) => v), now, id]);
+      return res.rowCount === 1 ? fetchRequest(pool, id) : undefined;
+    },
+
+    async deleteRequest(id) {
+      return (await pool.query("DELETE FROM requests WHERE id = $1", [id])).rowCount === 1;
+    },
+
+    async listPlaybooks() {
+      const r = await pool.query<PlaybookRow & { rule_count: string }>("SELECT p.id, p.name, p.description, p.created_at, p.updated_at, (SELECT count(*) FROM playbook_rules r WHERE r.playbook_id = p.id) AS rule_count FROM playbooks p ORDER BY p.seq");
+      return r.rows.map((x) => ({ ...toPlaybook(x), ruleCount: Number(x.rule_count) }));
+    },
+
+    async getPlaybook(id) {
+      const p = (await pool.query<PlaybookRow>("SELECT id, name, description, created_at, updated_at FROM playbooks WHERE id = $1", [id])).rows[0];
+      if (!p) return undefined;
+      const rules = (await pool.query<RuleRow>("SELECT id, playbook_id, title, kind, text, created_at FROM playbook_rules WHERE playbook_id = $1 ORDER BY seq", [id])).rows;
+      return { ...toPlaybook(p), rules: rules.map(toRule) };
+    },
+
+    async insertPlaybook(input) {
+      const id = newId("pbk");
+      const now = new Date().toISOString();
+      await pool.query("INSERT INTO playbooks (id, name, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $4)", [id, input.name, input.description, now]);
+      return { id, name: input.name, description: input.description, createdAt: now, updatedAt: now };
+    },
+
+    async updatePlaybook(id, patch) {
+      const cur = (await pool.query<PlaybookRow>("SELECT id, name, description, created_at, updated_at FROM playbooks WHERE id = $1", [id])).rows[0];
+      if (!cur) return undefined;
+      const now = new Date().toISOString();
+      const name = patch.name ?? cur.name;
+      const description = patch.description ?? cur.description;
+      await pool.query("UPDATE playbooks SET name = $1, description = $2, updated_at = $3 WHERE id = $4", [name, description, now, id]);
+      return { id, name, description, createdAt: cur.created_at, updatedAt: now };
+    },
+
+    async deletePlaybook(id) {
+      return (await pool.query("DELETE FROM playbooks WHERE id = $1", [id])).rowCount === 1;
+    },
+
+    async addPlaybookRule(playbookId, input) {
+      return tx(async (c) => {
+        const now = new Date().toISOString();
+        const touched = await c.query("UPDATE playbooks SET updated_at = $1 WHERE id = $2", [now, playbookId]);
+        if (touched.rowCount !== 1) return undefined;
+        const id = newId("rul");
+        await c.query("INSERT INTO playbook_rules (id, playbook_id, title, kind, text, created_at) VALUES ($1, $2, $3, $4, $5, $6)", [id, playbookId, input.title, input.kind, input.text, now]);
+        return { id, playbookId, title: input.title, kind: input.kind, text: input.text, createdAt: now };
+      });
+    },
+
+    async deletePlaybookRule(playbookId, ruleId) {
+      return (await pool.query("DELETE FROM playbook_rules WHERE playbook_id = $1 AND id = $2", [playbookId, ruleId])).rowCount === 1;
+    },
+
+    async seedPlaybooksIfEmpty(items) {
+      return tx(async (c) => {
+        await c.query("SELECT pg_advisory_xact_lock(727276)");
+        if (Number((await c.query<{ n: string }>("SELECT count(*) AS n FROM playbooks")).rows[0]!.n) > 0) return 0;
+        const now = new Date().toISOString();
+        for (const pb of items) {
+          const pid = newId("pbk");
+          await c.query("INSERT INTO playbooks (id, name, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $4)", [pid, pb.name, pb.description, now]);
+          for (const r of pb.rules) await c.query("INSERT INTO playbook_rules (id, playbook_id, title, kind, text, created_at) VALUES ($1, $2, $3, $4, $5, $6)", [newId("rul"), pid, r.title, r.kind, r.text, now]);
+        }
+        return items.length;
+      });
+    },
+
+    async seedRequestsIfEmpty(items) {
+      return tx(async (c) => {
+        await c.query("SELECT pg_advisory_xact_lock(727277)");
+        if (Number((await c.query<{ n: string }>("SELECT count(*) AS n FROM requests")).rows[0]!.n) > 0) return 0;
+        let n = 0;
+        for (const it of items) {
+          const doc = (await c.query<{ id: string }>("SELECT id FROM documents WHERE title = $1 ORDER BY seq LIMIT 1", [it.documentTitle])).rows[0];
+          if (!doc) continue;
+          const now = new Date(Date.now() - (items.length - n) * 3_600_000).toISOString();
+          n++;
+          await c.query("INSERT INTO requests (id, document_id, title, goal, status, priority, type, due_date, ci, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $9)", [newId("wrq"), doc.id, it.title, it.goal, it.status, it.priority, it.type, it.dueInDays === undefined ? null : dueIn(it.dueInDays), now]);
+        }
+        return n;
+      });
     },
 
     /** An advisory lock makes "is it empty? then fill it" atomic across instances: exactly one cold start seeds. */

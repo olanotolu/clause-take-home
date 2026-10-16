@@ -3,6 +3,8 @@ import { api, type SettingsStatus } from "../lib/api.ts";
 import { useSettings } from "../lib/settings.tsx";
 import { formatDate } from "../lib/settings-core.ts";
 import { kb, wordCount } from "../lib/wordDelta.ts";
+import { navigate } from "../lib/router.ts";
+import { STATUS_LABEL } from "../lib/requests.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 
 export function DetailsTab() {
@@ -19,6 +21,7 @@ export function DetailsTab() {
     return () => { live = false; };
   }, [doc.id, ws.rulesKey]);
 
+  const linked = ws.requests.filter((r) => r.documentId === doc.id);
   const rows: [string, string][] = [
     ["Title", doc.title],
     ["Current version", `v${doc.version}`],
@@ -44,6 +47,16 @@ export function DetailsTab() {
             </div>
           ))}
         </dl>
+        <section aria-labelledby="det-req" className="mt-6">
+          <h3 id="det-req" className="mb-2 text-sm font-semibold">Requests for this document</h3>
+          {linked.length === 0 ? <p className="text-sm text-muted">None. Create one from the top bar while this document is open.</p> : (
+            <ul className="divide-y divide-line rounded-card border border-line bg-paper">
+              {linked.map((r) => (
+                <li key={r.id}><button onClick={() => navigate({ name: "home", request: r.id })} className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-canvas"><span className="font-display font-semibold">{r.title}</span><span className="shrink-0 text-xs text-muted">{STATUS_LABEL[r.status]}</span></button></li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );
