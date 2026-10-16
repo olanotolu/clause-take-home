@@ -32,10 +32,17 @@ const push = (out: Block[], kind: Kind, value: string) => {
  * line (repeated boilerplate) falls back to Myers on just that gap.
  */
 function diffLineRange(a: string[], aLo: number, aHi: number, b: string[], bLo: number, bHi: number, out: Block[]): void {
-  while (aLo < aHi && bLo < bHi && a[aLo] === b[bLo]) push(out, "same", a[aLo++]!), bLo++;
+  while (aLo < aHi && bLo < bHi && a[aLo] === b[bLo]) {
+    push(out, "same", a[aLo]!);
+    aLo++;
+    bLo++;
+  }
   let aEnd = aHi;
   let bEnd = bHi;
-  while (aEnd > aLo && bEnd > bLo && a[aEnd - 1] === b[bEnd - 1]) aEnd--, bEnd--;
+  while (aEnd > aLo && bEnd > bLo && a[aEnd - 1] === b[bEnd - 1]) {
+    aEnd--;
+    bEnd--;
+  }
 
   if (aLo === aEnd) push(out, "ins", b.slice(bLo, bEnd).join(""));
   else if (bLo === bEnd) push(out, "del", a.slice(aLo, aEnd).join(""));
