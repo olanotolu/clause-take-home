@@ -46,7 +46,7 @@ test("a stale edit is refused and nothing is overwritten", async ({ page, reques
   expect(now.content).not.toContain("three (3) years");
 });
 
-test("search finds a clause and opens the document", async ({ page, request }) => {
+test("search selects the exact passage and edits directly from it", async ({ page, request }) => {
   const token = `zebracrossing${Date.now().toString(36)}`;
   const doc = await createDocument(request, { extra: `Schedule A: the ${token} fee applies.` });
   await page.goto("/#/documents");
@@ -61,6 +61,14 @@ test("search finds a clause and opens the document", async ({ page, request }) =
   await expect(page).toHaveURL(new RegExp(doc.id));
   await expect(page.getByRole("heading", { level: 1, name: doc.title })).toBeVisible();
   await expect(page.locator('[data-kind="sel"]')).toContainText(token);
+  await page.getByRole("toolbar", { name: "Selected passage" }).getByRole("button", { name: "Replace" }).click();
+  await page.getByRole("group", { name: "Replace selected passage" }).getByRole("textbox").fill(`${token}edited`);
+  await page.getByRole("button", { name: "Stage change" }).click();
+  await page.getByRole("button", { name: "Apply change", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Proposed changes" })).toBeHidden();
+  const saved = (await (await request.get(`/api/documents/${doc.id}`)).json());
+  expect(saved.version).toBe(2);
+  expect(saved.content).toContain(`${token}edited`);
 });
 
 test("a stale search hit never selects unrelated text", async ({ page, request }) => {
