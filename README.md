@@ -78,9 +78,11 @@ I then redid the *look*, because my first pass (warm cream, serif headings, a da
 - **Requests** (`/requests`): a unit of legal work on a document (what was asked, priority, due date, status). Drag cards between Inbox, In progress, Needs review and Completed. **Run Clause CI** on a request audits the document's *current* text against its requirements and the request's own outcome, stores what it found, and moves an open request to Needs review if something fails. It never moves one to Completed; a person does that.
 - **Playbooks** (`/playbooks`): named, reusable sets of requirements. Applying one copies its rules onto a document as ordinary requirements (duplicates skipped, the 8-per-document limit respected, and the response says what was skipped and why).
 - **Activity** (`/activity`): the newest versions across all documents. It records edits only.
-- **Templates** (`/templates`): the sample contracts as starting points.
+- **Templates** (`/templates`): starting points for a new document, including standard agreements adapted from Common Paper (CC BY 4.0; the licence and source travel with each document as provenance).
 
-What I deliberately did *not* draw, because there is nothing behind it: assignees, teams and avatars, comments, notifications, integrations, billing, a storage meter, and Jev's numbers. Requests have no owner field because this app has no users.
+What I deliberately did *not* draw as real, because there is nothing behind it: assignees, teams and avatars, comments, notifications, billing, and Jev's numbers. Requests have no owner field because this app has no users.
+
+Three things on screen are **demos and say so**: the Integrations page (a "Connect demo" flow over sample files, imported with a "DEMO IMPORT" marker), the usage meter in the sidebar (labelled "Sample"), and the "Acme Inc." workspace card above it, which is decoration and not a feature. The real repository connectors (OneDrive, Dropbox, Google Drive, SharePoint, Box, plus iManage and NetDocuments with tenant endpoints) exist in the API and are admin-only, but need per-provider OAuth credentials and an encryption key that the live demo does not have, so the page does not call them.
 
 I went well past the suggested time-box. Treat steps 1-5 as the actual assignment and the rest as extras you're free to ignore.
 
@@ -174,7 +176,8 @@ curl -s -X PATCH localhost:3000/documents/$ID -H 'content-type: application/json
 | `POST /playbooks/:id/rules`, `DELETE /playbooks/:id/rules/:rid` | add or remove a rule |
 | `POST /documents/:id/apply-playbook` | copy a playbook's rules onto a document as requirements |
 | `GET /activity?limit` | newest versions across all documents |
-| `GET /templates` | the sample contracts, for starting a new document |
+| `GET /templates`, `POST /templates/:id/create` | starting points for a new document; create fills the template's fields and can attach its suggested requirements |
+| `/integrations/*` | OAuth repository connectors (list, connect, callback, browse, import, disconnect). Admin-only; unconfigured on the live demo |
 
 A successful edit returns a **receipt**: `beforeHash`/`afterHash` (SHA-256) plus the exact spans that changed. It states which bytes changed. It does not claim the change is legally right.
 
@@ -218,7 +221,7 @@ CI runs the suite on Node 24 and 26 with SQLite, plus a Postgres 16 job.
 ## What isn't done, or isn't proven
 
 - **It guarantees the mechanics of an edit, not its legal meaning.** (See the dollar example above.) CLAUSE CI helps; it doesn't solve that.
-- **No authentication, tenancy or audit log.** The demo is deliberately open. Rate limits exist on the two paid routes (20 suggestions and 60 checks per IP per hour) but are in-memory and per-instance: a brake, not a quota. Nothing here is SOC 2 or GDPR compliant and I don't claim it; `INFRA.md` is the design for getting there.
+- **No tenancy or audit log, and the demo is deliberately open.** Neon Auth is wired in as an optional admin sign-in, used only by the integrations routes; everything else, including editing and the AI routes, needs no sign-in. Rate limits exist on the two paid routes (20 suggestions and 60 checks per IP per hour) but are in-memory and per-instance: a brake, not a quota. Nothing here is SOC 2 or GDPR compliant and I don't claim it; `INFRA.md` is the design for getting there.
 - **Jev is unmeasured**, as above. The ensemble of Jev plus LLM was never evaluated.
 - **I haven't opened the Word export in Microsoft Word itself.** It round-trips under accept/reject tests and opens in `python-docx`. Please open [`samples/mutual-nda-redline.docx`](samples/mutual-nda-redline.docx) once.
 - **The web UI has only unit tests for its pure logic** (router, due dates, filters, word counts, settings parsing). The screens themselves I drove by hand in a browser at desktop, tablet and phone widths, in light and dark. The backend is where the real tests are.
