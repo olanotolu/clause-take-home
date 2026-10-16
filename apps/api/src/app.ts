@@ -30,6 +30,7 @@ export const BODY_LIMIT = 50 * 1024 * 1024;
 export interface AppOptions {
   /** Storage backend. Closed when the app closes. */
   store?: Store;
+  aiTimeoutMs?: number;
   /** Convenience: a SQLite path (or ":memory:"). Ignored when `store` is supplied. */
   dbPath?: string;
   logger?: boolean;
@@ -62,7 +63,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
     trustProxy: opts.trustProxy ?? false,
     // Ids are at most 100 characters, so anything longer is a bad request like any other. Fastify's own answer to an
     // over-long path parameter is a 414 whose `code` is a string, which breaks this API's { error, code: number } contract.
-    maxParamLength: 1024,
+    routerOptions: { maxParamLength: 1024 },
     frameworkErrors: (error, _req, res) => {
       const reply = res as import("fastify").FastifyReply;
       if (error.code === "FST_ERR_MAX_PARAM_LENGTH") return reply.code(400).send({ error: "A path parameter is too long", code: 400, type: "VALIDATION_ERROR" });
@@ -149,8 +150,8 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   const checkLimit = opts.checkRateLimit ?? { max: 60, timeWindow: "1 hour" };
   const suggestLimit = opts.suggestRateLimit ?? { max: 20, timeWindow: "1 hour" };
   const semantic = opts.semanticEvaluator ?? noSemanticEvaluator;
-  registerCheckRoutes(typed, semantic, checkLimit);
-  registerSuggestRoutes(typed, opts.suggestionProvider, suggestLimit, semantic);
+  registerCheckRoutes(typed, semantic, checkLimit, opts.aiTimeoutMs);
+  registerSuggestRoutes(typed, opts.suggestionProvider, suggestLimit, semantic, opts.aiTimeoutMs);
   registerRequestRoutes(typed, semantic, checkLimit);
   registerPlaybookRoutes(typed);
   registerActivityRoutes(typed);

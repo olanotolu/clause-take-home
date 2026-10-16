@@ -10,11 +10,8 @@
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
-    "@dnd-kit/sortable": "10.0.0",
-    "@dnd-kit/utilities": "3.2.2",
     "@formkit/auto-animate": "0.10.0",
     "@icons-pack/react-simple-icons": "^13.15.1",
-    "@neondatabase/auth-ui": "0.4.0-beta",
     "@neondatabase/neon-js": "0.8.0-beta",
     "@number-flow/react": "0.6.2",
     "@phosphor-icons/react": "2.1.10",
@@ -36,6 +33,6 @@
     "vite": "^8.3.4"
   },
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   }
 }

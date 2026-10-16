@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * The README quotes the benchmark's headline numbers. This replays the committed record (no network, no cost) and fails
- * if a quoted number stops matching it, or if the one comparison the README claims stops holding.
+ * The evaluator README links the detailed report. Replay the committed record without network calls and verify that
+ * the report still matches its raw measurements.
  */
 const root = join(import.meta.dirname, "../..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -17,7 +17,7 @@ interface Summary {
 const summaries = JSON.parse(read("bench/ci/results/summary.json")) as Summary[];
 const baseline = summaries.find((s) => s.judge === "keyword-baseline")!;
 const llm = summaries.find((s) => s.judge.startsWith("anthropic/"))!;
-const readme = read("README.md");
+const report = read("bench/ci/RESULTS.md");
 const pct = (x: number, digits = 1) => `${(x * 100).toFixed(digits)}%`;
 
 describe("committed benchmark record", () => {
@@ -30,22 +30,22 @@ describe("committed benchmark record", () => {
     expect(read("bench/ci/results/raw-keyword-baseline.jsonl").trim().split("\n")).toHaveLength(150);
   });
 
-  it("matches the numbers the README quotes", () => {
+  it("matches the detailed report linked by the README", () => {
     expect(llm.static.n).toBe(60);
-    expect(readme).toContain(`${pct(baseline.static.accuracy.p)} [${pct(baseline.static.accuracy.lo, 0)}, ${pct(baseline.static.accuracy.hi, 0)}]`);
-    expect(readme).toContain(`${pct(llm.static.accuracy.p)} [${pct(llm.static.accuracy.lo, 0)}, ${pct(llm.static.accuracy.hi, 0)}]`);
-    expect(readme).toContain(`${baseline.regression.detected} of ${baseline.regression.usable} usable pairs`);
-    expect(readme).toContain(`${llm.regression.detected} of ${llm.regression.usable} usable pairs`);
-    expect(readme).toContain(`0 of ${baseline.regression.usable} | 0 of ${llm.regression.usable}`);
+    expect(report).toContain(`${pct(baseline.static.accuracy.p)} [${pct(baseline.static.accuracy.lo)}, ${pct(baseline.static.accuracy.hi)}]`);
+    expect(report).toContain(`${pct(llm.static.accuracy.p)} [${pct(llm.static.accuracy.lo)}, ${pct(llm.static.accuracy.hi)}]`);
+    expect(report).toContain(`(${baseline.regression.detected}/${baseline.regression.usable})`);
+    expect(report).toContain(`(${llm.regression.detected}/${llm.regression.usable})`);
+    expect(read("README.md")).toContain("bench/ci/RESULTS.md");
     expect(llm.regression.falseAlarm + baseline.regression.falseAlarm).toBe(0);
-    expect(readme).toContain(`(${llm.quotes.verified}/${llm.quotes.total})`);
+    expect(report).toContain(`(${llm.quotes.verified}/${llm.quotes.total})`);
     expect(llm.quotes.verified).toBe(llm.quotes.total);
     expect(baseline.quotes.verified).toBe(baseline.quotes.total);
     expect(llm.static.brier).toBeCloseTo(0.069, 3);
     expect(read("bench/ci/RESULTS.md")).toContain(String(llm.static.brier?.toFixed(3)));
   });
 
-  it("supports the one comparison the README claims: the model beats the keyword baseline, outside its interval", () => {
+  it("supports the measured comparison: the model beats the keyword baseline, outside its interval", () => {
     expect(llm.static.accuracy.lo).toBeGreaterThan(baseline.static.accuracy.hi);
     expect(llm.regression.detected / llm.regression.usable).toBeGreaterThan(baseline.regression.detected / baseline.regression.usable);
   });

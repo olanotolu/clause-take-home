@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "pnpm --filter @clause/api dev",
@@ -21,7 +21,8 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "lint": "biome lint .",
-    "load": "node scripts/load.ts"
+    "load": "node scripts/load.ts",
+    "bench:citations": "node --env-file-if-exists=.env.local bench/citations/run.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
@@ -30,7 +31,7 @@
     "@types/node": "^24",
     "@vitest/coverage-v8": "5.0.5",
     "fast-check": "^4.10.2",
-    "typescript": "^7.0.2",
+    "typescript": "5.9.3",
     "vitest": "^5.0.5"
   },
   "packageManager": "pnpm@10.33.0"

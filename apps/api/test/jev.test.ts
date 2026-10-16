@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { combineJudges } from "../src/review/ensemble.ts";
 import { evaluatorFromEnv } from "../src/review/evaluator.ts";
-import { buildJevQuestion, createJevJudge, DEFAULT_JEV_MODEL, JEV_MIN_CONFIDENCE, type DecideInput, type DecideOutput } from "../src/review/judges/jev.ts";
+import { buildJevQuestion, createJevJudge, DEFAULT_JEV_MODEL, JEV_MIN_CHOICE_PROBABILITY, type DecideInput, type DecideOutput } from "../src/review/judges/jev.ts";
 
 const jev = (out: DecideOutput | Error, seen: DecideInput[] = []) =>
   createJevJudge({
@@ -23,14 +23,23 @@ describe("Jev judge", () => {
   it("treats a low-confidence answer as unclear instead of acting on it", async () => {
     const a = await ask(jev({ choice: "entailed", probabilities: { entailed: 0.55, contradicted: 0.1, not_mentioned: 0.35 } }));
     expect(a.label).toBe("unclear");
-    expect(0.55).toBeLessThan(JEV_MIN_CONFIDENCE);
+    expect(0.55).toBeLessThan(JEV_MIN_CHOICE_PROBABILITY);
     // exactly at the threshold is confident enough
-    expect((await ask(jev({ choice: "contradicted", probabilities: { entailed: 0.1, contradicted: JEV_MIN_CONFIDENCE, not_mentioned: 0.2 } }))).label).toBe("contradicted");
+    expect((await ask(jev({ choice: "contradicted", probabilities: { entailed: 0.1, contradicted: JEV_MIN_CHOICE_PROBABILITY, not_mentioned: 0.2 } }))).label).toBe("contradicted");
   });
 
-  it("accepts an answer with no distribution (cannot be low-confidence), and rejects an unknown choice as unclear", async () => {
-    expect((await ask(jev({ choice: "not_mentioned" }))).label).toBe("not_mentioned");
+  it("treats missing probabilities and unknown choices as unclear", async () => {
+    expect((await ask(jev({ choice: "not_mentioned" }))).label).toBe("unclear");
     expect((await ask(jev({ choice: "maybe" }))).label).toBe("unclear");
+  });
+
+  it.each([NaN, Infinity, -1, 1.01])("rejects an invalid selected probability %s", async (probability) => {
+    expect((await ask(jev({ choice: "entailed", probabilities: { entailed: probability } }))).label).toBe("unclear");
+  });
+
+  it("rejects missing or incomplete batch answers", async () => {
+    const judge = jev({ choice: "entailed", batch: [] });
+    await expect(judge.judgeBatch!([{ text: "contract", requirement: "rule", isGoal: false }])).rejects.toThrow("Incomplete Jev batch");
   });
 
   it("sends the document as state and the requirement in the question, never mixed, and pins the model", async () => {

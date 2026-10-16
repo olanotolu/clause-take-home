@@ -5,23 +5,25 @@ import type { Judge, JudgeAnswer, JudgeLabel } from "./types.ts";
  * Below this probability on its chosen option, Jev's answer is treated as "unclear" rather than acted on. Fixed BEFORE
  * the benchmark is run and changed only on the dev split (see bench/ci).
  */
-export const JEV_MIN_CONFIDENCE = 0.7;
+export const JEV_MIN_CHOICE_PROBABILITY = 0.7;
 
 /** Pinned: the `jev-latest` alias moves, and a report must say exactly which model produced it. */
 export const DEFAULT_JEV_MODEL = "typesafe-ai/jev-1.14.0";
 
 export interface DecideInput {
   model: string;
-  /** The document. Passed as data, separate from the question, so text inside it is never read as an instruction. */
+  /** The document. Passed as data, separate from the question, but remains untrusted and may influence the answer adversarially. */
   state: string;
   instructions: string;
   criteria: Record<"entailed" | "contradicted" | "not_mentioned", string>;
   signal?: AbortSignal;
+  questions?: { instructions: string; criteria: DecideInput["criteria"] }[];
 }
 
 export interface DecideOutput {
   choice: string;
   probabilities?: Record<string, number>;
+  batch?: DecideOutput[];
 }
 
 export type DecideFn = (input: DecideInput) => Promise<DecideOutput>;
@@ -38,29 +40,44 @@ export function buildJevQuestion(requirement: string, isGoal: boolean): Pick<Dec
   };
 }
 
-/** A decision model (Jev) as one judge. It returns calibrated probabilities but no prose and no quotes. */
+/** A decision model (Jev) as one judge. It returns selected-option probabilities but no prose and no quotes. */
 export function createJevJudge(opts: { id: string; decide: DecideFn }): Judge {
+  const answer = (out: DecideOutput): JudgeAnswer => {
+    const known = out.choice === "entailed" || out.choice === "contradicted" || out.choice === "not_mentioned";
+    const probability = out.probabilities?.[out.choice];
+    const valid = probability !== undefined && Number.isFinite(probability) && probability >= JEV_MIN_CHOICE_PROBABILITY && probability <= 1;
+    const p = out.probabilities?.entailed;
+    return { label: known && valid ? out.choice as JudgeLabel : "unclear", ...(p !== undefined && Number.isFinite(p) && p >= 0 && p <= 1 && { pEntailed: p }), quotes: [], rationale: "" };
+  };
   return {
     id: opts.id,
-    async judge({ requirement, text, isGoal, signal }): Promise<JudgeAnswer> {
-      const out = await opts.decide({ model: opts.id, state: text, ...buildJevQuestion(requirement, isGoal), ...(signal && { signal }) });
-      const known = out.choice === "entailed" || out.choice === "contradicted" || out.choice === "not_mentioned";
-      const confidence = out.probabilities?.[out.choice];
-      const label: JudgeLabel = !known || (confidence !== undefined && confidence < JEV_MIN_CONFIDENCE) ? "unclear" : (out.choice as JudgeLabel);
-      const p = out.probabilities?.entailed;
-      return { label, ...(p !== undefined && { pEntailed: p }), quotes: [], rationale: "" };
+    async judge(input) {
+      return answer(await opts.decide({ model: opts.id, state: input.text, ...buildJevQuestion(input.requirement, input.isGoal), ...(input.signal && { signal: input.signal }) }));
+    },
+    async judgeBatch(inputs) {
+      if (!inputs.length) return [];
+      const first = inputs[0]!;
+      if (inputs.some((input) => input.text !== first.text)) throw new Error("A Jev batch must share one document state");
+      const out = await opts.decide({ model: opts.id, state: first.text, ...buildJevQuestion(first.requirement, first.isGoal), questions: inputs.map((input) => buildJevQuestion(input.requirement, input.isGoal)), ...(first.signal && { signal: first.signal }) });
+      if (!out.batch || out.batch.length !== inputs.length) throw new Error("Incomplete Jev batch");
+      return out.batch.map(answer);
     },
   };
 }
 
 /** The real call: AI SDK 7 `experimental_decide`; a string model id resolves through Vercel AI Gateway (API key or OIDC). */
-export const gatewayDecide: DecideFn = async ({ model, state, instructions, criteria, signal }) => {
+export const gatewayDecide: DecideFn = async ({ model, state, instructions, criteria, signal, questions }) => {
   const r = await experimental_decide({
     model,
     state,
-    questions: { verdict: { type: "choice", instructions, criteria } },
+    questions: Object.fromEntries((questions ?? [{ instructions, criteria }]).map((q, i) => [`q${i}`, { type: "choice" as const, ...q } ])),
+    maxRetries: 0,
     ...(signal && { abortSignal: signal }),
   });
-  const a = r.answers.verdict;
-  return { choice: a.choice, ...(a.probabilities && { probabilities: a.probabilities as Record<string, number> }) };
+  const batch = (questions ?? [{ instructions, criteria }]).map((_, i): DecideOutput => {
+    const a = r.answers[`q${i}`]!;
+    if (a.type !== "choice") throw new Error("Unexpected Jev answer type");
+    return { choice: a.choice, ...(a.probabilities && { probabilities: a.probabilities }) };
+  });
+  return { ...batch[0]!, ...(questions && { batch }) };
 };

@@ -79,7 +79,22 @@ describe("two writers race on the same version", () => {
     const doc = must(await docs.createDocument(a, { title: "NDA", content: "alpha beta gamma" }));
     await docs.apply(a, doc.id, { changes: changes("alpha", "ALPHA") });
     await b.commitRevision({ id: doc.id, expectedVersion: 1, content: "STALE WRITE zzz", summary: "[]" });
-    expect(await b.rankWords("zzz")).toHaveLength(0);
-    expect(await b.rankWords("gamma")).toHaveLength(1);
+    expect((await b.wordsPage("zzz", { limit: 100, offset: 0 })).items).toHaveLength(0);
+    expect((await b.wordsPage("gamma", { limit: 100, offset: 0 })).items).toHaveLength(1);
   });
+});
+
+it("word search returns content and version from the same snapshot while another connection writes", async () => {
+  const doc = await a.insertDocument({ title: "snapshot", content: "target snapshot 1" });
+  await Promise.all([
+    (async () => { for (let version = 1; version < 20; version++) await a.commitRevision({ id: doc.id, expectedVersion: version, content: `target snapshot ${version + 1}`, summary: "[]" }); })(),
+    (async () => { for (let n = 0; n < 30; n++) {
+      const page = await b.wordsPage("target", { limit: 1, offset: 0 });
+      expect(page.total).toBe(1);
+      expect(page.items[0]!.content).toBe(`target snapshot ${page.items[0]!.version}`);
+    } })(),
+  ]);
+  expect(await b.wordsPage("target", { limit: 1, offset: 10 })).toEqual({ total: 1, items: [] });
+  await a.deleteDocument(doc.id);
+  expect(await b.wordsPage("target", { limit: 1, offset: 0 })).toEqual({ total: 0, items: [] });
 });

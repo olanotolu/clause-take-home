@@ -16,7 +16,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       // Type-aware: an un-awaited promise in an async server is a silent failure.
       "nursery": { "noFloatingPromises": "error", "noMisusedPromises": "error" },
       // `!` after a check is how this codebase satisfies noUncheckedIndexedAccess; tsc strict already guards the rest.

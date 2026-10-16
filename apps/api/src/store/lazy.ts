@@ -29,10 +29,7 @@ export function lazyStore(info: { kind: Store["kind"]; maxContentChars: number }
     commitRevision: (a) => get().then((s) => s.commitRevision(a)),
     listRevisions: (id) => get().then((s) => s.listRevisions(id)),
     getRevision: (id, v) => get().then((s) => s.getRevision(id, v)),
-    rankWords: (q, ids) => get().then((s) => s.rankWords(q, ids)),
-    // Only SQLite has a native snippet; the search layer checks for the method's presence.
-    ...(info.kind === "sqlite" && { wordsSnippet: (id: string, q: string) => get().then((s) => s.wordsSnippet!(id, q)) }),
-    getContent: (id) => get().then((s) => s.getContent(id)),
+    wordsPage: (q, options) => get().then((s) => s.wordsPage(q, options)),
     exactCandidates: (q, ids) => get().then((s) => s.exactCandidates(q, ids)),
     listRequirements: (d) => get().then((s) => s.listRequirements(d)),
     addRequirement: (d, i) => get().then((s) => s.addRequirement(d, i)),

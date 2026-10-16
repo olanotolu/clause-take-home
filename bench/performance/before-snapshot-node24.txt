@@ -1,0 +1,18 @@
+CLAUSE benchmark  size=10.0 MiB  node=v24.15.0  sqlite=3.53.0
+machine: Apple M4 x10, 32 GiB RAM, darwin 25.2.0
+load average at start: 3.2 2.8 2.6  (high load inflates every number below; rerun on an idle machine)
+
+generate synthetic contract                    {"ms":27.2,"chars":10306991,"bytes":10485779}
+engine: replace unique target near EOF         {"medianMs":2.5}
+engine: 100-change batch (quote targets)       {"medianMs":8.6}
+engine: ambiguous target rejected (full scan)  {"medianMs":4.4}
+POST /documents (insert + 2 FTS indexes + v1 snapshot) {"ms":725.2,"status":201,"dbMB":40.8}
+GET search words (rare token)                  {"medianMs":19.8}
+GET search words (very common phrase)          {"medianMs":23.8}
+GET search exact (unique string)               {"medianMs":15.8}
+GET search exact (hundreds of thousands of hits) {"medianMs":51.8}
+PATCH unique replace near EOF (full stack)     {"ms":818.8,"status":200,"newVersion":2,"responseMB":9.8}
+PATCH 100-change batch (full stack)            {"ms":852.5,"status":200}
+POST preview incl. unified diff (full stack)   {"ms":122.4,"status":200}
+PATCH stale version rejected                   {"ms":12.5,"status":409}
+memory                                         {"peakRssMB":694,"finalDbMB":97.3}

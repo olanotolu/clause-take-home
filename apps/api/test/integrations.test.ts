@@ -66,7 +66,7 @@ describe("integrations", () => {
       expect(duplicate.imported).toBe(false);
       expect(duplicate.doc.id).toBe(first.doc.id);
       expect(await store.listDocuments(10, 0)).toMatchObject({ total: 1, items: [{ title: input.title }] });
-      expect(await store.rankWords("Redwood acquisition")).toMatchObject([{ id: first.doc.id, title: input.title }]);
+      expect((await store.wordsPage("Redwood acquisition", { limit: 100, offset: 0 })).items).toMatchObject([{ id: first.doc.id, title: input.title }]);
       expect(await store.getIntegrationImport(input.provider, input.fileId)).toMatchObject({ documentId: first.doc.id, provider: input.provider });
       expect(await store.listIntegrationConnections()).toEqual([]);
     } finally { await store.close(); }
