@@ -189,7 +189,16 @@ concurrency check ([`scripts/load.ts`](scripts/load.ts), 1 mb documents, one pro
 | exact search | 5 · **435 ms** | 300 ms | **missed at 8** |
 | edit | 61 · **879 ms** | 500 ms | **missed at 8**, throughput plateaus near 19 edits/s on one sqlite writer |
 
-the misses are written down rather than the targets moved. the targets are for the postgres design, which hasn't been load-tested yet; [`INFRA.md`](INFRA.md) has the plan (per-document row locks, chunked indexes, replicas). hosted postgres caps documents at 500,000 characters, so the 10 mib figures are sqlite only. paired reruns and raw logs: [`bench/performance`](bench/performance/README.md).
+the same check on postgres at its hosted cap (`pnpm load 8 8 --storage=postgres`, 0.47 mb documents, warmed up, two runs, over http):
+
+| p95 at 8 clients | measured | target | |
+|---|---|---|---|
+| read | 19–21 ms | 50 ms | met |
+| words search | 129–158 ms | 300 ms | met |
+| exact search | 240–246 ms | 300 ms | met |
+| edit | 437–443 ms (27 edits/s) | 500 ms | met, with little headroom |
+
+the misses in the sqlite table are written down rather than the targets moved, and postgres is a different story because its writers don't share one event loop. two cautions. laptop numbers swing about 2× with background load (the sqlite edit p95 was 1.8–2.4 s on a busy afternoon), so read them as ranges. and a freshly loaded postgres database was far slower for its first seconds (words search p95 4.4 s), which is why the tool now warms up before it measures. hosted postgres caps documents at 500,000 characters, so the 10 mib figures are sqlite only, and the 1 mib edit target can't be tested on postgres until the cap is lifted (that needs chunked indexes, see [`INFRA.md`](INFRA.md)). paired reruns and raw logs: [`bench/performance`](bench/performance/README.md).
 
 ---
 
