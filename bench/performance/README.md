@@ -21,3 +21,21 @@ The unchanged `bench/run.ts` generated the same 10,485,779-byte / 10,306,991-cha
 [Before raw output](before-snapshot-node24.txt) · [After raw output](after-snapshot-node24.txt)
 
 Search snapshot reads add about 1 ms in this run. The common-word path stays bounded; the previous multi-second native-snippet failure did not return. This is one paired run under background load, not a statistical performance guarantee. Unrelated edit timing varies and does not establish an improvement. No thresholds were tuned from these measurements. Hosted Postgres was not benchmarked at 10 MiB and still has a 500,000-character cap.
+
+## Concurrency, SQLite and Postgres (October 17, 2026)
+
+`pnpm load [workers] [seconds]` starts a throwaway server and drives read, search and edit scenarios at fixed concurrency. Two options matter for honest numbers:
+
+- `--warmup=N` (default 3) runs each scenario for N seconds first and discards it. A freshly loaded Postgres database was far slower for its first seconds (words search p95 4,393 ms cold against 129–158 ms warmed); SQLite showed no difference. `--warmup=0` turns it off to see the effect.
+- `--storage=postgres` uses documents sized to the hosted 500,000-character cap and needs `CLAUSE_LOAD_DATABASE_URL`, a disposable database (the documents it creates are deleted at the end).
+
+Warmed, 8 clients, Node 24.15, over HTTP, on an Apple M4 that was busy with other work (load average 15–45), two runs each:
+
+| p95 | SQLite, 1 MB docs | Postgres, 0.47 MB docs |
+|---|---|---|
+| read | 27–49 ms | 19–21 ms |
+| words search | 522–543 ms | 129–158 ms |
+| exact search | 1,096–1,159 ms | 240–246 ms |
+| edit | 1,944–2,387 ms | 437–443 ms (27 edits/s) |
+
+The SQLite figures are about twice the ones in `INFRA.md`, which were taken on a quiet machine; the load average, not the code, explains the gap, and that is why the tables in `INFRA.md` and the README call laptop numbers ranges. The Postgres figures meet the targets in `INFRA.md`, with little headroom on edits.
