@@ -21,10 +21,16 @@ const present = (d: DocumentRecord) => ({
   ...(d.templateProvenance ? { templateProvenance: d.templateProvenance } : {}),
 });
 
-/** RFC 7240: `Prefer: return=minimal` drops the full text from the receipt (the caller already knows the edit it sent). */
-function receiptFor<T extends { content: string }>(req: FastifyRequest, reply: FastifyReply, receipt: T): T | Omit<T, "content"> {
-  if (!/\breturn=minimal\b/.test(String(req.headers.prefer ?? ""))) return receipt;
+/** RFC 7240: true when the caller sent `Prefer: return=minimal`; the response then says so with `Preference-Applied`. */
+function wantsMinimal(req: FastifyRequest, reply: FastifyReply): boolean {
+  if (!/\breturn=minimal\b/.test(String(req.headers.prefer ?? ""))) return false;
   reply.header("Preference-Applied", "return=minimal");
+  return true;
+}
+
+/** An edit's receipt without the full text (the caller already knows the edit it sent). */
+function receiptFor<T extends { content: string }>(req: FastifyRequest, reply: FastifyReply, receipt: T): T | Omit<T, "content"> {
+  if (!wantsMinimal(req, reply)) return receipt;
   const { content: _content, ...rest } = receipt;
   return rest;
 }
@@ -83,16 +89,11 @@ export function registerDocumentRoutes(app: App, createLimit: { max: number; tim
     const p = await docs.preview(app.store, req.params.id, { ...req.body, ifMatch: req.headers["if-match"] });
     if (!p.ok) return reply.problem(p.error);
     const { doc, result } = p.value;
-    return {
-      id: doc.id,
-      version: doc.version,
-      wouldChange: result.changed,
-      proposedContent: result.content,
-      applied: result.applied,
-      beforeHash: doc.contentHash,
-      afterHash: sha256(result.content),
-      diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }),
-    };
+    const head = { id: doc.id, version: doc.version, wouldChange: result.changed, applied: result.applied, beforeHash: doc.contentHash, afterHash: sha256(result.content) };
+    // Minimal: just the changed spans. A client holding version `doc.version` can rebuild the text from them, and a
+    // unified diff of the whole document (built only on request) is not needed to render a redline.
+    if (wantsMinimal(req, reply)) return head;
+    return { ...head, proposedContent: result.content, diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }) };
   });
 
   // Undo: restore an old version's text as a new version. Same preconditions and response as PATCH.

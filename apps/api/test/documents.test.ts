@@ -263,6 +263,24 @@ describe("API surface", () => {
     expect(nf.json()).toMatchObject({ code: 404 });
   });
 
+  it("preview with Prefer: return=minimal sends the changed spans only: no full text, no unified diff", async () => {
+    const doc = await createDoc(app, "t", "one two three");
+    const body = { changes: [quote("two", "2")] };
+    const full = await app.inject({ method: "POST", url: `/documents/${doc.id}/changes/preview`, payload: body });
+    expect(full.headers["preference-applied"]).toBeUndefined();
+    expect(full.json()).toMatchObject({ wouldChange: true, proposedContent: "one 2 three" });
+    expect(typeof full.json().diff).toBe("string");
+
+    const min = await app.inject({ method: "POST", url: `/documents/${doc.id}/changes/preview`, headers: { prefer: "return=minimal" }, payload: body });
+    expect(min.statusCode).toBe(200);
+    expect(min.headers["preference-applied"]).toBe("return=minimal");
+    expect(min.json()).not.toHaveProperty("proposedContent");
+    expect(min.json()).not.toHaveProperty("diff");
+    // Everything a client needs to show and check the edit is still there, and it matches the full response.
+    expect(min.json()).toMatchObject({ id: doc.id, version: 1, wouldChange: true, afterHash: full.json().afterHash, beforeHash: full.json().beforeHash });
+    expect(min.json().applied).toEqual(full.json().applied);
+  });
+
   it("redirects /docs to the reference with a RELATIVE location, so it survives the /api prefix in production", async () => {
     const bare = await app.inject({ method: "GET", url: "/docs" });
     expect(bare.statusCode).toBe(301);
