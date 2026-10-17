@@ -10,7 +10,7 @@ export interface DocResult { documentId: string; title: string; version: number;
 export interface SearchPage { query: string; mode: "words" | "exact"; total: number; results: DocResult[] }
 export interface Candidate { start: number; end: number; context: string }
 export interface ApiError { error: string; code: number; type: string; details?: { candidates?: Candidate[]; currentVersion?: number; matchCount?: number; index?: number } }
-export interface Preview { version: number; wouldChange: boolean; proposedContent: string; applied: Applied[]; diff: string }
+export interface Preview { version: number; wouldChange: boolean; applied: Applied[]; afterHash: string }
 export interface Receipt { revertedTo?: number; id: string; content: string; previousVersion: number; version: number; changed: boolean; beforeHash: string; afterHash: string; applied: Applied[] }
 export interface Revision { version: number; contentHash: string; createdAt: string; summary: { before?: string; after?: string; created?: boolean; revertedTo?: number }[] }
 export interface SuggestResponse {
@@ -94,11 +94,11 @@ export interface Change { operation: "replace"; target: Target; replacement: str
 
 export type Res<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<Res<T>> {
+async function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<Res<T>> {
   try {
     const res = await fetch(`/api${path}`, {
       method,
-      headers: body === undefined ? {} : { "content-type": "application/json" },
+      headers: body === undefined ? headers : { "content-type": "application/json", ...headers },
       body: body === undefined ? null : JSON.stringify(body),
     });
     if (res.status === 204) return { ok: true, data: undefined as T };
@@ -117,7 +117,8 @@ export const api = {
   revisions: (id: string) => call<{ items: Revision[] }>("GET", `/documents/${id}/revisions`),
   search: (q: string, mode: string) => call<SearchPage>("GET", `/documents/search?q=${encodeURIComponent(q)}&mode=${mode}&limit=20`),
   preview: (id: string, expectedVersion: number, changes: Change[]) =>
-    call<Preview>("POST", `/documents/${id}/changes/preview`, { expectedVersion, changes }),
+    // return=minimal: the changed spans only. The proposed text is rebuilt in the browser (see workspace.tsx).
+    call<Preview>("POST", `/documents/${id}/changes/preview`, { expectedVersion, changes }, { prefer: "return=minimal" }),
   revert: (id: string, expectedVersion: number, toVersion: number) => call<Receipt>("POST", `/documents/${id}/revert`, { toVersion, expectedVersion }),
   requirements: (id: string) => call<{ items: Requirement[]; max: number }>("GET", `/documents/${id}/requirements`),
   addRequirement: (id: string, kind: RequirementKind, text: string) => call<Requirement>("POST", `/documents/${id}/requirements`, { kind, text }),

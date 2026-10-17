@@ -1,4 +1,4 @@
-import { selectorFor, type Target } from "@clause/engine";
+import { applyOrderedSpans, selectorFor, type Target } from "@clause/engine";
 import { toast as sonner } from "sonner";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, type ApiError, type Change, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type Preview, type RequestCreate, type RequestPatch, type RequestStatus, type SearchPage, type WorkRequest } from "./api.ts";
@@ -440,7 +440,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     toast("Protected: this passage must survive every edit. It is now a requirement.", "pass");
   }, [doc, toast]);
 
-  const proposedText = preview.status === "valid" ? preview.data.proposedContent : (doc?.content ?? "");
+  // The server sends only the changed spans; the text is rebuilt here, from the same function the server used. The
+  // spans are positions in version `preview.data.version`, so they are only applied to exactly that version.
+  const proposedText = useMemo(() => {
+    if (!doc) return "";
+    if (preview.status !== "valid" || !preview.data.wouldChange || preview.data.version !== doc.version) return doc.content;
+    try {
+      return applyOrderedSpans(doc.content, preview.data.applied.map((a) => ({ index: a.index, start: a.start, end: a.end, replacement: a.after }))).content;
+    } catch {
+      return doc.content;
+    }
+  }, [doc, preview]);
 
   const value: Workspace = {
     docs, docsStatus, doc, opening, selection, setSelection, staged, preview, redline, setRedline, hits, setSearchPage, conflict, applying,

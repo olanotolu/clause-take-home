@@ -113,7 +113,7 @@ curl -s -X PATCH http://localhost:3000/documents/DOC_ID -H 'content-type: applic
   "applied": [{ "index": 0, "start": 1270, "end": 1291, "before": "Receiving Party shall", "after": "Recipient shall", "newStart": 1270, "newEnd": 1285 }],
   "content": "…the full updated text…" }
 ```
-the response also carries `ETag: "v2-2454fa484923"`. send `Prefer: return=minimal` to get the receipt without `content` (on a 10 mib document, 10,486,119 bytes becomes 357).
+the response also carries `ETag: "v2-2454fa484923"`. send `Prefer: return=minimal` to get the receipt without `content` (on a 10 mib document, 10,486,119 bytes becomes 357). the same header on `changes/preview` returns just the changed spans, no proposed text and no unified diff (10 mib: 10.4 mib becomes 0.35 kib), and the web app rebuilds the text from them.
 
 **the same edit without `occurrence`** is refused, because the quote matches three passages:
 

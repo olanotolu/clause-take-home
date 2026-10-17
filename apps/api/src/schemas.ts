@@ -151,11 +151,11 @@ export const PreviewOut = z.object({
   id: z.string(),
   version: z.number().int(),
   wouldChange: z.boolean(),
-  proposedContent: z.string(),
+  proposedContent: z.string().optional().meta({ description: "The full proposed text. Omitted when the request sent `Prefer: return=minimal`." }),
   applied: z.array(AppliedOut),
   beforeHash: z.string(),
   afterHash: z.string(),
-  diff: z.string().meta({ description: "Unified diff of current -> proposed." }),
+  diff: z.string().optional().meta({ description: "Unified diff of current -> proposed. Omitted when the request sent `Prefer: return=minimal`." }),
 });
 
 export const RevisionInfoOut = z.object({
