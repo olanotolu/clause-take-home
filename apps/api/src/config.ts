@@ -37,7 +37,9 @@ export async function storeFromEnv(env: Record<string, string | undefined>, hook
   if (chooseBackend(env) === "postgres") {
     const url = env.DATABASE_URL ?? env.POSTGRES_URL;
     if (!url) throw new Error("Postgres storage selected but DATABASE_URL is not set");
-    return createPostgresStore({ connectionString: url, max: Number(env.CLAUSE_PG_POOL_MAX ?? 3), ...(hooks.onPool && { onPool: hooks.onPool }) });
+    // CLAUSE_DATABASE_CA is the PEM certificate authority for the database; "\n" escapes are expanded so it fits one env var.
+    const ca = env.CLAUSE_DATABASE_CA?.replace(/\\n/g, "\n");
+    return createPostgresStore({ connectionString: url, max: Number(env.CLAUSE_PG_POOL_MAX ?? 3), ...(ca && { ca }), ...(hooks.onPool && { onPool: hooks.onPool }) });
   }
   const path = env.CLAUSE_DB ?? DEFAULT_DB_PATH;
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });

@@ -13,6 +13,8 @@ export const POSTGRES_MAX_CONTENT_CHARS = 500_000;
 
 export interface PostgresOptions {
   connectionString: string;
+  /** PEM certificate authority that signs the database's TLS certificate (Supabase: its own CA). Verification stays on. */
+  ca?: string;
   /** Pool size. Keep it small for serverless: every warm instance holds its own pool. */
   max?: number;
   /** Tests give each test its own schema so they can run in parallel against one database. */
@@ -196,17 +198,21 @@ async function fetchRequest(pool: pg.Pool, id: string) {
   return r && toRequest(r);
 }
 
+/** TLS settings for every pool: the CA when one is given, otherwise the connection string's own sslmode decides. */
+const tls = (ca?: string) => (ca ? { ssl: { ca, rejectUnauthorized: true } } : {});
+
 export async function createPostgresStore(opts: PostgresOptions): Promise<Store> {
   const schema = opts.schema;
   if (schema !== undefined && !/^[a-z_][a-z0-9_]*$/.test(schema)) throw new Error(`invalid schema name: ${schema}`);
 
   if (schema) {
-    const boot = new pg.Pool({ connectionString: opts.connectionString, max: 1 });
+    const boot = new pg.Pool({ connectionString: opts.connectionString, max: 1, ...tls(opts.ca) });
     await boot.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
     await boot.end();
   }
   const pool = new pg.Pool({
     connectionString: opts.connectionString,
+    ...tls(opts.ca),
     max: opts.max ?? 5,
     ...(schema && { options: `-c search_path=${schema},public` }),
   });
@@ -512,7 +518,7 @@ export async function createPostgresStore(opts: PostgresOptions): Promise<Store>
     async close() {
       await pool.end();
       if (schema && opts.dropSchemaOnClose) {
-        const boot = new pg.Pool({ connectionString: opts.connectionString, max: 1 });
+        const boot = new pg.Pool({ connectionString: opts.connectionString, max: 1, ...tls(opts.ca) });
         await boot.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
         await boot.end();
       }
