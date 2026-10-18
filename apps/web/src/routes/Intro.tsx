@@ -17,7 +17,7 @@ import { Terrain } from "./intro/Terrain.tsx";
 const EASE = [0.23, 1, 0.32, 1] as const;
 // Two weights on purpose: the first line is light, the claim is heavy.
 const HEADLINE = [["Edits", "that", "land"], ["exactly", "where", "you", "point."]] as const;
-const STILL = "linear-gradient(#1b1226 0%, #6d3345 38%, #d98b4f 68%, #4a2a1a 100%)";
+const STILL = "linear-gradient(#18181b 0%, #52525b 38%, #a1a1aa 68%, #27272a 100%)";
 
 /** Fades a block in and out over a window of scroll progress; out of the window it is neither announced nor clickable. */
 function Beat({ p, at, children, className = "", hold = false }: { p: MotionValue<number>; at: [number, number, number, number]; children: ReactNode; className?: string; hold?: boolean }) {
@@ -123,7 +123,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
         <div className="sticky top-0 h-screen overflow-hidden" style={{ background: STILL }}>
           {!still && <Terrain p={p} px={px} py={py} reduce={reduce} onFail={failed} />}
           {/* Keeps the type readable whatever the light is doing behind it. */}
-          <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgb(14 7 3 / .8) 0%, rgb(14 7 3 / .5) 34%, rgb(14 7 3 / 0) 70%), linear-gradient(to bottom, rgb(14 7 3 / .4), rgb(14 7 3 / 0) 20%)" }} />
+          <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgb(0 0 0 / .8) 0%, rgb(0 0 0 / .5) 34%, rgb(0 0 0 / 0) 70%), linear-gradient(to bottom, rgb(0 0 0 / .4), rgb(0 0 0 / 0) 20%)" }} />
 
           <div className="relative mx-auto h-full max-w-[1240px] px-7 max-[640px]:px-5">
             <div className="absolute inset-x-7 top-6 z-20 flex items-center justify-between max-[640px]:inset-x-5">
@@ -132,15 +132,15 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                 CLAUSE
               </motion.span>
               <Magnetic reduce={reduce} strength={0.25}>
-              <button ref={skip} type="button" data-cursor="Skip" onClick={onEnter} className="flex h-9 items-center gap-2.5 rounded-full border pl-4 pr-2 text-[13px] font-semibold transition-colors hover:bg-[rgb(246_234_210/.14)]" style={{ borderColor: "rgb(246 234 210 / .5)", color: BONE }}>
+              <button ref={skip} type="button" data-cursor="Skip" onClick={onEnter} className="flex h-9 items-center gap-2.5 rounded-full border pl-4 pr-2 text-[13px] font-semibold transition-colors hover:bg-[rgb(245_245_245/.14)]" style={{ borderColor: "rgb(245 245 245 / .5)", color: BONE }}>
                 Skip intro
-                <kbd className="rounded-md border px-1.5 py-px text-[10px] font-semibold tracking-wide max-[640px]:hidden" style={{ borderColor: "rgb(246 234 210 / .4)", color: "rgb(246 234 210 / .75)" }}>Esc</kbd>
+                <kbd className="rounded-md border px-1.5 py-px text-[10px] font-semibold tracking-wide max-[640px]:hidden" style={{ borderColor: "rgb(245 245 245 / .4)", color: "rgb(245 245 245 / .75)" }}>Esc</kbd>
               </button>
               </Magnetic>
             </div>
 
             <motion.div style={{ opacity: heroOpacity, y: heroY }} className="absolute inset-x-7 bottom-[11vh] max-[640px]:inset-x-5 max-[640px]:bottom-[9vh]">
-              <h1 aria-label="Edits that land exactly where you point." className="text-[clamp(2.6rem,7.2vw,6.4rem)] leading-[0.96] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)", textWrap: "balance" }}>
+              <h1 aria-label="Edits that land exactly where you point." className="text-[clamp(2.6rem,7.2vw,6.4rem)] leading-[0.96] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(0 0 0 / .5)", textWrap: "balance" }}>
                 {HEADLINE.map((line, li) => (
                   <span key={line[0]} aria-hidden className="block" style={{ fontWeight: li === 0 ? 300 : 700 }}>
                     {line.map((w, wi) => {
@@ -155,10 +155,10 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                 ))}
               </h1>
               <motion.div initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 1.05, ease: EASE }} className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
-                <p className="max-w-[36ch] text-[clamp(0.95rem,1.4vw,1.15rem)] leading-snug" style={{ color: "rgb(246 234 210 / .86)" }}>
+                <p className="max-w-[36ch] text-[clamp(0.95rem,1.4vw,1.15rem)] leading-snug" style={{ color: "rgb(245 245 245 / .86)" }}>
                   A contract redlining and search service that refuses to guess.
                 </p>
-                <motion.span style={{ opacity: cueOpacity, color: "rgb(246 234 210 / .72)" }} className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.24em]">
+                <motion.span style={{ opacity: cueOpacity, color: "rgb(245 245 245 / .72)" }} className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.24em]">
                   <span aria-hidden className="block h-px w-10" style={{ background: "currentColor" }} /> Scroll
                 </motion.span>
               </motion.div>
@@ -173,9 +173,9 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                     <div>
                       <p className="flex items-baseline gap-4" style={{ color: BONE }}>
                         <span className="text-[clamp(3.4rem,7vw,6.2rem)] font-extralight leading-[0.8] tracking-[-0.05em]" style={{ fontVariantNumeric: "tabular-nums" }}>{b.n}</span>
-                        <span className="text-[13px] font-bold uppercase tracking-[0.28em]" style={{ color: "rgb(246 234 210 / .78)" }}>{b.title}</span>
+                        <span className="text-[13px] font-bold uppercase tracking-[0.28em]" style={{ color: "rgb(245 245 245 / .78)" }}>{b.title}</span>
                       </p>
-                      <p className="mt-5 max-w-[23ch] text-[clamp(1.55rem,3.3vw,2.9rem)] leading-[1.1] tracking-[-0.025em]" style={{ color: BONE, textShadow: "0 2px 30px rgb(10 4 2 / .5)", textWrap: "balance" }}>
+                      <p className="mt-5 max-w-[23ch] text-[clamp(1.55rem,3.3vw,2.9rem)] leading-[1.1] tracking-[-0.025em]" style={{ color: BONE, textShadow: "0 2px 30px rgb(0 0 0 / .5)", textWrap: "balance" }}>
                         <Words p={p} from={s + 0.012} to={s + 0.1} runs={b.runs} />
                       </p>
                     </div>
@@ -186,7 +186,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
             })}
 
             <Beat p={p} at={[0.8, 0.88, 0.999, 1]} hold className="bottom-[11vh] px-7 max-[640px]:bottom-[9vh] max-[640px]:px-5">
-              <h2 className="max-w-[13ch] text-[clamp(2.3rem,5.8vw,5rem)] leading-[0.98] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(10 4 2 / .5)" }}><span style={{ fontWeight: 300 }}>See it on a</span> <span style={{ fontWeight: 700 }}>real contract.</span></h2>
+              <h2 className="max-w-[13ch] text-[clamp(2.3rem,5.8vw,5rem)] leading-[0.98] tracking-[-0.04em]" style={{ color: BONE, textShadow: "0 2px 40px rgb(0 0 0 / .5)" }}><span style={{ fontWeight: 300 }}>See it on a</span> <span style={{ fontWeight: 700 }}>real contract.</span></h2>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
                 <Magnetic reduce={reduce} strength={0.3}>
                 <button
@@ -201,14 +201,14 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
                   <span className="grid size-11 place-items-center rounded-full transition-transform duration-300 group-hover:translate-x-1" style={{ background: INK, color: BONE }}><ArrowRight size={18} aria-hidden /></span>
                 </button>
                 </Magnetic>
-                <p className="text-sm" style={{ color: "rgb(246 234 210 / .8)" }}>Sample contracts, no sign-in.</p>
+                <p className="text-sm" style={{ color: "rgb(245 245 245 / .8)" }}>Sample contracts, no sign-in.</p>
               </div>
             </Beat>
           </div>
 
           <Counter p={p} />
           <Dots p={p} scroller={scroller} />
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[2px]" style={{ background: "rgb(246 234 210 / .18)" }}>
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[2px]" style={{ background: "rgb(245 245 245 / .18)" }}>
             <motion.div className="h-full" style={{ width: fill, background: BONE }} />
           </div>
         </div>

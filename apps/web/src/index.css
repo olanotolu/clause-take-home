@@ -77,16 +77,16 @@
   --color-rail-ink: #141416;
   --color-rail-muted: #62656c;
 
-  --color-accent: #235a96;
+  --color-accent: #141416;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: rgb(35 90 150 / 0.09);
+  --color-accent-soft: rgb(20 20 22 / 0.07);
 
   --color-pass: #146b45;
   --color-pass-bg: rgb(36 164 107 / 0.13);
   --color-fail: #b3261e;
   --color-fail-bg: rgb(214 69 55 / 0.1);
-  --color-review: #8a5300;
-  --color-review-bg: rgb(214 150 20 / 0.15);
+  --color-review: #a21caf;
+  --color-review-bg: rgb(162 28 175 / 0.1);
 
   /* aliases kept for the redline classes and older components */
   --color-del: var(--color-fail);
@@ -100,9 +100,9 @@
   /* Contract text stays serif: it is the document, not the interface. */
   --font-doc: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 
-  /* The shell is a soft greige; the working area is a white panel floating inside it; lanes are a shade between. */
-  --color-shell: #efede9;
-  --color-lane: #f6f4f1;
+  /* The shell is a soft neutral grey; the working area is a white panel floating inside it; lanes are a shade between. */
+  --color-shell: #ededed;
+  --color-lane: #f5f5f5;
 
   --radius-control: 10px;
   --radius-card: 18px;

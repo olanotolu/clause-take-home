@@ -7,8 +7,8 @@ import { BONE } from "./content.ts";
  * One example of what the service answers per beat, set as a designed table in the page's own typeface (tabular
  * numerals keep the figures aligned). Rows arrive with the scroll. The ids and offsets are an example, and it says so.
  */
-const DIM = "rgb(246 234 210 / .62)";
-const HAIR = "rgb(246 234 210 / .13)";
+const DIM = "rgb(245 245 245 / .62)";
+const HAIR = "rgb(245 245 245 / .13)";
 
 function Row({ p, at, k, children, strong = false, warn = false }: { p: MotionValue<number>; at: number; k: string; children: ReactNode; strong?: boolean; warn?: boolean }) {
   const o = useTransform(p, [at, at + 0.012], [0, 1], { clamp: true });
@@ -16,7 +16,7 @@ function Row({ p, at, k, children, strong = false, warn = false }: { p: MotionVa
   return (
     <motion.div style={{ opacity: o, x, borderColor: HAIR }} className="grid grid-cols-[88px_minmax(0,1fr)] items-baseline gap-3 border-t py-[7px] first:border-t-0 max-[640px]:grid-cols-[72px_minmax(0,1fr)]" >
       <dt className="text-[10.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: DIM }}>{k || <span className="sr-only">Also</span>}</dt>
-      <dd className="text-[14px] leading-snug max-[640px]:text-[12.5px]" style={{ fontWeight: strong ? 650 : 420, color: warn ? "#ffbfa6" : BONE }}>{children}</dd>
+      <dd className="text-[14px] leading-snug max-[640px]:text-[12.5px]" style={{ fontWeight: strong ? 650 : 420, color: warn ? "#fca5a5" : BONE }}>{children}</dd>
     </motion.div>
   );
 }
@@ -25,13 +25,13 @@ function Receipt({ p, at, code, name, label, children, reduce }: { p: MotionValu
   const head = useTransform(p, [at, at + 0.012], [0, 1], { clamp: true });
   const { rx, ry, glare, handlers } = useTilt(reduce);
   return (
-    <motion.figure aria-label={label} {...handlers} className="relative w-full max-w-[480px] rounded-[16px] border px-5 pb-3 pt-4 max-[640px]:px-4" style={{ rotateX: rx, rotateY: ry, transformPerspective: 900, color: BONE, background: "rgb(20 10 5 / .74)", borderColor: "rgb(246 234 210 / .24)", fontVariantNumeric: "tabular-nums" }}>
-      <motion.div style={{ opacity: head, borderColor: "rgb(246 234 210 / .3)" }} className="flex items-baseline gap-3 border-b pb-3">
+    <motion.figure aria-label={label} {...handlers} className="relative w-full max-w-[480px] rounded-[16px] border px-5 pb-3 pt-4 max-[640px]:px-4" style={{ rotateX: rx, rotateY: ry, transformPerspective: 900, color: BONE, background: "rgb(20 10 5 / .74)", borderColor: "rgb(245 245 245 / .24)", fontVariantNumeric: "tabular-nums" }}>
+      <motion.div style={{ opacity: head, borderColor: "rgb(245 245 245 / .3)" }} className="flex items-baseline gap-3 border-b pb-3">
         <span className="text-[44px] font-light leading-none tracking-[-0.03em] max-[640px]:text-[34px]">{code}</span>
         <span className="text-[13px] font-bold uppercase tracking-[0.14em]">{name}</span>
       </motion.div>
-      <dl className="mt-2" style={{ borderColor: "rgb(246 234 210 / .14)" }}>{children}</dl>
-      <figcaption className="mt-1 pb-0.5 text-[10px] uppercase tracking-[0.16em]" style={{ color: "rgb(246 234 210 / .5)" }}>Example response</figcaption>
+      <dl className="mt-2" style={{ borderColor: "rgb(245 245 245 / .14)" }}>{children}</dl>
+      <figcaption className="mt-1 pb-0.5 text-[10px] uppercase tracking-[0.16em]" style={{ color: "rgb(245 245 245 / .5)" }}>Example response</figcaption>
       <motion.span aria-hidden className="pointer-events-none absolute inset-0 rounded-[16px]" style={{ background: glare }} />
     </motion.figure>
   );

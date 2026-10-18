@@ -51,9 +51,9 @@ export function Cursor({ reduce }: { reduce: boolean }) {
     <motion.div aria-hidden className="pointer-events-none fixed left-0 top-0 z-[80]" style={{ x: sx, y: sy }}>
       <motion.div
         className="-translate-x-1/2 -translate-y-1/2 grid place-items-center overflow-hidden rounded-full text-[12px] font-bold tracking-[0.04em]"
-        animate={{ width: size, height: size, backgroundColor: label ? BONE : "rgba(246,234,210,0.0)", borderColor: "rgba(246,234,210,0.95)" }}
+        animate={{ width: size, height: size, backgroundColor: label ? BONE : "rgba(245,245,245,0.0)", borderColor: "rgba(245,245,245,0.95)" }}
         transition={{ type: "spring", stiffness: 320, damping: 26 }}
-        style={{ borderWidth: label ? 0 : 1.5, borderStyle: "solid", color: INK, boxShadow: "0 0 0 1px rgba(20,10,5,0.45)" }}
+        style={{ borderWidth: label ? 0 : 1.5, borderStyle: "solid", color: INK, boxShadow: "0 0 0 1px rgba(0,0,0,0.45)" }}
       >
         <motion.span animate={{ opacity: label ? 1 : 0, scale: label ? 1 : 0.6 }} transition={{ duration: 0.18 }}>{label}</motion.span>
       </motion.div>
@@ -67,7 +67,7 @@ export function useTilt(reduce: boolean) {
   const ry = useSpring(useMotionValue(0), { stiffness: 140, damping: 16 });
   const gx = useMotionValue(50);
   const gy = useMotionValue(0);
-  const glare = useMotionTemplate`radial-gradient(520px circle at ${gx}% ${gy}%, rgb(255 236 200 / .14), transparent 55%)`;
+  const glare = useMotionTemplate`radial-gradient(520px circle at ${gx}% ${gy}%, rgb(255 255 255 / .14), transparent 55%)`;
   const handlers = {
     onPointerMove: (e: PointerEvent<HTMLElement>) => {
       if (reduce) return;
