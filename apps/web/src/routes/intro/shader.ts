@@ -143,7 +143,7 @@ void main() {
   col *= mix(0.0, 1.0, smoothstep(0.0, 0.75, uIntro));
   col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
   col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
-  col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 1.22);
+  col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.0); // monochrome: no sand or sunset tint
   vec2 vq = gl_FragCoord.xy / uRes;
   col *= 0.55 + 0.45 * pow(16.0 * vq.x * vq.y * (1.0 - vq.x) * (1.0 - vq.y), 0.18);
   col += (hash(gl_FragCoord.xy + fract(uTime) * 91.7) - 0.5) * 0.035;

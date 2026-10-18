@@ -1,5 +1,5 @@
-export const INK = "#1d0f07";
-export const BONE = "#f6ead2";
+export const INK = "#141416";
+export const BONE = "#f5f5f5";
 
 /** A run of text; `strong` runs are set heavier, so the claim reads before the sentence does. */
 export type Run = readonly [text: string, strong?: true];
