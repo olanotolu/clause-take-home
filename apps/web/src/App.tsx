@@ -1,7 +1,6 @@
-import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { Shell } from "./components/Shell.tsx";
-import { introSeen, markIntroSeen, shouldShowIntro } from "./lib/intro.ts";
-import { navigate, useRoute } from "./lib/router.ts";
+import { useRoute } from "./lib/router.ts";
 import { useWorkspace, WorkspaceProvider } from "./lib/workspace.tsx";
 import { RequestDialog } from "./components/RequestDialog.tsx";
 
@@ -28,8 +27,6 @@ const ActivityView = named(load.activity, "ActivityView");
 const IntegrationsView = named(load.integrations, "IntegrationsView");
 const TemplatesView = named(load.templates, "TemplatesView");
 const SettingsView = named(load.settings, "SettingsView");
-// Only a first visit needs it, so it is not part of the background prefetch above.
-const Intro = named(() => import("./routes/Intro.tsx"), "Intro");
 
 function Routes() {
   const route = useRoute();
@@ -54,31 +51,16 @@ function Routes() {
 }
 
 export default function App() {
-  useRoute(); // re-render on hash changes so the intro gate sees the current address
-  const [seen, setSeen] = useState(introSeen);
-  const showIntro = shouldShowIntro(window.location.hash, seen);
-  const enter = () => {
-    markIntroSeen();
-    setSeen(true);
-    navigate({ name: "home" });
-  };
-  // Once the first screen is up, fetch the other areas in the background (not while the intro has the stage).
+  // Once the first screen is up, fetch the other areas in the background.
   useEffect(() => {
-    if (showIntro) return;
     const t = setTimeout(() => { for (const importer of Object.values(load)) void importer(); }, 1500);
     return () => clearTimeout(t);
-  }, [showIntro]);
+  }, []);
   return (
-    <>
-      {/* The workspace stays mounted behind the intro so entering is instant, but it must not be reachable by keyboard. */}
-      <div inert={showIntro} className="contents">
-        <WorkspaceProvider>
-          <Shell>
-            <Routes />
-          </Shell>
-        </WorkspaceProvider>
-      </div>
-      {showIntro && <Suspense fallback={null}><Intro onEnter={enter} /></Suspense>}
-    </>
+    <WorkspaceProvider>
+      <Shell>
+        <Routes />
+      </Shell>
+    </WorkspaceProvider>
   );
 }

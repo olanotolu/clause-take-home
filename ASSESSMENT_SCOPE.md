@@ -20,7 +20,7 @@ If I rebuilt this in four hours, I would keep: the pure edit engine, the compare
 
 ## Extras built on top of the core
 
-Clause CI (checks an edit against saved requirements), AI suggestions (proposals only; the engine validates them), the Word tracked-changes export, the web app, requests/playbooks/templates, the Integrations page, the intro screen and the walkthrough video. Each works, none was asked for, and none is needed to evaluate the core.
+Clause CI (checks an edit against saved requirements), AI suggestions (proposals only; the engine validates them), the Word tracked-changes export, the web app, requests/playbooks/templates, the Integrations page and the walkthrough video. Each works, none was asked for, and none is needed to evaluate the core.
 
 ## Things that look more finished than they are
 

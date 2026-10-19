@@ -6,8 +6,6 @@ export const DOC_TABS: readonly DocTab[] = ["edit", "ci", "activity", "details"]
 export type Route =
   /** The workspace board. `request` names the request whose panel is open. */
   | { name: "home"; request?: string }
-  /** The scroll-driven intro; shown once on a first visit to the bare address, and replayable here. */
-  | { name: "welcome" }
   | { name: "documents" }
   | { name: "doc"; id: string; tab: DocTab }
   | { name: "playbooks"; id?: string }
@@ -33,7 +31,6 @@ export function parseRoute(hash: string): Route {
     const id = decode(a);
     return id === null ? { name: "home" } : { name: "home", request: id };
   }
-  if (head === "welcome") return { name: "welcome" };
   if (head === "documents") return { name: "documents" };
   if (head === "activity") return { name: "activity" };
   if (head === "integrations") return { name: "integrations" };
@@ -65,7 +62,6 @@ export function parseRoute(hash: string): Route {
 export function buildRoute(r: Route): string {
   switch (r.name) {
     case "home": return r.request ? `#/request/${encodeURIComponent(r.request)}` : "#/";
-    case "welcome": return "#/welcome";
     case "documents": return "#/documents";
     case "activity": return "#/activity";
     case "integrations": return "#/integrations";
