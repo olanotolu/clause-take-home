@@ -278,6 +278,9 @@ describe("locateTerms", () => {
     const underscore = "ending in TAIL_EVIDENCE.";
     const [us, ue] = locateTerms(underscore, "TAIL_EVIDENCE")!;
     expect(underscore.slice(us, ue)).toBe("TAIL_EVIDENCE");
+    const accented = "The café is open.";
+    const [as, ae] = locateTerms(accented, "cafe")!;
+    expect(accented.slice(as, ae)).toBe("café");
     expect(locateTerms("anything", ".*")).toBeUndefined();
     expect(locateTerms("nothing here", "zebra")).toBeUndefined();
   });
