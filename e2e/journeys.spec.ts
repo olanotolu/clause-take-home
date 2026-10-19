@@ -155,35 +155,9 @@ test("an obsolete load cannot replace the document from a later navigation", asy
   await expect(page).toHaveURL(new RegExp(second.id));
 });
 
-test("the intro shows once on a first visit, is skippable, and never blocks a deep link", async ({ page }) => {
-  await page.goto("/");
-  const intro = page.getByRole("dialog", { name: "Welcome to CLAUSE" });
-  await expect(intro).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: /land exactly where you point/ })).toBeVisible();
-  await expectAccessible(page);
-
-  // Scrolling through it ends on the one way in.
-  await intro.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
-  const enter = page.getByRole("button", { name: /Open the workspace/ });
-  await expect(enter).toBeVisible();
-  await expectAccessible(page);
-  await enter.click();
-  await expect(intro).toBeHidden();
-  await expect(page.getByRole("heading", { level: 1, name: "Workspace" })).toBeVisible();
-
-  // Seen once, so a reload goes straight to the app; the replay link still works.
-  await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: "Workspace" })).toBeVisible();
-  await page.goto("/#/welcome");
-  await expect(intro).toBeVisible();
-  await page.getByRole("button", { name: "Skip intro" }).click();
-  await expect(intro).toBeHidden();
-});
-
-test("a deep link on a first visit goes straight to the page, with no intro", async ({ page }) => {
+test("a deep link opens the page directly", async ({ page }) => {
   await page.goto("/#/documents");
   await expect(page.getByRole("heading", { level: 1, name: "Documents" })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Welcome to CLAUSE" })).toBeHidden();
 });
 
 test("a sample is read-only, and applying an edit to it lands on your own copy", async ({ page, request }) => {

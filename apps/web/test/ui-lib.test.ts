@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { pct, shortModel } from "../src/lib/confidence.ts";
-import { shouldShowIntro } from "../src/lib/intro.ts";
 import { workspaceIdentity } from "../src/lib/identity.ts";
 import { buildRoute, parseRoute, type Route } from "../src/lib/router.ts";
 import { ago, deltaLabel, kb, wordCount, wordDelta } from "../src/lib/wordDelta.ts";
@@ -8,7 +7,6 @@ import { ago, deltaLabel, kb, wordCount, wordDelta } from "../src/lib/wordDelta.
 describe("router", () => {
   const routes: Route[] = [
     { name: "home" },
-    { name: "welcome" },
     { name: "home", request: "wrq_abc" },
     { name: "documents" },
     { name: "activity" },
@@ -120,20 +118,5 @@ describe("workspaceIdentity", () => {
   it("falls back to the email, then to a neutral label, without inventing a role", () => {
     expect(workspaceIdentity({ name: "", email: "grace.hopper@example.com" })).toMatchObject({ initials: "GH", title: "grace.hopper@example.com", subtitle: "Signed in" });
     expect(workspaceIdentity({})).toMatchObject({ signedIn: true, initials: "", title: "Signed in" });
-  });
-});
-
-describe("shouldShowIntro", () => {
-  it("shows on a first visit to the bare address, and never again once seen", () => {
-    for (const hash of ["", "#", "#/"]) {
-      expect(shouldShowIntro(hash, false)).toBe(true);
-      expect(shouldShowIntro(hash, true)).toBe(false);
-    }
-  });
-  it("never intercepts a deep link, even on a first visit", () => {
-    for (const hash of ["#/documents", "#/doc/doc_1/edit", "#/request/wrq_1", "#/settings/ai", "#/nope", "#ai"]) expect(shouldShowIntro(hash, false)).toBe(false);
-  });
-  it("replays on demand", () => {
-    expect(shouldShowIntro("#/welcome", true)).toBe(true);
   });
 });
