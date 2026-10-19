@@ -43,10 +43,10 @@ export interface IntegrationImport {
   importedAt: string;
 }
 
-export type DocumentSummary = Omit<DocumentRecord, "content" | "contentPath"> & { size: number; byteLength: number; utf16Length: number; wordCount: number };
+export type DocumentSummary = Omit<DocumentRecord, "content" | "contentPath"> & { size: number; byteLength: number; utf16Length: number; wordCount?: number };
 
 /** Body-free row used by lists, validators, and content-link requests. Offsets are UTF-16 code units. */
-export type DocumentMetadata = Omit<DocumentRecord, "content"> & { byteLength: number; utf16Length: number; wordCount: number };
+export type DocumentMetadata = Omit<DocumentRecord, "content"> & { byteLength: number; utf16Length: number; wordCount?: number };
 
 export interface DocumentReadPrecondition {
   expectedVersion?: number;
@@ -195,10 +195,12 @@ export interface WordSnapshot {
   size: number;
   /** Backend-specific relevance, higher is better (SQLite: -bm25, Postgres: ts_rank_cd). */
   score: number;
-  /** Bounded matching chunk when provided by Postgres; SQLite returns the full body. */
+  /** A bounded body window used to verify snippet offsets. */
   content: string;
   contentOffset?: number;
   nativeSnippet?: string;
+  /** content is a small window, so its local match position is not a document offset. */
+  contentIsWindow?: boolean;
 }
 
 export interface ExactHitSnapshot { start:number; end:number; before:string; after:string }

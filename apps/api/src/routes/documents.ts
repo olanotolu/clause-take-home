@@ -85,7 +85,7 @@ export function registerDocumentRoutes(app: App, createLimit: { max: number; tim
     const content=await readStoredBuffer(job.resultRef);
     return reply.header("cache-control","private, no-store").header("content-type","application/vnd.openxmlformats-officedocument.wordprocessingml.document").header("content-disposition","attachment; filename=clause-redline.docx").send(content as never);
   });
-  app.post("/documents/uploads/intents", { schema: { body: z.union([z.strictObject({size:z.number().int().min(1).max(MAX_CONTENT_BYTES),operation:z.literal("create").optional()}),z.strictObject({size:z.number().int().min(1).max(MAX_CONTENT_BYTES),operation:z.enum(["revision","preview"]),documentId:z.string().min(1).max(64),expectedVersion:z.number().int().positive()})]), response: { 201: z.object({ intent: z.string(), pathname: z.string(), clientToken: z.string().optional(), uploadUrl: z.string().optional(), expiresAt: z.string() }), ...errors(400,403,404,409,413,500) } } }, async (req, reply) => {
+  app.post("/documents/uploads/intents", { config:{rateLimit:createLimit}, schema: { body: z.union([z.strictObject({size:z.number().int().min(1).max(MAX_CONTENT_BYTES),operation:z.literal("create").optional()}),z.strictObject({size:z.number().int().min(1).max(MAX_CONTENT_BYTES),operation:z.enum(["revision","preview"]),documentId:z.string().min(1).max(64),expectedVersion:z.number().int().positive()})]), response: { 201: z.object({ intent: z.string(), pathname: z.string(), clientToken: z.string().optional(), uploadUrl: z.string().optional(), expiresAt: z.string() }), ...errors(400,403,404,409,413,429,500) } } }, async (req, reply) => {
     const pathname = newContentPath();
     if(req.body.operation==="revision"||req.body.operation==="preview") {
       const doc=await app.store.getDocumentMetadata(req.body.documentId);
@@ -98,14 +98,14 @@ export function registerDocumentRoutes(app: App, createLimit: { max: number; tim
     return reply.code(201).send({ intent: issued.token, pathname, ...(issued.clientToken && { clientToken: issued.clientToken }), ...(issued.uploadUrl && { uploadUrl: issued.uploadUrl }), expiresAt: issued.expiresAt });
   });
 
-  app.post("/documents/uploads/local", { schema: { querystring: z.strictObject({ intent: z.string().min(1) }), body: z.string().max(MAX_CONTENT_BYTES), response: { 204: z.null(), ...errors(400, 413, 500) } } }, async (req, reply) => {
+  app.post("/documents/uploads/local", { config:{rateLimit:createLimit}, schema: { querystring: z.strictObject({ intent: z.string().min(1) }), body: z.string().max(MAX_CONTENT_BYTES), response: { 204: z.null(), ...errors(400, 413,429, 500) } } }, async (req, reply) => {
     const claim = await verifyIntent(req.query.intent);
     if (Buffer.byteLength(req.body, "utf8") !== claim.size) return reply.code(400).send({ error: "Upload size does not match its intent", code: 400, type: "UPLOAD_SIZE_MISMATCH" });
     await uploadToStorage(claim.path, req.body);
     return reply.code(204).send(null);
   });
 
-  app.post("/documents/uploads/complete", { schema: { body: z.strictObject({ intent: z.string().min(1), title: z.string().min(1).max(300).optional(), sha256: z.string().regex(/^[0-9a-f]{64}$/) }), response: { 201: DocumentOut,200:ReceiptOut, ...errors(400,403,404,409,413,422,500) } } }, async (req, reply) => {
+  app.post("/documents/uploads/complete", { config:{rateLimit:createLimit}, schema: { body: z.strictObject({ intent: z.string().min(1), title: z.string().min(1).max(300).optional(), sha256: z.string().regex(/^[0-9a-f]{64}$/) }), response: { 201: DocumentOut,200:ReceiptOut, ...errors(400,403,404,409,413,422,429,500) } } }, async (req, reply) => {
     const claim = await verifyIntent(req.body.intent);
     if(claim.op==="preview")return reply.code(400).send({error:"This upload is scoped to a preview",code:400,type:"UPLOAD_OPERATION_MISMATCH"});
     const cleanup=async()=>{if(!await app.store.isContentReferenced(claim.path))await removeStoredContent(claim.path).catch(()=>undefined);};

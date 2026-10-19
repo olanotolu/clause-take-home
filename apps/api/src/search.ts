@@ -90,7 +90,7 @@ async function searchWords(store: Store, query: string, opts: SearchOptions): Pr
   const page = await store.wordsPage(query, { limit: opts.limit, offset: opts.offset, ...(opts.ids && { ids: opts.ids }) });
   return { total: page.total, results: page.items.map((r) => ({
     documentId: r.id, title: r.title, version: r.version, relevance: r.score,
-    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : r.contentOffset !== undefined ? boundedChunkHit(r.content,r.contentOffset,query) : locatedHit(r.content, query)],
+    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : r.contentOffset !== undefined ? boundedChunkHit(r.content,r.contentOffset,query) : r.contentIsWindow ? locatedPreviewHit(r.content,query) : locatedHit(r.content, query)],
   })) };
 }
 
@@ -181,6 +181,12 @@ function locatedHit(content: string, query: string): Hit {
   if (!span) return { snippet: [{ text: content.slice(0, SNIPPET_RADIUS * 2) + (content.length > SNIPPET_RADIUS * 2 ? ELLIPSIS : ""), match: false }] };
   const [start, end] = span;
   return { snippet: exactSnippet(content, start, end), start, end, target: selectorFor(content, start, end) };
+}
+
+function locatedPreviewHit(content:string,query:string):Hit {
+  const span=locateTerms(content,query);
+  if(!span)return {snippet:[{text:content.slice(0,SNIPPET_RADIUS*2)+(content.length>SNIPPET_RADIUS*2?ELLIPSIS:""),match:false}]};
+  return {snippet:exactSnippet(content,...span)};
 }
 
 // ---------------------------------------------------------------- exact (index prefilter + literal scan)

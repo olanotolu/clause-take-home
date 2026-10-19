@@ -67,8 +67,7 @@ export function sqliteStore(db: Db): Store {
       COALESCE(content_bytes,length(CAST(content AS BLOB))) AS byte_length,COALESCE(content_utf16,length(content)) AS utf16_length,word_count
       FROM documents WHERE id=?`).get(id) as {id:string;title:string;version:number;content_hash:string;created_at:string;updated_at:string;template_provenance:string|null;sample_key:string|null;content_path:string|null;byte_length:number;utf16_length:number;word_count:number|null}|undefined;
     if(!r)return undefined;
-    const legacyWordCount=r.word_count===null?(db.prepare("SELECT content FROM documents WHERE id=?").get(id) as {content:string}|undefined):undefined;
-    return {id:r.id,title:r.title,version:r.version,contentHash:r.content_hash,createdAt:r.created_at,updatedAt:r.updated_at,byteLength:r.byte_length,utf16Length:r.utf16_length,wordCount:r.word_count??countWords(legacyWordCount?.content??""),
+    return {id:r.id,title:r.title,version:r.version,contentHash:r.content_hash,createdAt:r.created_at,updatedAt:r.updated_at,byteLength:r.byte_length,utf16Length:r.utf16_length,...(r.word_count===null?{}:{wordCount:r.word_count}),
       ...(r.template_provenance?{templateProvenance:JSON.parse(r.template_provenance)}:{}),...(r.sample_key?{sample:true}:{}),...(r.content_path?{contentPath:r.content_path}:{})};
   };
 
@@ -162,12 +161,12 @@ export function sqliteStore(db: Db): Store {
       const rows = db
         .prepare(
           `SELECT id, title, version, content_hash, created_at, updated_at, sample_key, COALESCE(content_utf16,length(content)) AS size,
-             content,content_bytes,content_utf16,word_count
+             COALESCE(content_bytes,length(CAST(content AS BLOB))) AS byte_length,COALESCE(content_utf16,length(content)) AS utf16_length,word_count
            FROM documents ORDER BY (sample_key IS NULL), created_at DESC, seq DESC LIMIT ? OFFSET ?`,
         )
-        .all(limit, offset) as unknown as (Omit<Row, "content"> & { size:number;content:string;content_bytes:number|null;content_utf16:number|null;word_count:number|null })[];
+        .all(limit, offset) as unknown as {id:string;title:string;version:number;content_hash:string;created_at:string;updated_at:string;sample_key:string|null;size:number;byte_length:number;utf16_length:number;word_count:number|null}[];
       const { n } = db.prepare("SELECT count(*) AS n FROM documents").get() as { n: number };
-      const items: DocumentSummary[] = rows.map((r) => ({ id: r.id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, updatedAt: r.updated_at, size: r.size,byteLength:r.content_bytes??Buffer.byteLength(r.content,"utf8"),utf16Length:r.content_utf16??r.content.length,wordCount:r.word_count??countWords(r.content), ...(r.sample_key ? { sample: true } : {}) }));
+      const items: DocumentSummary[] = rows.map((r) => ({ id: r.id, title: r.title, version: r.version, contentHash: r.content_hash, createdAt: r.created_at, updatedAt: r.updated_at, size: r.size,byteLength:r.byte_length,utf16Length:r.utf16_length,...(r.word_count===null?{}:{wordCount:r.word_count}), ...(r.sample_key ? { sample: true } : {}) }));
       return { total: n, items };
     },
 
@@ -193,9 +192,9 @@ export function sqliteStore(db: Db): Store {
 
     async listRevisions(id) {
       const rows = db
-        .prepare("SELECT version, content_hash, created_at, summary, content_path, content, content_bytes, content_utf16, word_count FROM revisions WHERE document_id = ? ORDER BY version DESC")
-        .all(id) as unknown as { version: number; content_hash: string; created_at: string; summary: string; content_path: string | null; content:string; content_bytes:number|null; content_utf16:number|null; word_count:number|null }[];
-      return rows.map((r): RevisionInfo => ({ version: r.version, contentHash: r.content_hash, createdAt: r.created_at, summary: JSON.parse(r.summary),byteLength:r.content_bytes ?? Buffer.byteLength(r.content,"utf8"),utf16Length:r.content_utf16 ?? r.content.length,wordCount:r.word_count ?? countWords(r.content), ...(r.content_path ? { contentPath: r.content_path } : {}) }));
+        .prepare("SELECT version, content_hash, created_at, summary, content_path, COALESCE(content_bytes,length(CAST(content AS BLOB))) AS byte_length,COALESCE(content_utf16,length(content)) AS utf16_length,word_count FROM revisions WHERE document_id = ? ORDER BY version DESC")
+        .all(id) as unknown as { version: number; content_hash: string; created_at: string; summary: string; content_path: string | null; byte_length:number; utf16_length:number; word_count:number|null }[];
+      return rows.map((r): RevisionInfo => ({ version: r.version, contentHash: r.content_hash, createdAt: r.created_at, summary: JSON.parse(r.summary),byteLength:r.byte_length,utf16Length:r.utf16_length,...(r.word_count===null?{}:{wordCount:r.word_count}), ...(r.content_path ? { contentPath: r.content_path } : {}) }));
     },
 
     async getRevision(id, version) {
@@ -209,8 +208,8 @@ export function sqliteStore(db: Db): Store {
     },
 
     async getRevisionMetadata(id, version) {
-      const r = db.prepare("SELECT version,content_hash,created_at,summary,content_path,content,content_bytes,content_utf16,word_count FROM revisions WHERE document_id = ? AND version = ?").get(id, version) as {version:number;content_hash:string;created_at:string;summary:string;content_path:string|null;content:string;content_bytes:number|null;content_utf16:number|null;word_count:number|null}|undefined;
-      return r && { version:r.version,contentHash:r.content_hash,createdAt:r.created_at,summary:JSON.parse(r.summary),byteLength:r.content_bytes ?? Buffer.byteLength(r.content,"utf8"),utf16Length:r.content_utf16 ?? r.content.length,wordCount:r.word_count ?? countWords(r.content),...(r.content_path ? {contentPath:r.content_path} : {}) };
+      const r = db.prepare("SELECT version,content_hash,created_at,summary,content_path,COALESCE(content_bytes,length(CAST(content AS BLOB))) AS byte_length,COALESCE(content_utf16,length(content)) AS utf16_length,word_count FROM revisions WHERE document_id = ? AND version = ?").get(id, version) as {version:number;content_hash:string;created_at:string;summary:string;content_path:string|null;byte_length:number;utf16_length:number;word_count:number|null}|undefined;
+      return r && { version:r.version,contentHash:r.content_hash,createdAt:r.created_at,summary:JSON.parse(r.summary),byteLength:r.byte_length,utf16Length:r.utf16_length,...(r.word_count===null?{}:{wordCount:r.word_count}),...(r.content_path ? {contentPath:r.content_path} : {}) };
     },
 
     async createJob(input) {
@@ -279,13 +278,17 @@ export function sqliteStore(db: Db): Store {
         const ranked = db.prepare(`SELECT d.id, d.title, d.version, length(d.content) AS size, bm25(documents_words, 5.0, 1.0) AS score
           FROM documents_words JOIN documents d ON d.seq = documents_words.rowid
           WHERE documents_words MATCH ? ${idFilter} ORDER BY score, d.seq LIMIT ? OFFSET ?`).all(match, ...ids, limit, offset) as unknown as Omit<WordSnapshot, "content">[];
+        const snippetNeedle = queryTerms(query)[0]?.split(/\s+/)[0] ?? query;
         const items = ranked.map((r): WordSnapshot => {
-          const content = getDoc(r.id)!.content;
-          const snippet = r.size <= NATIVE_SNIPPET_MAX_CHARS
+          const isWindow = r.size > NATIVE_SNIPPET_MAX_CHARS;
+          const content = isWindow
+            ? (db.prepare("SELECT substr(content,max(1,instr(lower(content),lower(?))-200),400) AS content FROM documents WHERE id=?").get(snippetNeedle,r.id) as {content:string}|undefined)?.content ?? ""
+            : getDoc(r.id)!.content;
+          const snippet = !isWindow
             ? db.prepare(`SELECT snippet(documents_words, 1, '${OPEN}', '${CLOSE}', '${ELLIPSIS}', 24) AS snip
                 FROM documents_words JOIN documents d ON d.seq = documents_words.rowid WHERE documents_words MATCH ? AND d.id = ?`).get(match, r.id) as { snip: string } | undefined
             : undefined;
-          return { ...r, score: -r.score, content, ...(snippet && { nativeSnippet: snippet.snip }) };
+          return { ...r, score: -r.score, content, ...(isWindow?{contentIsWindow:true}:{}), ...(snippet && { nativeSnippet: snippet.snip }) };
         });
         db.exec("COMMIT");
         return { total: n, items };
