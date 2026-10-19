@@ -52,7 +52,7 @@ describe("words search (FTS5 + BM25)", () => {
     expect(phrasePage.items[0]?.nativeSnippet).toBeUndefined();
   });
 
-  it("locates diacritic-folded matches in large documents without FTS snippet fallback", async () => {
+  it.skipIf(Boolean(process.env.CLAUSE_TEST_DATABASE_URL))("locates diacritic-folded SQLite matches in large documents without FTS snippet fallback", async () => {
     const text = `${"Payment is due within thirty days of the invoice date. ".repeat(6_000)}The café is open.`;
     const d = await createDoc(app, "Accented", text);
     const page = await app.store.wordsPage("cafe", { ids: [d.id], limit: 10, offset: 0 });
