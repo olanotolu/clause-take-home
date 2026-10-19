@@ -4,6 +4,23 @@ function foldDiacritics(value: string) {
   return value.normalize("NFD").replace(/\p{M}/gu, "");
 }
 
+/** Returns a one-based UTF-16 source offset, matching SQLite unicode61's diacritic folding. */
+export function foldedIndexOf(content: string, needle: string): number {
+  const target = foldDiacritics(needle).toLowerCase();
+  if (!target) return 0;
+  let foldedContent = "";
+  const sourceStarts: number[] = [];
+  for (let offset = 0; offset < content.length;) {
+    const source = String.fromCodePoint(content.codePointAt(offset)!);
+    const folded = foldDiacritics(source).toLowerCase();
+    foldedContent += folded;
+    for (let i = 0; i < folded.length; i += 1) sourceStarts.push(offset);
+    offset += source.length;
+  }
+  const found = foldedContent.indexOf(target);
+  return found < 0 ? 0 : sourceStarts[found]! + 1;
+}
+
 /** Finds the first likely FTS match in bounded source text for snippet generation. */
 export function locateTerms(content: string, query: string): [number, number] | undefined {
   let foldedContent = "";

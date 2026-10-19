@@ -1,5 +1,5 @@
 import { readStoredContent } from "../content-storage.ts";
-import { locateTerms } from "../search-locator.ts";
+import { foldedIndexOf, locateTerms } from "../search-locator.ts";
 import { sqliteMaintenance } from "./maintenance-sqlite.ts";
 import { JobPayloadSchema, JobOutputSchema, JobCancelledError } from "../jobs/types.ts";
 import { randomUUID } from "node:crypto";
@@ -59,6 +59,7 @@ export function createSqliteStore(path: string): Store {
 }
 
 export function sqliteStore(db: Db): Store {
+  db.function("clause_folded_instr", (content, needle) => typeof content === "string" && typeof needle === "string" ? foldedIndexOf(content, needle) : 0);
   const getDoc = (id: string): DocumentRecord | undefined => {
     const row = db.prepare("SELECT id, title, content, version, content_hash, created_at, updated_at, template_provenance, sample_key, content_path FROM documents WHERE id = ?").get(id);
     return row ? toRecord(row as unknown as Row) : undefined;
@@ -284,7 +285,7 @@ export function sqliteStore(db: Db): Store {
         const items = ranked.map((r): WordSnapshot => {
           const isWindow = r.size > NATIVE_SNIPPET_MAX_CHARS;
           const windowRow = isWindow
-            ? db.prepare("WITH doc AS MATERIALIZED (SELECT content,instr(lower(content),lower(?)) AS position,content_utf16 IS NOT NULL AND content_utf16=length(content) AS offset_safe FROM documents WHERE id=?) SELECT position,offset_safe,substr(content,max(1,position-200),400) AS content FROM doc").get(snippetNeedle,r.id) as {position:number;offset_safe:number;content:string}|undefined
+            ? db.prepare("WITH doc AS MATERIALIZED (SELECT content,CASE WHEN instr(lower(content),lower(?))>0 THEN instr(lower(content),lower(?)) ELSE clause_folded_instr(content,?) END AS position,content_utf16 IS NOT NULL AND content_utf16=length(content) AS offset_safe FROM documents WHERE id=?) SELECT position,offset_safe,substr(content,max(1,position-200),400) AS content FROM doc").get(snippetNeedle,snippetNeedle,snippetNeedle,r.id) as {position:number;offset_safe:number;content:string}|undefined
             : undefined;
           const content = isWindow ? windowRow?.content ?? "" : getDoc(r.id)!.content;
           // Porter stemming can match a form whose literal query spelling is absent (terminate -> termination).

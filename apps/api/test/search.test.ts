@@ -52,6 +52,16 @@ describe("words search (FTS5 + BM25)", () => {
     expect(phrasePage.items[0]?.nativeSnippet).toBeUndefined();
   });
 
+  it("locates diacritic-folded matches in large documents without FTS snippet fallback", async () => {
+    const text = `${"Payment is due within thirty days of the invoice date. ".repeat(6_000)}The café is open.`;
+    const d = await createDoc(app, "Accented", text);
+    const page = await app.store.wordsPage("cafe", { ids: [d.id], limit: 10, offset: 0 });
+    expect(page.items[0]?.content).toContain("café");
+    expect(page.items[0]?.nativeSnippet).toBeUndefined();
+    const hit = (await search("cafe", `&ids=${d.id}`)).results[0]?.hits[0];
+    expect(text.slice(hit?.start, hit?.end)).toBe("café");
+  });
+
   it("returns no results (not an error) when nothing matches", async () => {
     await createDoc(app, "NDA", NDA);
     expect(await search("zebra")).toMatchObject({ total: 0, results: [] });
