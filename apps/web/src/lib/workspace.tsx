@@ -316,7 +316,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     navigate({ name: "doc", id: result.documentId, tab: "edit" });
     void openDoc(result.documentId).then((loaded) => {
       if (!loaded) return;
-      const quote = hit.target && "quote" in hit.target ? hit.target.quote.exact : undefined;
+      const quote = hit.target && "quote" in hit.target ? hit.target.quote.exact : hit.target && "position" in hit.target ? hit.target.position.expectedText : undefined;
       if (loaded.version !== result.version || hit.start === undefined || hit.end === undefined || !quote || loaded.content.slice(hit.start, hit.end) !== quote) {
         setSelection(null);
         toast("This document changed or the passage could not be verified. Search again to select the current passage.");

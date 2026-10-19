@@ -5,7 +5,10 @@ export function locateTerms(content: string, query: string): [number, number] | 
   const alts = [...query.matchAll(/"([^"]*)"|(\S+)/g)]
     .map((m) => {
       const term=m[1]??m[2]??"";
-      const words = m[1]!==undefined ? (term.match(/[\p{L}\p{N}]+/gu) ?? []) : [term];
+      // FTS treats punctuation inside a query token (for example TAIL_EVIDENCE)
+      // as a token boundary. Mirror that behavior so the bounded locator can map
+      // the database hit back to source text without falling back to snippet().
+      const words = term.match(/[\p{L}\p{N}]+/gu) ?? [];
       const stem = (w: string) => (w.length > 4 ? w.slice(0, Math.max(4, Math.ceil(w.length * 0.7))) : w);
       return words.map((w) => `${escapeRegex(stem(w))}[\\p{L}\\p{N}]*`).join("[^\\p{L}\\p{N}]+");
     })
