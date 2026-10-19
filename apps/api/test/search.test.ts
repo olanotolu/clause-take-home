@@ -47,6 +47,9 @@ describe("words search (FTS5 + BM25)", () => {
     const phraseDoc=await createDoc(app,"Long phrase",`${"boilerplate ".repeat(24_000)}terminate surviving.`);
     const phraseHit=(await search('"termination survives"',`&ids=${phraseDoc.id}`)).results[0].hits[0];
     expect(phraseHit.snippet.map((part: {text:string})=>part.text).join("")).toContain("terminate surviving");
+    const phrasePage=await app.store.wordsPage('"termination survives"',{ids:[phraseDoc.id],limit:10,offset:0});
+    expect(phrasePage.items[0]?.content).toContain("terminate surviving");
+    expect(phrasePage.items[0]?.nativeSnippet).toBeUndefined();
   });
 
   it("returns no results (not an error) when nothing matches", async () => {

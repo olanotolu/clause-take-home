@@ -8,10 +8,10 @@ export function locateTerms(content: string, query: string): [number, number] | 
     .map((t) => {
       const words = t.split(/\s+/);
       const stem = (w: string) => (w.length > 4 ? w.slice(0, Math.max(4, Math.ceil(w.length * 0.7))) : w);
-      return words.map((w, i) => escapeRegex(i === words.length - 1 ? stem(w) : w)).join("\\s+");
+      return words.map((w) => `${escapeRegex(stem(w))}[\\p{L}\\p{N}]*`).join("\\s+");
     })
     .filter(Boolean);
   if (alts.length === 0) return undefined;
-  const m = new RegExp(`(?<![\\p{L}\\p{N}])(?:${alts.join("|")})[\\p{L}\\p{N}]*`, "iu").exec(content);
+  const m = new RegExp(`(?<![\\p{L}\\p{N}])(?:${alts.join("|")})`, "iu").exec(content);
   return m ? [m.index, m.index + m[0].length] : undefined;
 }
