@@ -8,17 +8,38 @@ function foldDiacritics(value: string) {
 export function foldedIndexOf(content: string, needle: string): number {
   const target = foldDiacritics(needle).toLowerCase();
   if (!target) return 0;
-  let foldedContent = "";
-  const sourceStarts: number[] = [];
+  const prefix = new Uint32Array(target.length);
+  for (let i = 1, matched = 0; i < target.length; i += 1) {
+    while (matched > 0 && target[i] !== target[matched]) matched = prefix[matched - 1]!;
+    if (target[i] === target[matched]) matched += 1;
+    prefix[i] = matched;
+  }
+  const ringSize = target.length;
+  const sourceStarts = new Array<number>(ringSize);
+  let matched = 0;
+  let foldedOffset = 0;
+  let result: { start: number; end: number } | undefined;
   for (let offset = 0; offset < content.length;) {
     const source = String.fromCodePoint(content.codePointAt(offset)!);
-    const folded = foldDiacritics(source).toLowerCase();
-    foldedContent += folded;
-    for (let i = 0; i < folded.length; i += 1) sourceStarts.push(offset);
+    const folded = source.codePointAt(0)! < 128 ? source.toLowerCase() : foldDiacritics(source).toLowerCase();
+    if (result) {
+      if (!folded) result.end = offset + source.length;
+      else return result.start + 1;
+    }
+    for (let i = 0; i < folded.length; i += 1) {
+      const unit = folded[i]!;
+      while (matched > 0 && unit !== target[matched]) matched = prefix[matched - 1]!;
+      if (unit === target[matched]) matched += 1;
+      sourceStarts[foldedOffset % ringSize] = offset;
+      foldedOffset += 1;
+      if (matched === target.length) {
+        result = { start: sourceStarts[(foldedOffset - target.length) % ringSize]!, end: offset + source.length };
+        break;
+      }
+    }
     offset += source.length;
   }
-  const found = foldedContent.indexOf(target);
-  return found < 0 ? 0 : sourceStarts[found]! + 1;
+  return result ? result.start + 1 : 0;
 }
 
 /** Finds the first likely FTS match in bounded source text for snippet generation. */
