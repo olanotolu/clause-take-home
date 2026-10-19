@@ -275,6 +275,9 @@ describe("locateTerms", () => {
     const [cs, ce] = locateTerms(cost, "$5.00")!;
     expect(cost.slice(cs, ce)).toBe("$5.00"); // metacharacters are literal...
     expect(locateTerms("a5x00", "5.00")).toBeUndefined(); // ...so "." is not a wildcard
+    const underscore = "ending in TAIL_EVIDENCE.";
+    const [us, ue] = locateTerms(underscore, "TAIL_EVIDENCE")!;
+    expect(underscore.slice(us, ue)).toBe("TAIL_EVIDENCE");
     expect(locateTerms("anything", ".*")).toBeUndefined();
     expect(locateTerms("nothing here", "zebra")).toBeUndefined();
   });
