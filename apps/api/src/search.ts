@@ -1,7 +1,9 @@
 import { selectorFor, type Target } from "@clause/core";
-import { InvalidQueryError, queryTerms, type Store } from "./store/types.ts";
+import { InvalidQueryError, type Store } from "./store/types.ts";
+import { locateTerms } from "./search-locator.ts";
 
 export { InvalidQueryError };
+export { locateTerms } from "./search-locator.ts";
 
 export const MAX_QUERY_LENGTH = 200;
 const SNIPPET_RADIUS = 60;
@@ -150,30 +152,6 @@ function nativeHit(content: string, snip: string): Hit {
     }
   }
   return hit;
-}
-
-const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/**
- * Finds the first place the query's words appear, in ONE linear regex pass.
- * Matching is a heuristic locator, not the matcher: FTS5 already decided the
- * document matches. Each word is shortened to ~70% of its length so inflections
- * (terminate/termination) still land. Quoted phrases match with flexible
- * whitespace. If nothing is found we return an un-highlighted preview.
- * The alternatives are plain literals, so there is no backtracking blow-up.
- */
-export function locateTerms(content: string, query: string): [number, number] | undefined {
-  const alts = queryTerms(query)
-    .map((t) => {
-      const words = t.split(/\s+/);
-      // Only the LAST word may be shortened: earlier words must be followed by whitespace.
-      const stem = (w: string) => (w.length > 4 ? w.slice(0, Math.max(4, Math.ceil(w.length * 0.7))) : w);
-      return words.map((w, i) => escapeRegex(i === words.length - 1 ? stem(w) : w)).join("\\s+");
-    })
-    .filter(Boolean);
-  if (alts.length === 0) return undefined;
-  const m = new RegExp(`(?<![\\p{L}\\p{N}])(?:${alts.join("|")})[\\p{L}\\p{N}]*`, "iu").exec(content);
-  return m ? [m.index, m.index + m[0].length] : undefined;
 }
 
 function locatedHit(content: string, query: string): Hit {

@@ -1,4 +1,5 @@
 import { readStoredContent } from "../content-storage.ts";
+import { locateTerms } from "../search-locator.ts";
 import { sqliteMaintenance } from "./maintenance-sqlite.ts";
 import { JobPayloadSchema, JobOutputSchema, JobCancelledError } from "../jobs/types.ts";
 import { randomUUID } from "node:crypto";
@@ -288,7 +289,7 @@ export function sqliteStore(db: Db): Store {
           const content = isWindow ? windowRow?.content ?? "" : getDoc(r.id)!.content;
           // Porter stemming can match a form whose literal query spelling is absent (terminate -> termination).
           // Let FTS choose a bounded marked snippet for that uncommon fallback instead of returning an unrelated window.
-          const needsStemFallback=isWindow&&!content.toLowerCase().includes(snippetNeedle.toLowerCase());
+          const needsStemFallback=isWindow&&!locateTerms(content,query);
           const snippet = !isWindow||needsStemFallback
             ? db.prepare(`SELECT snippet(documents_words, 1, '${OPEN}', '${CLOSE}', '${ELLIPSIS}', 24) AS snip
                 FROM documents_words JOIN documents d ON d.seq = documents_words.rowid WHERE documents_words MATCH ? AND d.id = ?`).get(match, r.id) as { snip: string } | undefined
