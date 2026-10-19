@@ -28,6 +28,7 @@
     "@opentelemetry/exporter-metrics-otlp-http": "0.223.0",
     "@opentelemetry/sdk-metrics": "2.2.0",
     "@scalar/fastify-api-reference": "^1.74.0",
+    "@typesafe-ai/sdk": "0.7.0",
     "@vercel/blob": "2.8.2",
     "@vercel/functions": "^3.10.1",
     "ai": "^7.0.142",

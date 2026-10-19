@@ -28,7 +28,7 @@ const WORDS: Record<JudgeLabel, string> = {
  */
 export function combineJudges(text: string, outcomes: readonly JudgeOutcome[]): Check {
   const answered = outcomes.filter((o): o is Required<JudgeOutcome> => o.answer !== undefined);
-  const judges = answered.map((o) => ({ id: o.judgeId, label: o.answer.label, ...(o.answer.pEntailed !== undefined && { probability: o.answer.pEntailed }), rationale: o.answer.rationale }));
+  const judges = answered.map((o) => ({ id: o.judgeId, label: o.answer.label, ...(o.answer.pEntailed !== undefined && { probability: o.answer.pEntailed }), ...(o.answer.decisionConfidence !== undefined && { decisionConfidence: o.answer.decisionConfidence }), rationale: o.answer.rationale }));
 
   if (answered.length === 0) {
     return { verdict: "UNAVAILABLE", detail: "No AI judge could answer (unavailable, timed out, or the text was too long to send).", evidence: [], judges: [] };

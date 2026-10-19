@@ -10,8 +10,9 @@ const root = join(import.meta.dirname, "../..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
 interface Summary {
   judge: string; calls: number; errors: number;
+  coverage: { static: { answered: number }; cuad: { answered: number }; regressionTexts: { answered: number } };
   static: { n: number; accuracy: { p: number; lo: number; hi: number }; brier: number | null };
-  cuad: { n: number; attempted: number; cases: number; accuracy: { p: number }; falsePassRate: { p: number } };
+  cuad: { n: number; attempted: number; answered: number; cases: number; accuracy: { p: number }; falsePassRate: { p: number } };
   regression: { usable: number; detected: number; falseAlarm: number };
   quotes: { total: number; verified: number };
 }
@@ -22,17 +23,20 @@ const report = read("bench/ci/RESULTS.md");
 const pct = (x: number, digits = 1) => `${(x * 100).toFixed(digits)}%`;
 
 describe("committed benchmark record", () => {
-  it("records the deterministic CUAD baseline and preserves the historical model run without fabricating results", () => {
+  it("records frozen baseline results and the incomplete current-judge provider run without fabricating Jev results", () => {
     expect(baseline.calls).toBe(222);
     expect(baseline.errors).toBe(0);
     expect(baseline.cuad.n).toBe(72);
     expect(baseline.cuad.attempted).toBe(72);
-    expect(llm.calls).toBe(154);
-    expect(llm.errors).toBe(4);
-    expect(llm.cuad.n).toBe(4);
-    expect(llm.cuad.attempted).toBe(4);
+    expect(llm.calls).toBe(226);
+    expect(llm.errors).toBe(73);
+    expect(llm.cuad.n).toBe(72);
+    expect(llm.cuad.attempted).toBe(72);
+    expect(llm.cuad.answered).toBe(3);
+    expect(llm.coverage.static.answered).toBe(60);
+    expect(llm.coverage.regressionTexts.answered).toBe(90);
     expect(llm.cuad.cases).toBe(72);
-    expect(read("bench/ci/results/raw-llm.jsonl").trim().split("\n")).toHaveLength(154);
+    expect(read("bench/ci/results/raw-llm.jsonl").trim().split("\n")).toHaveLength(226);
     expect(read("bench/ci/results/raw-keyword-baseline.jsonl").trim().split("\n")).toHaveLength(222);
   });
 

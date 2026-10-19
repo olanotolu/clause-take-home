@@ -66,6 +66,12 @@ pnpm exec node scripts/telemetry-smoke.ts
 
 The smoke sends real application route and store measurements plus synthetic AI, Blob and SQL failure measurements. It verifies decoded metric delivery through the collector and rejects sensitive attributes. It does not spend provider credits. To exercise collector authentication locally, set `OTEL_EXPORTER_OTLP_HEADERS` to a collector-issued test credential. Configure the same endpoint and secret on Vercel, then verify a fresh instance exports before considering telemetry rollout complete.
 
+## Jev semantic evaluation
+
+`TYPESAFE_API_KEY` is server-only. `CLAUSE_JEV_MODE` accepts `off`, `shadow`, or `pilot`; production starts in `shadow`, where the existing judge remains authoritative and aggregate fixed-label agreement counters are exported. Jev uses the pinned `jev-1.14.0` ID and TypeSafe's standard context only. State and question text are capped conservatively before a request; oversized or failed Jev calls become unavailable and fall back to the current judge. A pilot routes only high selected-label-probability negative answers directly; positive and uncertain answers use the existing quote-producing judge. A Jev answer cannot create a PASS without a verified quote.
+
+Before enabling pilot, run the frozen ContractNLI and CUAD benchmark with a replacement TypeSafe key, regenerate the report, and run `pnpm bench:ci:gate`. The gate requires all 60 static ContractNLI cases, 30 regression pairs, and 72 CUAD cases with no Jev provider failures, no higher CUAD false-PASS rate, and no lower regression-detection rate than the current judge. Only after a pass should `CLAUSE_JEV_MODE=pilot` and `CLAUSE_JEV_PILOT_GATE=passed` be set. The shared unauthenticated demo must display its TypeSafe document-text notice whenever Jev is enabled. Jev inputs are document text and requirement statements; no IDs, text, or signed URLs are added to telemetry.
+
 Starter alerts: readiness unavailable for 2 minutes; HTTP 5xx above 2% for 5 minutes; database errors above 1% for 5 minutes; AI provider errors above 5% for 10 minutes; job queue age above 5 minutes; event-loop delay above 100 ms for 5 minutes. Latency targets: warm metadata p95 below 100 ms, search below 300 ms, and ordinary 1 MiB edits below 500 ms at eight clients. Publish 25 MiB measurements separately.
 
 ## Verification before rollout

@@ -228,7 +228,7 @@ export const CheckBody = ChangesBody.extend({
 
 const VerdictSchema = z.enum(["PASS", "FAIL", "NEEDS_REVIEW", "UNAVAILABLE"]);
 const EvidenceOut = z.object({ start: z.number().int(), end: z.number().int(), quote: z.string(), verified: z.boolean() });
-const JudgeDetailOut = z.object({ id: z.string(), label: z.string(), probability: z.number().optional(), rationale: z.string().optional() });
+const JudgeDetailOut = z.object({ id: z.string(), label: z.string(), probability: z.number().optional(), decisionConfidence: z.number().optional(), rationale: z.string().optional() });
 const CheckOutcome = z.object({ verdict: VerdictSchema, detail: z.string(), evidence: z.array(EvidenceOut), judges: z.array(JudgeDetailOut).optional() });
 
 export const RequirementReportOut = z.object({
@@ -278,6 +278,8 @@ export const SettingsStatusOut = z.object({
     suggestions: z.boolean(),
     suggestionModel: z.string().nullable(),
     strictnessOptions: z.array(z.enum(["balanced", "strict"])),
+    jevMode: z.enum(["off", "shadow", "pilot"]),
+    externalProviderNotice: z.string().nullable(),
   }),
   limits: z.object({
     maxDocumentChars: z.number().int().nullable(),

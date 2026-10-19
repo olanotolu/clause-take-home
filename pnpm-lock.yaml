@@ -68,6 +68,9 @@ importers:
       '@scalar/fastify-api-reference':
         specifier: ^1.74.0
         version: 1.74.0
+      '@typesafe-ai/sdk':
+        specifier: 0.7.0
+        version: 0.7.0
       '@vercel/blob':
         specifier: 2.8.2
         version: 2.8.2
@@ -2491,6 +2494,10 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  '@typesafe-ai/sdk@0.7.0':
+    resolution: {integrity: sha512-Yg3OZArCQMJx98ut8QVkhx3rFo9ON7pz8Hjzv8c3FGz69Sk8jYftLOlz+Wf6kq6jol/1m08aBnjRAzJr2x3GoQ==}
+    engines: {node: '>=22'}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -7357,6 +7364,8 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
+
+  '@typesafe-ai/sdk@0.7.0': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true

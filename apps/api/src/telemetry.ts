@@ -21,6 +21,7 @@ let aiDuration: Histogram | undefined;
 let aiInputTokens: Counter | undefined;
 let aiOutputTokens: Counter | undefined;
 let aiCost: Counter | undefined;
+let jevShadowComparisons: Counter | undefined;
 let blobDuration: Histogram | undefined;
 let blobBytes: Counter | undefined;
 let acquireDuration: Histogram | undefined;
@@ -73,6 +74,7 @@ export function initTelemetry(env: Record<string, string | undefined> = process.
   aiInputTokens = meter.createCounter("clause.ai.input_tokens", { unit: "{token}" });
   aiOutputTokens = meter.createCounter("clause.ai.output_tokens", { unit: "{token}" });
   aiCost = meter.createCounter("clause.ai.estimated_cost", { unit: "USD" });
+  jevShadowComparisons = meter.createCounter("clause.ai.jev.shadow.comparisons");
   blobDuration = meter.createHistogram("clause.blob.operation.duration", { unit: "ms" });
   blobBytes = meter.createCounter("clause.blob.bytes", { unit: "By" });
   acquireDuration=meter.createHistogram("clause.database.pool.acquire.duration",{unit:"ms"});
@@ -144,6 +146,14 @@ export function recordAiError(model:string,durationMs?:number):void {
   const attrs={"gen_ai.request.model":model};
   aiErrors?.add(1,attrs);
   if(durationMs!==undefined) aiDuration?.record(durationMs,attrs);
+}
+
+/** Aggregate only fixed verdict/label values; never attach document text, user or document identifiers. */
+export function recordJevShadowComparison(baseline: string, jevLabel: string | undefined): void {
+  const allowedBaseline = ["PASS", "FAIL", "NEEDS_REVIEW", "UNAVAILABLE"].includes(baseline) ? baseline : "UNAVAILABLE";
+  const allowedLabel = ["entailed", "contradicted", "not_mentioned", "unclear"].includes(jevLabel ?? "") ? jevLabel! : "unavailable";
+  const mapped = allowedLabel === "entailed" ? "PASS" : allowedLabel === "unclear" || allowedLabel === "unavailable" ? "NEEDS_REVIEW" : "FAIL";
+  jevShadowComparisons?.add(1, { "clause.ai.baseline_verdict": allowedBaseline, "clause.ai.jev_label": allowedLabel, "clause.ai.verdict_match": String(allowedBaseline === mapped) });
 }
 
 export function recordBlob(operation:string,durationMs:number,bytes:number,failed=false):void {

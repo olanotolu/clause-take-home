@@ -5,6 +5,10 @@ export interface JudgeAnswer {
   label: JudgeLabel;
   /** The judge's own estimate that the requirement is satisfied, when it provides one. Not shown without measured calibration. */
   pEntailed?: number;
+  /** TypeSafe's distribution-shape confidence for the selected label. This is not a probability of correctness. */
+  decisionConfidence?: number;
+  /** Probability assigned to the selected Choice label; distinct from distribution-shape confidence. */
+  choiceProbability?: number;
   /** Passages the judge says support its answer. They are verified against the text before anyone relies on them. */
   quotes: string[];
   rationale: string;

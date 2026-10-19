@@ -17,6 +17,7 @@ import config from "./config.json" with { type: "json" };
 import { loadSplit, type NliDocument } from "./dataset.ts";
 import { createHeuristicJudge } from "./heuristic.ts";
 import { loadCuadSplit } from "./cuad-dataset.ts";
+import { typeSafeJevJudge } from "../../apps/api/src/review/judges/jev.ts";
 
 export type CallKind = "static" | "cuad" | "before" | "after_pos" | "after_ctrl";
 export interface RawRecord {
@@ -28,6 +29,8 @@ export interface RawRecord {
   ms: number;
   inputTokens?: number;
   outputTokens?: number;
+  /** Number of provider requests represented; one record per question, one request count per batch. */
+  requestCount?: number;
 }
 
 const resultsDir = join(import.meta.dirname, "results");
@@ -70,9 +73,16 @@ async function runPool<T>(items: T[], concurrency: number, fn: (x: T) => Promise
   await Promise.all(Array.from({ length: concurrency }, async () => { while (i < items.length) await fn(items[i++]!); }));
 }
 
+function safeProviderError(error: unknown): string {
+  const value = error as { name?: unknown; status?: unknown; statusCode?: unknown };
+  const name = typeof value?.name === "string" ? value.name : "ProviderError";
+  const status = typeof value?.statusCode === "number" ? value.statusCode : typeof value?.status === "number" ? value.status : undefined;
+  return status === undefined ? name : `${name} (${status})`;
+}
+
 function loadDone(file: string): Set<string> {
   if (!existsSync(file)) return new Set();
-  return new Set(readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => { const r = JSON.parse(l) as RawRecord; return `${r.caseId}|${r.kind}`; }));
+  return new Set(readFileSync(file, "utf8").split("\n").filter(Boolean).flatMap((l) => { const r = JSON.parse(l) as RawRecord; return r.answer ? [`${r.caseId}|${r.kind}`] : []; }));
 }
 
 async function main() {
@@ -88,6 +98,12 @@ async function main() {
     const key = process.env.OPENROUTER_API_KEY;
     arms.push({ id: config.llmModel, file: "raw-llm.jsonl", concurrency: 4, make: (u) => createLlmJudge({ id: config.llmModel, generate: openRouterGenerate(key, config.llmModel, (x) => { u.in = x.inputTokens; u.out = x.outputTokens; }) }) });
   } else console.log("no OPENROUTER_API_KEY: skipping the LLM arm");
+  if (process.env.TYPESAFE_API_KEY) {
+    arms.push({ id: config.jevModel, file: "raw-jev.jsonl", concurrency: 4, make: (u) => {
+      const judge = typeSafeJevJudge(process.env.TYPESAFE_API_KEY!, (event) => { if (event.usage) { u.in = event.usage.inputTokens; u.out = event.usage.outputTokens; } });
+      return { ...judge, judge: judge.judge.bind(judge) };
+    } });
+  } else console.log("no TYPESAFE_API_KEY: skipping the Jev arm");
 
   for (const arm of arms.filter((a) => !only || a.file.includes(only))) {
     const file = join(resultsDir, arm.file);
@@ -95,6 +111,37 @@ async function main() {
     console.log(`\n[${arm.id}] ${todo.length} calls to run (${jobs.length - todo.length} already done)`);
     let finished = 0;
     let fatal: string | undefined;
+    if (arm.id === config.jevModel && process.env.TYPESAFE_API_KEY) {
+      const groups = [...todo.reduce((map, job) => map.set(job.text, [...(map.get(job.text) ?? []), job]), new Map<string, Job[]>()).values()];
+      console.log(`  batching ${todo.length} requirements across ${groups.length} unique document states`);
+      await runPool(groups, arm.concurrency, async (group) => {
+        if (fatal) return;
+        const usage = { in: 0, out: 0 };
+        const judge = typeSafeJevJudge(process.env.TYPESAFE_API_KEY!, (event) => { if (event.usage) { usage.in = event.usage.inputTokens; usage.out = event.usage.outputTokens; } });
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), config.judgeTimeoutMs);
+        const started = performance.now();
+        try {
+          const answers = await judge.judgeBatch!(group.map((job) => ({ requirement: job.requirement, text: job.text, isGoal: false, signal: controller.signal })));
+          const ms = Math.round(performance.now() - started);
+          group.forEach((job, index) => {
+            const rec: RawRecord = { judge: arm.id, caseId: job.caseId, kind: job.kind, answer: answers[index]!, ms, requestCount: index === 0 ? 1 : 0, ...(index === 0 && usage.in ? { inputTokens: usage.in } : {}), ...(index === 0 && usage.out ? { outputTokens: usage.out } : {}) };
+            appendFileSync(file, JSON.stringify(rec) + "\n");
+          });
+        } catch (error) {
+          const safeError = safeProviderError(error);
+          if (/401|402|403/.test(safeError)) fatal = safeError;
+          const ms = Math.round(performance.now() - started);
+          group.forEach((job, index) => { appendFileSync(file, JSON.stringify({ judge: arm.id, caseId: job.caseId, kind: job.kind, answer: null, error: safeError, ms, requestCount: index === 0 ? 1 : 0 }) + "\n"); });
+        } finally {
+          clearTimeout(timer);
+        }
+        finished += group.length;
+        if (finished % 20 < group.length) console.log(`  ${finished}/${todo.length}`);
+      });
+      if (fatal) console.log(`  STOPPED: ${fatal}`);
+      continue;
+    }
     await runPool(todo, arm.concurrency, async (job) => {
       if (fatal) return;
       const usage = { in: 0, out: 0 };
@@ -105,12 +152,13 @@ async function main() {
       try {
         rec.answer = await arm.make(usage).judge({ requirement: job.requirement, text: job.text, isGoal: false, signal: controller.signal });
       } catch (e) {
-        rec.error = String((e as Error).message ?? e).slice(0, 200);
-        if (/free tier|credit|unauthor|forbidden|401|403/i.test(rec.error)) fatal = rec.error; // an access problem: stop spending, don't record 120 identical failures
+        rec.error = safeProviderError(e);
+        if (/401|402|403/.test(rec.error)) fatal = rec.error; // an access or credit problem: stop spending, don't repeat it across the corpus
       } finally {
         clearTimeout(timer);
       }
       rec.ms = Math.round(performance.now() - t0);
+      rec.requestCount = 1;
       if (usage.in || usage.out) { rec.inputTokens = usage.in; rec.outputTokens = usage.out; }
       if (!fatal || rec.answer || rec.error) appendFileSync(file, JSON.stringify(rec) + "\n");
       if (++finished % 20 === 0) console.log(`  ${finished}/${todo.length}`);

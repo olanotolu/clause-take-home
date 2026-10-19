@@ -35,7 +35,7 @@ export interface Requirement { id: string; documentId: string; kind: Requirement
 export type Verdict = "PASS" | "FAIL" | "NEEDS_REVIEW" | "UNAVAILABLE";
 export type Delta = "held" | "regressed" | "achieved" | "still_failing" | "uncertain";
 export interface Evidence { start: number; end: number; quote: string; verified: boolean }
-export interface JudgeDetail { id: string; label: string; probability?: number; rationale?: string }
+export interface JudgeDetail { id: string; label: string; probability?: number; decisionConfidence?: number; rationale?: string }
 export interface CheckOutcome { verdict: Verdict; detail: string; evidence: Evidence[]; judges?: JudgeDetail[] }
 export interface RequirementReport { id: string; kind: RequirementKind | "goal"; text: string; before: CheckOutcome; after: CheckOutcome; delta: Delta; method: "exact" | "model"; answeredBy: string[]; touchedBy: number[] }
 export interface CiReport {
@@ -51,7 +51,7 @@ export interface SettingsStatus {
   version: string;
   storage: "sqlite" | "postgres";
   access: "open";
-  ai: { judges: string[]; suggestions: boolean; suggestionModel: string | null; strictnessOptions: ("balanced" | "strict")[] };
+  ai: { judges: string[]; suggestions: boolean; suggestionModel: string | null; strictnessOptions: ("balanced" | "strict")[]; jevMode: "off" | "shadow" | "pilot"; externalProviderNotice: string | null };
   limits: { maxDocumentChars: number | null; maxJudgedChars: number; maxRequirementsPerDocument: number; checkPerHour: number; suggestPerHour: number };
 }
 export type RequestStatus = "inbox" | "in_progress" | "needs_review" | "completed";

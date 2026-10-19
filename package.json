@@ -18,6 +18,7 @@
     "ci:smoke": "node --env-file-if-exists=.env.local scripts/ci-smoke.ts",
     "bench:ci": "node --env-file-if-exists=.env.local bench/ci/run.ts",
     "bench:ci:report": "node bench/ci/report.ts",
+    "bench:ci:gate": "node bench/ci/gate.ts",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "lint": "biome lint .",

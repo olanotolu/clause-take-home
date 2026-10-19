@@ -4,6 +4,6 @@
  "heuristicDevMacroF1": 0.4537,
  "jevMinChoiceProbability": 0.7,
  "llmModel": "anthropic/claude-sonnet-5.5",
- "jevModel": "typesafe-ai/jev-1.14.0",
+ "jevModel": "jev-1.14.0",
  "judgeTimeoutMs": 40000
 }

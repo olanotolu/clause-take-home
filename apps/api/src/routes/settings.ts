@@ -11,6 +11,7 @@ export interface StatusInputs {
   checkPerHour: number;
   suggestPerHour: number;
   version: string;
+  jevMode?: "off" | "shadow" | "pilot";
 }
 
 /**
@@ -23,7 +24,7 @@ export function registerSettingsRoutes(app: App, inputs: StatusInputs): void {
     version: inputs.version,
     storage: app.store.kind,
     access: "open" as const,
-    ai: { judges: [...inputs.semantic.models], suggestions: inputs.suggestionsEnabled, suggestionModel: inputs.suggestionModel, strictnessOptions: ["balanced" as const, "strict" as const] },
+    ai: { judges: [...inputs.semantic.models], suggestions: inputs.suggestionsEnabled, suggestionModel: inputs.suggestionModel, strictnessOptions: ["balanced" as const, "strict" as const], jevMode: inputs.jevMode ?? "off", externalProviderNotice: inputs.jevMode && inputs.jevMode !== "off" ? "This shared demo sends document text and requirements to TypeSafe AI for Jev comparison, and to the configured judge provider. Use fictional or non-confidential documents only." : null },
     limits: {
       maxDocumentChars: Number.isFinite(app.store.maxContentChars) ? app.store.maxContentChars : null,
       maxJudgedChars: MAX_JUDGED_CHARS,

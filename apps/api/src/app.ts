@@ -211,6 +211,6 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   registerActivityRoutes(typed);
   registerTemplateRoutes(typed, createLimit);
   registerIntegrationRoutes(typed);
-  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, suggestionModel: opts.suggestionProvider?.model ?? null, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: buildVersion(process.env) });
+  registerSettingsRoutes(typed, { semantic, suggestionsEnabled: opts.suggestionProvider !== undefined, suggestionModel: opts.suggestionProvider?.model ?? null, checkPerHour: checkLimit.max, suggestPerHour: suggestLimit.max, version: buildVersion(process.env), jevMode: semantic.jevMode ?? "off" });
   return app;
 }

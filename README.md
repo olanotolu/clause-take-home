@@ -63,7 +63,7 @@ pnpm dev:web              # ui on :5173, proxies /api to the api
 ./http/demo.sh            # curl walkthrough of the api (needs jq)
 ```
 
-optional, in `.env.local` (copy `.env.example`): `OPENROUTER_API_KEY` turns on ai suggestions and ai-judged checks; `CLAUSE_STORAGE=postgres` with `DATABASE_URL` runs on postgres. without them, editing, search and the exact checks all work.
+optional, in `.env.local` (copy `.env.example`): `OPENROUTER_API_KEY` turns on ai suggestions and the current semantic judge. `TYPESAFE_API_KEY` plus `CLAUSE_JEV_MODE=shadow` enables Jev 1.14 shadow evaluation for semantic checks; the current judge remains authoritative. Jev sends document text and requirements to TypeSafe AI, so use fictional or non-confidential documents in the shared unauthenticated demo. Pilot mode additionally requires the frozen benchmark gate (`CLAUSE_JEV_PILOT_GATE=passed`). `CLAUSE_STORAGE=postgres` with `DATABASE_URL` runs on postgres. without AI keys, editing, search and exact checks still work.
 
 the api runs typescript directly under node's type stripping, so type checking is its own gate:
 
@@ -245,6 +245,8 @@ ci runs on every pr: typecheck, lint, tests with coverage floors on node 24 and 
 it informs and the person decides; it doesn't block an edit. it was measured on contractnli before being trusted: [`bench/ci/RESULTS.md`](bench/ci/RESULTS.md) (cases frozen before any judge ran; sonnet 5.5 at 80% three-way accuracy vs a 40% keyword baseline on 60 ndas; 22 of 28 evidence-deleting edits flagged, none of 28 harmless ones). a separate [citation experiment](bench/citations/RESULTS.md) tests whether quotes support claims. neither establishes legal reliability.
 
 **ai suggestions** are covered in design decision 9. the caps are 4,000 output tokens, five edits, 2,000 characters per target or replacement, and a 400-character rationale. oversized proposals are refused, not truncated. a timeout is `504 AI_TIMEOUT`.
+
+**Jev semantic evaluation** uses the official `@typesafe-ai/sdk` with the pinned `jev-1.14.0` model. Jev batches questions over one document state and returns typed choices, label probabilities, and a separate confidence value; it does not provide quotes. `PASS` therefore still requires a verified quote from the existing judge. Run `pnpm bench:ci -- --only raw-jev` (with `TYPESAFE_API_KEY` configured) and `pnpm bench:ci:report` to evaluate the frozen ContractNLI and CUAD cases. `pnpm bench:ci:gate` requires full coverage, no provider failures, no higher CUAD false-PASS rate, and no lower ContractNLI regression detection than the current judge before pilot can be enabled.
 
 ---
 

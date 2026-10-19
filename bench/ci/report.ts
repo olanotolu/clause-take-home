@@ -9,7 +9,7 @@ import { verifyQuotes } from "../../apps/api/src/review/evidence.ts";
 import type { JudgeLabel } from "../../apps/api/src/review/judges/types.ts";
 import type { CasesFile } from "./build-cases.ts";
 import { brier, classReport, confusion, fmtCi, pct, percentile, wilson } from "./metrics.ts";
-import type { RawRecord } from "./run.ts";
+import type { CallKind, RawRecord } from "./run.ts";
 
 export const NLI = ["Entailment", "Contradiction", "NotMentioned", "Abstain"] as const;
 type Nli = (typeof NLI)[number];
@@ -22,6 +22,7 @@ export interface JudgeSummary {
   judge: string;
   calls: number;
   errors: number;
+  coverage: { static: { answered: number; total: number }; cuad: { answered: number; total: number }; regressionTexts: { answered: number; total: number } };
   static: {
     n: number;
     accuracy: ReturnType<typeof wilson>;
@@ -31,12 +32,14 @@ export interface JudgeSummary {
     abstain: number;
     brier: number | null;
     confusion: ReturnType<typeof confusion<Nli>>;
+    meanDecisionConfidence: number | null;
+    choiceCalibration: { n: number; brier: number; ece: number } | null;
   };
-  cuad: { n: number; attempted: number; cases: number; negativeCases: number; accuracy: ReturnType<typeof wilson>; falsePassRate: ReturnType<typeof wilson>; categories: Record<string, { n: number; negativeCases: number; accuracy: ReturnType<typeof wilson>; falsePassRate: ReturnType<typeof wilson> }> };
+  cuad: { n: number; attempted: number; answered: number; cases: number; negativeCases: number; accuracy: ReturnType<typeof wilson>; falsePassRate: ReturnType<typeof wilson>; categories: Record<string, { n: number; answered: number; negativeCases: number; accuracy: ReturnType<typeof wilson>; falsePassRate: ReturnType<typeof wilson> }> };
   regression: { pairs: number; usable: number; detected: number; falseAlarm: number; separates: number; recallAll: ReturnType<typeof wilson> };
   product: { usable: number; flaggedPos: number; flaggedCtrl: number; failPos: number; reviewPos: number; failCtrl: number; reviewCtrl: number } | null;
   quotes: { total: number; verified: number } | null;
-  latency: { p50: number; p95: number };
+  latency: { p50: number; p90: number; p95: number; p99: number };
   tokens: { input: number; output: number } | null;
 }
 
@@ -46,25 +49,35 @@ const index = (rs: RawRecord[]) => new Map<string, RawRecord>(rs.map((r) => [`${
 export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, texts: Texts, truth: Map<string, Nli>): JudgeSummary {
   const idx = index(rs);
   const get = (id: string, kind: string) => idx.get(`${id}|${kind}`);
+  const latestRecords = [...idx.values()];
+  const answeredCount = (kind: CallKind) => latestRecords.filter((r) => r.kind === kind && r.answer).length;
 
   const rows = cases.static.map((c) => ({ truth: c.label as Nli, pred: asNli(get(c.id, "static")) }));
   const m = confusion(NLI, rows);
   const rep = classReport(NLI, m);
   const binCorrect = cases.static.filter((c) => (c.label === "Entailment") === (asNli(get(c.id, "static")) === "Entailment")).length;
   const probs = cases.static.flatMap((c) => { const a = get(c.id, "static")?.answer; return a?.pEntailed === undefined ? [] : [{ p: a.pEntailed, outcome: c.label === "Entailment" }]; });
+  const choiceCalibrations = cases.static.flatMap((c) => { const a = get(c.id, "static")?.answer; return a?.choiceProbability === undefined ? [] : [{ p: a.choiceProbability, correct: asNli(get(c.id, "static")) === c.label }]; });
+  const confidenceValues = cases.static.flatMap((c) => { const value = get(c.id, "static")?.answer?.decisionConfidence; return value === undefined ? [] : [value]; });
+  const confidenceBins = Array.from({ length: 10 }, (_, i) => choiceCalibrations.filter((x) => Math.min(9, Math.floor(x.p * 10)) === i));
+  const choiceCalibration = choiceCalibrations.length ? {
+    n: choiceCalibrations.length,
+    brier: choiceCalibrations.reduce((sum, x) => sum + (x.p - Number(x.correct)) ** 2, 0) / choiceCalibrations.length,
+    ece: confidenceBins.reduce((sum, bin) => bin.length ? sum + bin.length / choiceCalibrations.length * Math.abs(bin.reduce((s, x) => s + Number(x.correct), 0) / bin.length - bin.reduce((s, x) => s + x.p, 0) / bin.length) : sum, 0),
+  } : null;
   const attemptedCuadIds = new Set(rs.filter((r) => r.kind === "cuad").map((r) => r.caseId));
   const cuadCasesAttempted = cases.cuadStatic.filter((c) => attemptedCuadIds.has(c.id));
   const cuadRows = cuadCasesAttempted.map((c) => {
     const r = get(c.id, "cuad");
-    const outcome = combineJudges(texts.cuad.get(c.id) ?? "", [r?.answer ? { judgeId: judge, answer: r.answer } : { judgeId: judge }]).verdict;
-    const predicted = outcome === "PASS";
+    // Raw model prediction is used for accuracy and false-PASS safety measurements. Quote-gated product behavior is reported separately below.
+    const predicted = r?.answer?.label === "entailed";
     return { ...c, predicted, correct: predicted === c.hasClause };
   });
   const catNames = [...new Set(cuadRows.map((x) => x.category))];
   const catStats = Object.fromEntries(catNames.map((category) => {
     const rows = cuadRows.filter((x) => x.category === category);
     const falsePass = rows.filter((x) => !x.hasClause && x.predicted).length;
-    return [category, { n: rows.length, negativeCases: rows.filter((x) => !x.hasClause).length, accuracy: wilson(rows.filter((x) => x.correct).length, rows.length), falsePassRate: wilson(falsePass, rows.filter((x) => !x.hasClause).length) }];
+    return [category, { n: rows.length, answered: rows.filter((x) => Boolean(get(x.id, "cuad")?.answer)).length, negativeCases: rows.filter((x) => !x.hasClause).length, accuracy: wilson(rows.filter((x) => x.correct).length, rows.length), falsePassRate: wilson(falsePass, rows.filter((x) => !x.hasClause).length) }];
   }));
 
   // Label-level regression: a pair is usable if the judge saw the requirement as satisfied BEFORE the edit.
@@ -111,8 +124,9 @@ export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, text
   void truth;
   return {
     judge,
-    calls: rs.length,
+    calls: rs.reduce((sum, record) => sum + (record.requestCount ?? 1), 0),
     errors: rs.length - ok.length,
+    coverage: { static: { answered: answeredCount("static"), total: cases.static.length }, cuad: { answered: cuadRows.filter((row) => Boolean(get(row.id, "cuad")?.answer)).length, total: cases.cuadStatic.length }, regressionTexts: { answered: ["before", "after_pos", "after_ctrl"].reduce((n, kind) => n + answeredCount(kind as CallKind), 0), total: cases.regression.length * 3 } },
     static: {
       n: cases.static.length,
       accuracy: wilson(rep.correct, rep.total),
@@ -122,12 +136,14 @@ export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, text
       abstain: rows.filter((r) => r.pred === "Abstain").length,
       brier: probs.length ? brier(probs) : null,
       confusion: m,
+      meanDecisionConfidence: confidenceValues.length ? confidenceValues.reduce((sum, x) => sum + x, 0) / confidenceValues.length : null,
+      choiceCalibration,
     },
-    cuad: { n: cuadRows.length, attempted: cuadRows.length, cases: cases.cuadStatic.length, negativeCases: cuadRows.filter((x) => !x.hasClause).length, accuracy: wilson(cuadRows.filter((x) => x.correct).length, cuadRows.length), falsePassRate: wilson(cuadRows.filter((x) => !x.hasClause && x.predicted).length, cuadRows.filter((x) => !x.hasClause).length), categories: catStats },
+    cuad: { n: cuadRows.length, attempted: attemptedCuadIds.size, answered: cuadRows.filter((row) => Boolean(get(row.id, "cuad")?.answer)).length, cases: cases.cuadStatic.length, negativeCases: cuadRows.filter((x) => !x.hasClause).length, accuracy: wilson(cuadRows.filter((x) => x.correct).length, cuadRows.length), falsePassRate: wilson(cuadRows.filter((x) => !x.hasClause && x.predicted).length, cuadRows.filter((x) => !x.hasClause).length), categories: catStats },
     regression: { pairs: cases.regression.length, usable, detected, falseAlarm, separates, recallAll: wilson(detectedAll, cases.regression.length) },
     product: pu || rs.length ? { usable: pu, flaggedPos: fp, flaggedCtrl: fc, failPos: failP, reviewPos: revP, failCtrl: failC, reviewCtrl: revC } : null,
     quotes: qTotal ? { total: qTotal, verified: qVerified } : null,
-    latency: { p50: percentile(ok.map((r) => r.ms), 0.5), p95: percentile(ok.map((r) => r.ms), 0.95) },
+    latency: { p50: percentile(ok.map((r) => r.ms), 0.5), p90: percentile(ok.map((r) => r.ms), 0.9), p95: percentile(ok.map((r) => r.ms), 0.95), p99: percentile(ok.map((r) => r.ms), 0.99) },
     tokens: inTok || outTok ? { input: inTok, output: outTok } : null,
   };
 }
@@ -164,34 +180,37 @@ export function renderMarkdown(args: { summaries: JudgeSummary[]; cases: CasesFi
   for (const s of summaries.filter((x) => x.judge !== "keyword-baseline")) L.push(`- **${s.judge}**`);
   L.push(`- ${jevNote}`, "");
 
-  L.push("## Static task: three-way classification", "", "| Judge | Accuracy [95% CI] | Macro-F1 | Entailment recall | Contradiction recall | NotMentioned recall | Abstained/errored | Brier |", "|---|---|---|---|---|---|---|---|");
-  for (const s of summaries) L.push(`| ${s.judge} | ${fmtCi(Math.round(s.static.accuracy.p * s.static.n), s.static.n)} | ${s.static.macroF1.toFixed(3)} | ${pct(s.static.recall.Entailment!)} | ${pct(s.static.recall.Contradiction!)} | ${pct(s.static.recall.NotMentioned!)} | ${s.static.abstain} | ${s.static.brier === null ? "n/a" : s.static.brier.toFixed(3)} |`);
+  L.push("## Static task: three-way classification", "", "| Judge | Answered / frozen | Accuracy [95% CI] | Macro-F1 | Entailment recall | Contradiction recall | NotMentioned recall | Abstained/errored | Brier |", "|---|---:|---|---:|---:|---:|---:|---:|---:|");
+  for (const s of summaries) L.push(`| ${s.judge} | ${s.coverage.static.answered}/${s.coverage.static.total} | ${fmtCi(Math.round(s.static.accuracy.p * s.static.n), s.static.n)} | ${s.static.macroF1.toFixed(3)} | ${pct(s.static.recall.Entailment!)} | ${pct(s.static.recall.Contradiction!)} | ${pct(s.static.recall.NotMentioned!)} | ${s.static.abstain} | ${s.static.brier === null ? "n/a" : s.static.brier.toFixed(3)} |`);
   L.push("", "Chance for three balanced classes is 33.3% accuracy. *Brier* scores the judge's own P(entailed) against the truth (lower is better; 0.25 = coin flip); the keyword baseline has no probability.", "");
+  L.push("## Choice confidence and calibration", "", "| Judge | Mean selected-label confidence | Selected-label Brier | 10-bin ECE | n |", "|---|---:|---:|---:|---:|");
+  for (const s of summaries) L.push(`| ${s.judge} | ${s.static.meanDecisionConfidence === null ? "n/a" : s.static.meanDecisionConfidence.toFixed(3)} | ${s.static.choiceCalibration?.brier.toFixed(3) ?? "n/a"} | ${s.static.choiceCalibration?.ece.toFixed(3) ?? "n/a"} | ${s.static.choiceCalibration?.n ?? 0} |`);
+  L.push("", "Selected-label probability calibration uses the probability Jev assigned to its chosen class. The separately returned Jev `confidence` field is only a distribution-shape measure; its mean is shown for context and is not treated as probability of correctness.", "");
 
-  L.push("## Regression task: does a judge notice that an edit broke a requirement?", "", "Counted only on pairs where the judge saw the requirement as satisfied **before** the edit (otherwise there is nothing to regress).", "", "| Judge | Usable pairs | Edit that removes the evidence is flagged | Harmless edit wrongly flagged | Tells the two apart | Flagged, counting unusable pairs as misses |", "|---|---|---|---|---|---|");
-  for (const s of summaries) { const r = s.regression; L.push(`| ${s.judge} | ${r.usable}/${r.pairs} | ${fmtCi(r.detected, r.usable)} | ${fmtCi(r.falseAlarm, r.usable)} | ${fmtCi(r.separates, r.usable)} | ${fmtCi(Math.round(r.recallAll.p * r.pairs), r.pairs)} |`); }
+  L.push("## Regression task: does a judge notice that an edit broke a requirement?", "", "Counted only on pairs where the judge saw the requirement as satisfied **before** the edit (otherwise there is nothing to regress).", "", "| Judge | Answered texts / 90 | Usable pairs | Edit that removes the evidence is flagged | Harmless edit wrongly flagged | Tells the two apart | Flagged, counting unusable pairs as misses |", "|---|---:|---:|---|---|---|---|");
+  for (const s of summaries) { const r = s.regression; L.push(`| ${s.judge} | ${s.coverage.regressionTexts.answered}/${s.coverage.regressionTexts.total} | ${r.usable}/${r.pairs} | ${fmtCi(r.detected, r.usable)} | ${fmtCi(r.falseAlarm, r.usable)} | ${fmtCi(r.separates, r.usable)} | ${fmtCi(Math.round(r.recallAll.p * r.pairs), r.pairs)} |`); }
   L.push("", "*Tells the two apart* = flagged the evidence-deleting edit **and** did not flag the harmless one, in the same pair (the strictest, paired measure).", "");
 
   L.push("## What a user would actually see (CLAUSE CI's policy applied to each judge alone)", "", "A PASS needs a quote that is verified verbatim in the text, so a judge that cites nothing can never PASS.", "", "| Judge | Usable pairs (PASS before) | Evidence-deleting edit: FAIL / NEEDS_REVIEW | Harmless edit: FAIL / NEEDS_REVIEW |", "|---|---|---|---|");
   for (const s of summaries) { const p = s.product; if (!p) continue; L.push(`| ${s.judge} | ${p.usable}/${s.regression.pairs} | ${p.failPos} / ${p.reviewPos} (of ${p.usable}) | ${p.failCtrl} / ${p.reviewCtrl} (of ${p.usable}) |`); }
   L.push("");
 
-  L.push("## CUAD: clause detection", "", "PASS is counted as detecting a clause; FAIL or NEEDS_REVIEW counts as no detection. False PASS rate is measured only on attempted agreements annotated as lacking the category. A provider error counts as no detection; an unattempted case is excluded and shown in the coverage column.", "", "| Judge | Cases attempted / frozen | Accuracy [95% CI] | False PASS rate [95% CI] |", "|---|---:|---|---|");
+  L.push("## CUAD: clause detection", "", "A raw `entailed` model label is counted as clause detection so Jev can be compared despite not generating a quote. Product PASS still requires verified evidence from the existing judge. False PASS rate is measured on agreements annotated as lacking the category. Provider failures count as no detection; answered and attempted coverage are shown.", "", "| Judge | Answered / attempted / frozen | Accuracy [95% CI] | False PASS rate [95% CI] |", "|---|---:|---|---|");
   for (const s of summaries) {
-    L.push(`| ${s.judge} | ${s.cuad.attempted}/${s.cuad.cases} | ${fmtCi(Math.round(s.cuad.accuracy.p * s.cuad.n), s.cuad.n)} | ${s.cuad.negativeCases ? fmtCi(Math.round(s.cuad.falsePassRate.p * s.cuad.negativeCases), s.cuad.negativeCases) : "n/a"} |`);
+    L.push(`| ${s.judge} | ${s.cuad.answered}/${s.cuad.attempted}/${s.cuad.cases} | ${fmtCi(Math.round(s.cuad.accuracy.p * s.cuad.n), s.cuad.n)} | ${s.cuad.negativeCases ? fmtCi(Math.round(s.cuad.falsePassRate.p * s.cuad.negativeCases), s.cuad.negativeCases) : "n/a"} |`);
   }
   for (const s of summaries) {
     L.push("", `### ${s.judge} by CUAD category`, "", "| Category | Cases | Accuracy [95% CI] | False PASS [95% CI] |", "|---|---:|---|---|");
     for (const [category, m] of Object.entries(s.cuad.categories)) {
-      L.push(`| ${category} | ${m.n} | ${fmtCi(Math.round(m.accuracy.p * m.n), m.n)} | ${m.negativeCases ? fmtCi(Math.round(m.falsePassRate.p * m.negativeCases), m.negativeCases) : "n/a"} |`);
+      L.push(`| ${category} | ${m.answered}/${m.n} | ${fmtCi(Math.round(m.accuracy.p * m.n), m.n)} | ${m.negativeCases ? fmtCi(Math.round(m.falsePassRate.p * m.negativeCases), m.negativeCases) : "n/a"} |`);
     }
   }
 
-  L.push("## Evidence integrity, latency, cost", "", "| Judge | Calls / errors | Quotes found verbatim in the text | Latency p50 / p95 per answered call | Tokens (in / out) | Estimated cost from reported tokens |", "|---|---:|---|---|---|---|");
+  L.push("## Evidence integrity, latency, cost", "", "| Judge | Calls / errors | Quotes found verbatim in the text | Latency p50 / p90 / p95 / p99 per answered call | Tokens (in / out) | Estimated cost from reported tokens |", "|---|---:|---|---|---|---|");
   for (const s of summaries) {
     const price = prices[s.judge];
     const cost = s.tokens && price ? `$${(s.tokens.input * price.prompt + s.tokens.output * price.completion).toFixed(2)}` : s.tokens ? "price unavailable" : "n/a";
-    L.push(`| ${s.judge} | ${s.calls} / ${s.errors} | ${s.quotes ? fmtCi(s.quotes.verified, s.quotes.total) : "n/a (no quotes)"} | ${fmtMs(s.latency.p50)} / ${fmtMs(s.latency.p95)} | ${s.tokens ? `${s.tokens.input.toLocaleString()} / ${s.tokens.output.toLocaleString()}` : "n/a"} | ${cost} |`);
+    L.push(`| ${s.judge} | ${s.calls} / ${s.errors} | ${s.quotes ? fmtCi(s.quotes.verified, s.quotes.total) : "n/a (no quotes)"} | ${fmtMs(s.latency.p50)} / ${fmtMs(s.latency.p90)} / ${fmtMs(s.latency.p95)} / ${fmtMs(s.latency.p99)} | ${s.tokens ? `${s.tokens.input.toLocaleString()} / ${s.tokens.output.toLocaleString()}` : "n/a"} | ${cost} |`);
   }
   L.push("", "## How to read this, and its limits", "");
   L.push(`- **Small samples.** n=${cases.static.length} static items and ${cases.regression.length} pairs give wide intervals (a 95% interval on 30 trials is roughly ±17 points). Differences between rows that fall inside each other's intervals are **not evidence that one judge is better**.`);
@@ -220,12 +239,15 @@ async function main() {
   const truth = new Map<string, Nli>();
   const summaries = arms.map((a) => summarize(a.id, a.raw, cases, texts, truth));
   const prices: Record<string, Awaited<ReturnType<typeof openRouterPrice>>> = {};
-  for (const s of summaries) if (s.judge === config.llmModel) prices[s.judge] = await openRouterPrice(s.judge);
+  for (const s of summaries) {
+    if (s.judge === config.llmModel) prices[s.judge] = await openRouterPrice(s.judge);
+    if (s.judge === config.jevModel) prices[s.judge] = { prompt: 0.042 / 1_000_000, completion: 0 };
+  }
 
   const jevRan = arms.some((a) => a.id === config.jevModel);
   const jevNote = jevRan
-    ? `**${config.jevModel}** via Vercel AI Gateway (pinned model id).`
-    : `**${config.jevModel}: not run.** Vercel AI Gateway serves it only to teams with paid credits (the call returned HTTP 403, "Free tier users do not have access to this model"). It has **no measured results here**, so no claim is made about it, and it was later removed from the product.`;
+    ? `**${config.jevModel}** via the official TypeSafe SDK direct API (pinned model id).`
+    : `**${config.jevModel}: not run in this benchmark invocation.** Set a replacement \`TYPESAFE_API_KEY\` to produce measured results. No performance or accuracy claim is made without those results.`;
 
   const md = renderMarkdown({ summaries, cases, config, prices, jevNote, generatedAt: new Date().toISOString().slice(0, 10) });
   writeFileSync(join(import.meta.dirname, "RESULTS.md"), md);

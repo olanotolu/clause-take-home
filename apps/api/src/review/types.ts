@@ -23,6 +23,8 @@ export interface JudgeDetail {
   id: string;
   label: string;
   probability?: number;
+  /** Distribution-shape confidence, not a probability of correctness. */
+  decisionConfidence?: number;
   rationale?: string;
 }
 
@@ -75,6 +77,7 @@ export interface CiReport {
 /** Judges one natural-language requirement against one text. Implementations never throw: failure is an UNAVAILABLE check. */
 export interface SemanticEvaluator {
   readonly models: string[];
+  readonly jevMode?: "off" | "shadow" | "pilot";
   evaluate(args: { requirement: string; text: string; isGoal: boolean; signal?: AbortSignal }): Promise<Check>;
   evaluateBatch?(args: { text: string; requirements: { requirement: string; isGoal: boolean }[]; signal?: AbortSignal; onResult?: (index: number, check: Check) => void }): Promise<Check[]>;
 }

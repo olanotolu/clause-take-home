@@ -210,7 +210,7 @@ export function SettingsView() {
             <Card id="security" title="Security & Privacy" subtitle={SECTIONS[3][2]}>
               <Fact label="Access" note="No sign-in. Anyone with the link can read, and edit or delete their own documents. The five sample contracts are read-only; copy one to edit it." value={status?.access === "open" ? "Open demo" : failed ? "Unavailable" : "Loading…"} />
               <Fact label="What is stored" value="Document text, every version, requirements, content hashes" />
-              <Fact label="AI checks send document text to" note="Only when you run a check or ask for a suggestion." value="OpenRouter, then the model provider" />
+              <Fact label="AI checks send document text to" note="Only when you run a check or ask for a suggestion." value={status?.ai.externalProviderNotice ?? "OpenRouter, then the model provider"} />
               <Fact label="Retention" value="Kept until deleted by the operator" />
               <Fact label="Compliance attestations" note="See INFRA.md for the design." value="None claimed" />
             </Card>

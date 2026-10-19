@@ -135,7 +135,7 @@ function JudgeList({ outcome, label }: { outcome: CheckOutcome; label: string })
       <ul className="space-y-1.5">
         {outcome.judges.map((j) => (
           <li key={j.id} className="rounded-control border border-line bg-canvas px-3 py-2 text-[13px]">
-            <p className="flex flex-wrap items-center gap-x-2"><strong className="font-semibold">{shortModel(j.id)}</strong><span className="text-muted">{j.label.replaceAll("_", " ")}</span>{j.probability !== undefined && <span className="tnum text-muted">· {pct(j.probability)} says it holds</span>}</p>
+            <p className="flex flex-wrap items-center gap-x-2"><strong className="font-semibold">{shortModel(j.id)}</strong><span className="text-muted">{j.label.replaceAll("_", " ")}</span>{j.probability !== undefined && <span className="tnum text-muted">· {pct(j.probability)} says it holds</span>}{j.decisionConfidence !== undefined && <span className="tnum text-muted">· confidence {pct(j.decisionConfidence)} (label distribution)</span>}</p>
             {j.rationale && <p className="mt-0.5 text-ink/80">{j.rationale}</p>}
           </li>
         ))}
