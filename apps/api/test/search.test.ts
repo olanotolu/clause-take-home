@@ -37,8 +37,12 @@ describe("words search (FTS5 + BM25)", () => {
     const hit = (await search("terminate")).results[0].hits[0];
     expect(hit.snippet.map((part: {text:string})=>part.text).join("")).toContain("termination");
     expect(marked(hit).join(" ")).toContain("termination");
-    expect(hit.start).toBeUndefined();
-    expect(d.id).toBe((await search("terminate")).results[0].documentId);
+    const current=(await get(`/documents/${d.id}`)).json().content as string;
+    expect(current.slice(hit.start,hit.end)).toBe("termination");
+    expect((await search("terminate")).results[0].documentId).toBe(d.id);
+    const page=await app.store.wordsPage("terminate",{limit:10,offset:0});
+    expect(page.items[0]?.content).toContain("termination");
+    expect(page.items[0]?.nativeSnippet).toBeUndefined();
   });
 
   it("returns no results (not an error) when nothing matches", async () => {
