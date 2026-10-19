@@ -29,7 +29,10 @@ export function generateContract(targetBytes: number, seed = 42): string {
   const parts: string[] = [];
   let bytes = 0;
   let n = 1;
-  while (bytes < targetBytes - 200) {
+  // Leave enough room for the final marker and the longest single paragraph.
+  // Unicode makes UTF-8 bytes larger than the API's UTF-16 character count,
+  // and the final paragraph can otherwise push a nominal 1 MiB case over cap.
+  while (bytes < targetBytes - 256) {
     const para = `${n}.${(n % 9) + 1} ${pick(SUBJECTS)} ${pick(VERBS)} ${pick(OBJECTS)} ${pick(TAILS)}. ` + `Clause ${n} café naïve ${pick(OBJECTS)}.\n`;
     parts.push(para);
     bytes += Buffer.byteLength(para);

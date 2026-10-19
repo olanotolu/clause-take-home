@@ -3,6 +3,7 @@ node_modules
 *.db-*
 data/
 dist/
+.output/
 .env
 .DS_Store
 mutation-report.json
@@ -25,3 +26,7 @@ coverage/
 .claude/skills/
 .impeccable.md
 skills-lock.json
+
+# Local durable Workflow runtime
+.workflow-data/
+.neon

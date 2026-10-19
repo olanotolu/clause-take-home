@@ -1,7 +1,9 @@
 import { selectorFor, type Target } from "@clause/core";
-import { InvalidQueryError, queryTerms, type Store } from "./store/types.ts";
+import { InvalidQueryError, type Store } from "./store/types.ts";
+import { locateTerms } from "./search-locator.ts";
 
 export { InvalidQueryError };
+export { locateTerms } from "./search-locator.ts";
 
 export const MAX_QUERY_LENGTH = 200;
 const SNIPPET_RADIUS = 60;
@@ -72,8 +74,8 @@ export async function search(store: Store, rawQuery: string, opts: SearchOptions
     const { total, results } = await searchWords(store, query, opts);
     return { query, mode: opts.mode, total, limit: opts.limit, offset: opts.offset, results };
   }
-  const all = await searchExact(store, query, opts);
-  return { query, mode: opts.mode, total: all.length, limit: opts.limit, offset: opts.offset, results: all.slice(opts.offset, opts.offset + opts.limit) };
+  const page = await searchExact(store, query, opts);
+  return { query, mode: opts.mode, total: page.total, limit: opts.limit, offset: opts.offset, results: page.results };
 }
 
 // ---------------------------------------------------------------- words (ranked, backend-specific)
@@ -90,8 +92,16 @@ async function searchWords(store: Store, query: string, opts: SearchOptions): Pr
   const page = await store.wordsPage(query, { limit: opts.limit, offset: opts.offset, ...(opts.ids && { ids: opts.ids }) });
   return { total: page.total, results: page.items.map((r) => ({
     documentId: r.id, title: r.title, version: r.version, relevance: r.score,
-    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : locatedHit(r.content, query)],
+    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : r.contentOffset !== undefined ? boundedChunkHit(r.content,r.contentOffset,query) : r.contentIsWindow ? locatedPreviewHit(r.content,query) : locatedHit(r.content, query)],
   })) };
+}
+
+function boundedChunkHit(content:string,offset:number,query:string):Hit {
+  const span=locateTerms(content,query);
+  if(!span) return {snippet:[{text:content.slice(0,SNIPPET_RADIUS*2),match:false}]};
+  const [localStart,localEnd]=span;
+  const start=offset+localStart,end=offset+localEnd;
+  return {snippet:exactSnippet(content,localStart,localEnd),start,end,target:{position:{start,end,expectedText:content.slice(localStart,localEnd)}}};
 }
 
 /** Splits FTS5's marked-up snippet into segments. */
@@ -144,35 +154,17 @@ function nativeHit(content: string, snip: string): Hit {
   return hit;
 }
 
-const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/**
- * Finds the first place the query's words appear, in ONE linear regex pass.
- * Matching is a heuristic locator, not the matcher: FTS5 already decided the
- * document matches. Each word is shortened to ~70% of its length so inflections
- * (terminate/termination) still land. Quoted phrases match with flexible
- * whitespace. If nothing is found we return an un-highlighted preview.
- * The alternatives are plain literals, so there is no backtracking blow-up.
- */
-export function locateTerms(content: string, query: string): [number, number] | undefined {
-  const alts = queryTerms(query)
-    .map((t) => {
-      const words = t.split(/\s+/);
-      // Only the LAST word may be shortened: earlier words must be followed by whitespace.
-      const stem = (w: string) => (w.length > 4 ? w.slice(0, Math.max(4, Math.ceil(w.length * 0.7))) : w);
-      return words.map((w, i) => escapeRegex(i === words.length - 1 ? stem(w) : w)).join("\\s+");
-    })
-    .filter(Boolean);
-  if (alts.length === 0) return undefined;
-  const m = new RegExp(`(?<![\\p{L}\\p{N}])(?:${alts.join("|")})[\\p{L}\\p{N}]*`, "iu").exec(content);
-  return m ? [m.index, m.index + m[0].length] : undefined;
-}
-
 function locatedHit(content: string, query: string): Hit {
   const span = locateTerms(content, query);
   if (!span) return { snippet: [{ text: content.slice(0, SNIPPET_RADIUS * 2) + (content.length > SNIPPET_RADIUS * 2 ? ELLIPSIS : ""), match: false }] };
   const [start, end] = span;
   return { snippet: exactSnippet(content, start, end), start, end, target: selectorFor(content, start, end) };
+}
+
+function locatedPreviewHit(content:string,query:string):Hit {
+  const span=locateTerms(content,query);
+  if(!span)return {snippet:[{text:content.slice(0,SNIPPET_RADIUS*2)+(content.length>SNIPPET_RADIUS*2?ELLIPSIS:""),match:false}]};
+  return {snippet:exactSnippet(content,...span)};
 }
 
 // ---------------------------------------------------------------- exact (index prefilter + literal scan)
@@ -195,21 +187,15 @@ function exactSnippet(content: string, start: number, end: number): Segment[] {
  * CANDIDATE filter (it is case-insensitive and needs >= 3 characters); every
  * reported offset comes from scanning the real current content.
  */
-async function searchExact(store: Store, query: string, opts: SearchOptions): Promise<DocumentResult[]> {
+async function searchExact(store: Store, query: string, opts: SearchOptions): Promise<{total:number;results:DocumentResult[]}> {
   const perDoc = opts.hitsPerDocument ?? 3;
-  const out: DocumentResult[] = [];
-  for (const row of await store.exactCandidates(query, opts.ids)) {
-    const hits: Hit[] = [];
-    let matchCount = 0;
-    for (let at = row.content.indexOf(query); at !== -1; at = row.content.indexOf(query, at + query.length)) {
-      matchCount++;
-      if (hits.length < perDoc) {
-        const end = at + query.length;
-        hits.push({ snippet: exactSnippet(row.content, at, end), start: at, end, target: selectorFor(row.content, at, end) });
-      }
-    }
-    if (matchCount > 0) out.push({ documentId: row.id, title: row.title, version: row.version, relevance: matchCount, matchCount, hits });
-  }
-  out.sort((a, b) => b.relevance - a.relevance || a.title.localeCompare(b.title));
-  return out;
+  const page=await store.exactPage(query,{limit:opts.limit,offset:opts.offset,hitsPerDocument:perDoc,...(opts.ids&&{ids:opts.ids})});
+  return {total:page.total,results:page.items.map((row)=>({
+    documentId:row.id,title:row.title,version:row.version,relevance:row.matchCount,matchCount:row.matchCount,
+    hits:row.hits.map((h):Hit=>{
+      const before=(h.start>h.before.length?ELLIPSIS:"")+h.before;
+      const after=h.after+(h.after.length===60?ELLIPSIS:"");
+      return {snippet:[...(before?[{text:before,match:false}]:[]),{text:query,match:true},...(after?[{text:after,match:false}]:[])],start:h.start,end:h.end,target:{position:{start:h.start,end:h.end,expectedText:query}}};
+    }),
+  }))};
 }

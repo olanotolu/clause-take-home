@@ -32,6 +32,36 @@ describe("words search (FTS5 + BM25)", () => {
     expect((await search("terminate")).results[0].documentId).toBe(d.id);
   });
 
+  it("keeps a useful bounded excerpt when a large-document match is a Porter stem", async () => {
+    const d = await createDoc(app, "Long term", `${"boilerplate ".repeat(24_000)}termination survives.`);
+    const hit = (await search("terminate")).results[0].hits[0];
+    expect(hit.snippet.map((part: {text:string})=>part.text).join("")).toContain("termination");
+    expect(marked(hit).join(" ")).toContain("termination");
+    const current=(await get(`/documents/${d.id}`)).json().content as string;
+    expect(current.slice(hit.start,hit.end)).toBe("termination");
+    expect((await search("terminate")).results[0].documentId).toBe(d.id);
+    const page=await app.store.wordsPage("terminate",{limit:10,offset:0});
+    expect(page.items[0]?.content).toContain("termination");
+    expect(page.items[0]?.nativeSnippet).toBeUndefined();
+
+    const phraseDoc=await createDoc(app,"Long phrase",`${"boilerplate ".repeat(24_000)}terminate, surviving.`);
+    const phraseHit=(await search('"termination survives"',`&ids=${phraseDoc.id}`)).results[0].hits[0];
+    expect(phraseHit.snippet.map((part: {text:string})=>part.text).join("")).toContain("terminate, surviving");
+    const phrasePage=await app.store.wordsPage('"termination survives"',{ids:[phraseDoc.id],limit:10,offset:0});
+    expect(phrasePage.items[0]?.content).toContain("terminate, surviving");
+    expect(phrasePage.items[0]?.nativeSnippet).toBeUndefined();
+  });
+
+  it.skipIf(Boolean(process.env.CLAUSE_TEST_DATABASE_URL))("locates diacritic-folded SQLite matches in large documents without FTS snippet fallback", async () => {
+    const text = `${"Payment is due within thirty days of the invoice date. ".repeat(6_000)}The café is open.`;
+    const d = await createDoc(app, "Accented", text);
+    const page = await app.store.wordsPage("cafe", { ids: [d.id], limit: 10, offset: 0 });
+    expect(page.items[0]?.content).toContain("café");
+    expect(page.items[0]?.nativeSnippet).toBeUndefined();
+    const hit = (await search("cafe", `&ids=${d.id}`)).results[0]?.hits[0];
+    expect(text.slice(hit?.start, hit?.end)).toBe("café");
+  });
+
   it("returns no results (not an error) when nothing matches", async () => {
     await createDoc(app, "NDA", NDA);
     expect(await search("zebra")).toMatchObject({ total: 0, results: [] });
@@ -255,6 +285,12 @@ describe("locateTerms", () => {
     const [cs, ce] = locateTerms(cost, "$5.00")!;
     expect(cost.slice(cs, ce)).toBe("$5.00"); // metacharacters are literal...
     expect(locateTerms("a5x00", "5.00")).toBeUndefined(); // ...so "." is not a wildcard
+    const underscore = "ending in TAIL_EVIDENCE.";
+    const [us, ue] = locateTerms(underscore, "TAIL_EVIDENCE")!;
+    expect(underscore.slice(us, ue)).toBe("TAIL_EVIDENCE");
+    const accented = "The café is open.";
+    const [as, ae] = locateTerms(accented, "cafe")!;
+    expect(accented.slice(as, ae)).toBe("café");
     expect(locateTerms("anything", ".*")).toBeUndefined();
     expect(locateTerms("nothing here", "zebra")).toBeUndefined();
   });

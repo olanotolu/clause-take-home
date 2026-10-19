@@ -7,7 +7,6 @@ import { Toaster } from "sonner";
 import { api, type SettingsStatus } from "../lib/api.ts";
 import { cn } from "../lib/cn.ts";
 import { navigate, useRoute, type Route } from "../lib/router.ts";
-import { useSettings } from "../lib/settings.tsx";
 import { kb } from "../lib/wordDelta.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
 import { useAuth } from "../lib/auth.tsx";
@@ -52,7 +51,6 @@ export function Shell({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const identity = workspaceIdentity(auth.user);
   const reduceMotion = useReducedMotion();
-  const { settings } = useSettings();
   const [palette, setPalette] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const mobileMoreTrigger = useRef<HTMLButtonElement>(null);
@@ -134,7 +132,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <nav aria-label="Main" className="px-3">
           {NAV_GROUPS.map((g, gi) => (
-            <div key={gi} className={cn("space-y-1", gi > 0 && "mt-4 max-[1279px]:mt-3 max-[1279px]:border-t max-[1279px]:border-ink/[0.06] max-[1279px]:pt-3")}>
+            <div key={g.label ?? "primary"} className={cn("space-y-1", gi > 0 && "mt-4 max-[1279px]:mt-3 max-[1279px]:border-t max-[1279px]:border-ink/[0.06] max-[1279px]:pt-3")}>
               {g.label && <p className="px-3 pb-1 text-xs font-medium text-rail-muted max-[1279px]:hidden">{g.label}</p>}
               {g.items.map(({ key, label, icon: Icon, route: target }) => {
                 const on = current === key;
@@ -240,9 +238,14 @@ export function Shell({ children }: { children: ReactNode }) {
               onClick={() => setProfileOpen((open) => !open)}
               whileTap={{ scale: 0.94 }}
               transition={{ duration: 0.14 }}
-              className={cn("grid size-10 place-items-center rounded-full border text-xs font-semibold transition-[background-color,border-color,box-shadow] duration-150 focus-visible:outline-offset-2", profileOpen ? "border-accent/40 bg-accent-soft text-ink shadow-soft" : "border-line bg-paper text-rail-ink hover:border-line-strong hover:bg-canvas")}
+              className={cn("flex h-11 items-center gap-2.5 rounded-[16px] py-1 pl-1 pr-3 text-left shadow-soft transition-[box-shadow,background-color] duration-150 hover:shadow-[0_1px_3px_rgb(20_20_22/0.1),0_0_0_1px_rgb(20_20_22/0.06)] focus-visible:outline-offset-2", profileOpen ? "bg-accent-soft text-ink ring-1 ring-accent/40" : "bg-paper text-rail-ink")}
             >
-              <span className="grid size-7 place-items-center rounded-full bg-ink/[0.07]">{identity.initials || <Buildings size={15} aria-hidden />}</span>
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-semibold text-paper">{identity.initials || <Buildings size={15} aria-hidden />}</span>
+              <span className="min-w-0 max-w-40 leading-tight max-[640px]:hidden">
+                <span className="block truncate text-[13px] font-semibold text-rail-ink">{identity.title}</span>
+                <span className="block truncate text-[11px] text-rail-muted">{auth.user?.email ?? identity.subtitle}</span>
+              </span>
+              <ChevronDown size={14} aria-hidden className={cn("shrink-0 text-rail-muted transition-transform duration-150 max-[640px]:hidden", profileOpen && "rotate-180")} />
             </motion.button>
             <AnimatePresence>
               {profileOpen && <motion.div

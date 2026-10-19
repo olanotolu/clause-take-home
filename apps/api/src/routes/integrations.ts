@@ -1,13 +1,15 @@
 import { z } from "zod";
 import type { App } from "../types.ts";
+import { queueJob } from "./jobs.ts";
+import { ProviderId, RemoteFileInput } from "../jobs/types.ts";
 import { errors } from "../schemas.ts";
 import type { IntegrationProvider } from "../store/types.ts";
-import { authenticateAdmin, authorizationUrl, browseFiles, extractText, finishOAuth, IntegrationError, listProviders, OAUTH_COOKIE_MAX_AGE_S, type RemoteFile } from "../integrations/service.ts";
+import { authenticateAdmin, authorizationUrl, browseFiles, finishOAuth, IntegrationError, listProviders, OAUTH_COOKIE_MAX_AGE_S } from "../integrations/service.ts";
 import { providerConfig } from "../integrations/providers.ts";
 
-const Provider = z.enum(["imanage", "netdocuments", "onedrive", "dropbox", "google_drive", "sharepoint", "box"]);
+const Provider = ProviderId;
 const Query = z.object({ parentId: z.string().optional(), driveId: z.string().optional(), pageToken: z.string().optional() });
-const ImportBody = z.object({ file: z.object({ id: z.string().min(1), name: z.string().min(1), mimeType: z.string(), folder: z.boolean().optional(), parentId: z.string().optional(), driveId: z.string().optional() }) });
+const ImportBody = z.object({file:RemoteFileInput});
 const auth = async (authorization?: string) => authenticateAdmin(authorization);
 
 const cookieName = (provider: string) => `clause_oauth_${provider}`;
@@ -62,20 +64,17 @@ export function registerIntegrationRoutes(app: App): void {
     return { ...page, files };
   });
 
-  app.post("/integrations/:provider/import", { schema: { params: z.object({ provider: Provider }), body: ImportBody, response: { 200: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), 201: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), ...errors(400, 401, 403, 409, 413, 415, 502) } } }, async (req, reply) => {
+  app.post("/integrations/:provider/import", { schema: { params: z.object({ provider: Provider }), body: ImportBody, response: { 200: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), 201: z.object({ imported: z.boolean(), document: z.object({ id: z.string(), title: z.string(), version: z.number() }) }), 202:z.object({jobId:z.string(),status:z.string(),statusUrl:z.string()}), ...errors(400, 401, 403, 409, 413, 415, 429, 502) } } }, async (req, reply) => {
     await auth(req.headers.authorization);
-    const file = req.body.file as RemoteFile;
+    const file = req.body.file;
     if (file.folder) throw new IntegrationError(400, "FOLDER_NOT_IMPORTABLE", "Choose a document file to import.");
     const prior = await app.store.getIntegrationImport(req.params.provider, file.id);
     if (prior) {
-      const existing = await app.store.getDocument(prior.documentId);
+      const existing = await app.store.getDocumentMetadata(prior.documentId);
       if (existing) return reply.code(200).send({ imported: false, document: { id: existing.id, title: existing.title, version: existing.version } });
     }
-    const content = await extractText(app.store, req.params.provider, file);
-    if (!content.trim()) throw new IntegrationError(415, "EMPTY_DOCUMENT", "No readable text was found in this file.");
-    if (content.length > app.store.maxContentChars) throw new IntegrationError(413, "DOCUMENT_TOO_LARGE", `This file exceeds the ${app.store.maxContentChars.toLocaleString()} character document limit.`);
-    const result = await app.store.insertImportedDocument({ title: file.name, content, provider: req.params.provider, fileId: file.id });
-    return reply.code(result.imported ? 201 : 200).send({ imported: result.imported, document: { id: result.doc.id, title: result.doc.title, version: result.doc.version } });
+    const queued=await queueJob(app,{kind:"provider_import",provider:req.params.provider,file},`provider_import:${req.params.provider}:${file.id}`);
+    return reply.code(202).header("Location",queued.statusUrl).send(queued);
   });
 
   app.delete("/integrations/:provider", { schema: { params: z.object({ provider: Provider }), response: { 204: z.null(), ...errors(400, 401, 403, 500) } } }, async (req, reply) => {

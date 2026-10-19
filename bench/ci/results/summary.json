@@ -1,7 +1,7 @@
 [
  {
   "judge": "keyword-baseline",
-  "calls": 150,
+  "calls": 222,
   "errors": 0,
   "static": {
    "n": 60,
@@ -50,6 +50,598 @@
     }
    }
   },
+  "cuad": {
+   "n": 72,
+   "attempted": 72,
+   "cases": 72,
+   "negativeCases": 39,
+   "accuracy": {
+    "p": 0.5833333333333334,
+    "lo": 0.4680748922563983,
+    "hi": 0.6901496177750356
+   },
+   "falsePassRate": {
+    "p": 0.4358974358974359,
+    "lo": 0.2930452416170466,
+    "hi": 0.5902457652547789
+   },
+   "categories": {
+    "Affiliate License-Licensee": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.6576280471103807
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Affiliate License-Licensor": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Agreement Date": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Anti-Assignment": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Audit Rights": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Cap On Liability": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Change Of Control": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Competitive Restriction Exception": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Covenant Not To Sue": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Document Name": {
+     "n": 1,
+     "negativeCases": 0,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": null,
+      "lo": null,
+      "hi": null
+     }
+    },
+    "Effective Date": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Exclusivity": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Expiration Date": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Governing Law": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Insurance": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Ip Ownership Assignment": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Irrevocable Or Perpetual License": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Joint Ip Ownership": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "License Grant": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Liquidated Damages": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.6576280471103807
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Minimum Commitment": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Most Favored Nation": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "No-Solicit Of Customers": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "No-Solicit Of Employees": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Non-Compete": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Non-Disparagement": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Non-Transferable License": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Notice Period To Terminate Renewal": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Parties": {
+     "n": 1,
+     "negativeCases": 0,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": null,
+      "lo": null,
+      "hi": null
+     }
+    },
+    "Post-Termination Services": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Price Restrictions": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Renewal Term": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Revenue/Profit Sharing": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.6576280471103807
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Rofr/Rofo/Rofn": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Source Code Escrow": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Termination For Convenience": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Third Party Beneficiary": {
+     "n": 1,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     },
+     "falsePassRate": {
+      "p": 1,
+      "lo": 0.20654329147389294,
+      "hi": 1
+     }
+    },
+    "Uncapped Liability": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Unlimited/All-You-Can-Eat-License": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Volume Restriction": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Warranty Duration": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 1,
+      "lo": 0.34237195288961925,
+      "hi": 1
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    }
+   }
+  },
   "regression": {
    "pairs": 30,
    "usable": 17,
@@ -72,19 +664,19 @@
    "reviewCtrl": 0
   },
   "quotes": {
-   "total": 129,
-   "verified": 129
+   "total": 179,
+   "verified": 179
   },
   "latency": {
    "p50": 1,
-   "p95": 2
+   "p95": 3
   },
   "tokens": null
  },
  {
   "judge": "anthropic/claude-sonnet-5.5",
-  "calls": 150,
-  "errors": 0,
+  "calls": 154,
+  "errors": 4,
   "static": {
    "n": 60,
    "accuracy": {
@@ -129,6 +721,52 @@
      "Contradiction": 0,
      "NotMentioned": 0,
      "Abstain": 0
+    }
+   }
+  },
+  "cuad": {
+   "n": 4,
+   "attempted": 4,
+   "cases": 72,
+   "negativeCases": 2,
+   "accuracy": {
+    "p": 0.5,
+    "lo": 0.15003570882017148,
+    "hi": 0.8499642911798285
+   },
+   "falsePassRate": {
+    "p": 0,
+    "lo": 0,
+    "hi": 0.6576280471103807
+   },
+   "categories": {
+    "Affiliate License-Licensee": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
+    },
+    "Affiliate License-Licensor": {
+     "n": 2,
+     "negativeCases": 1,
+     "accuracy": {
+      "p": 0.5,
+      "lo": 0.09452865480086614,
+      "hi": 0.9054713451991339
+     },
+     "falsePassRate": {
+      "p": 0,
+      "lo": 0,
+      "hi": 0.7934567085261071
+     }
     }
    }
   },

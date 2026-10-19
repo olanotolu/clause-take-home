@@ -84,12 +84,13 @@ describe("samples are read-only through the API", () => {
   it("refuses every write with 403 SAMPLE_READ_ONLY and leaves the version alone", async () => {
     const { store, app: a, sample } = await withSamples();
     const playbook = await store.insertPlaybook({ name: "P", description: "" });
+    expect(playbook).toBeDefined();
     const refused = [
       await patch(a, sample.id, { expectedVersion: 1, changes: [quote("MUTUAL", "BILATERAL")] }),
       await a.inject({ method: "POST", url: `/documents/${sample.id}/revert`, payload: { toVersion: 1 } }),
       await a.inject({ method: "DELETE", url: `/documents/${sample.id}` }),
       await a.inject({ method: "POST", url: `/documents/${sample.id}/requirements`, payload: { kind: "absent", text: "perpetual" } }),
-      await a.inject({ method: "POST", url: `/documents/${sample.id}/apply-playbook`, payload: { playbookId: playbook.id } }),
+      await a.inject({ method: "POST", url: `/documents/${sample.id}/apply-playbook`, payload: { playbookId: playbook!.id } }),
     ];
     for (const res of refused) {
       expect(res.statusCode).toBe(403);
@@ -163,9 +164,9 @@ describe("migration of an existing database", () => {
       const sample = await first.insertDocument({ title: canonical.title, content: canonical.content });
       const mine = await first.insertDocument({ title: "Mine", content: "my text" });
       await first.close();
-      // Put the file back the way the previous release left it: no sample_key column, schema version 5.
+      // Put the file back the way the previous release left it: pre-sample-key schema version 5.
       const raw = new DatabaseSync(file);
-      raw.exec("DROP INDEX documents_sample_key_idx; ALTER TABLE documents DROP COLUMN sample_key; PRAGMA user_version = 5;");
+      raw.exec("DROP TABLE content_recovery_objects; DROP TABLE content_recovery_manifests; DROP TABLE clause_jobs; DROP INDEX documents_sample_key_idx; DROP INDEX documents_content_path_idx; ALTER TABLE documents DROP COLUMN content_bytes; ALTER TABLE documents DROP COLUMN content_utf16; ALTER TABLE documents DROP COLUMN word_count; ALTER TABLE revisions DROP COLUMN content_bytes; ALTER TABLE revisions DROP COLUMN content_utf16; ALTER TABLE revisions DROP COLUMN word_count; ALTER TABLE documents DROP COLUMN content_path; ALTER TABLE revisions DROP COLUMN content_path; ALTER TABLE documents DROP COLUMN sample_key; PRAGMA user_version = 5;");
       raw.close();
 
       const upgraded = createSqliteStore(file);

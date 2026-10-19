@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-10-18T23:49:01.368Z",
+  "node": "v24.15.0",
+  "metricDelivery": true,
+  "sensitiveLabelsAbsent": true,
+  "metrics": [
+    "clause.http.server.requests",
+    "clause.database.operation.errors",
+    "clause.database.query.calls",
+    "clause.database.pool.acquire.duration",
+    "clause.ai.errors",
+    "clause.ai.input_tokens",
+    "clause.ai.estimated_cost",
+    "clause.blob.bytes",
+    "clause.jobs.queue.age"
+  ]
+}

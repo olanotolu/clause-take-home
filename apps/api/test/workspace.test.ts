@@ -3,8 +3,8 @@ import type { FastifyInstance } from "fastify";
 import { snapshotOf } from "../src/review/snapshot.ts";
 import type { CiReport, SemanticEvaluator } from "../src/review/types.ts";
 import { DEMO_DOCUMENT_TITLE, SEED_PLAYBOOKS, SEED_REQUESTS, seedDemoRequirements } from "../src/seed-workspace.ts";
-import { MAX_REQUIREMENTS_PER_DOCUMENT } from "../src/store/types.ts";
-import { createDoc, patch, quote, testApp, testStore } from "./helpers.ts";
+import { MAX_PLAYBOOKS, MAX_REQUIREMENTS_PER_DOCUMENT, MAX_RULES_PER_PLAYBOOK } from "../src/store/types.ts";
+import { createDoc, patch, quote, sharedStores, testApp, testStore } from "./helpers.ts";
 
 const NDA = "MUTUAL NDA\n1.1 The Receiving Party shall not disclose Confidential Information.\n1.2 These obligations survive for three (3) years.";
 /** Timestamps have millisecond resolution, so ordering tests move the clock instead of sleeping. */
@@ -178,6 +178,37 @@ describe("playbooks", () => {
     const d = await createDoc(app, "NDA", NDA);
     expect((await app.inject({ method: "POST", url: `/documents/doc_nope/apply-playbook`, payload: { playbookId: p.id } })).statusCode).toBe(404);
     expect((await app.inject({ method: "POST", url: `/documents/${d.id}/apply-playbook`, payload: { playbookId: "pbk_nope" } })).statusCode).toBe(404);
+  });
+});
+
+describe("atomic workspace caps", () => {
+  it("keeps every cap under concurrent writes across two store connections", async () => {
+    const { a, b, cleanup } = await sharedStores();
+    try {
+      const doc = await a.insertDocument({ title: "caps", content: "text" });
+      const reqAdds = await Promise.all(Array.from({ length: MAX_REQUIREMENTS_PER_DOCUMENT + 5 }, (_, i) => (i % 2 ? a : b).addRequirement(doc.id, { kind: "present", text: `r${i}` })));
+      expect(reqAdds.filter(Boolean)).toHaveLength(MAX_REQUIREMENTS_PER_DOCUMENT);
+      expect(await a.listRequirements(doc.id)).toHaveLength(MAX_REQUIREMENTS_PER_DOCUMENT);
+
+      const playbooks = await Promise.all(Array.from({ length: MAX_PLAYBOOKS + 5 }, (_, i) => (i % 2 ? a : b).insertPlaybook({ name: `pb${i}`, description: "" })));
+      expect(playbooks.filter(Boolean)).toHaveLength(MAX_PLAYBOOKS);
+      const pb = playbooks.find(Boolean)!;
+      const rules = await Promise.all(Array.from({ length: MAX_RULES_PER_PLAYBOOK + 5 }, (_, i) => (i % 2 ? a : b).addPlaybookRule(pb.id, { title: `rule${i}`, kind: "present", text: `r${i}` })));
+      expect(rules.filter(Boolean)).toHaveLength(MAX_RULES_PER_PLAYBOOK);
+      expect((await a.getPlaybook(pb.id))?.rules).toHaveLength(MAX_RULES_PER_PLAYBOOK);
+    } finally { await cleanup(); }
+  });
+
+  it("rolls document copy and requirements back as one write", async () => {
+    const store = await testStore();
+    try {
+      const before = (await store.listDocuments(100, 0)).total;
+      await expect(store.insertDocumentWithRequirements({
+        title: "must roll back", content: "copy",
+        requirements: [{ kind: "not-a-kind" as never, text: "invalid" }],
+      })).rejects.toThrow();
+      expect((await store.listDocuments(100, 0)).total).toBe(before);
+    } finally { await store.close(); }
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVersion, chooseBackend } from "../src/config.ts";
+import { buildVersion, chooseBackend, lazyStoreFromEnv, storeFromEnv } from "../src/config.ts";
 
 describe("chooseBackend (a local run must never touch the hosted database by accident)", () => {
   it("defaults to SQLite even when DATABASE_URL happens to be set (e.g. pulled by `vercel env pull`)", () => {
@@ -23,5 +23,23 @@ describe("buildVersion", () => {
     expect(buildVersion({ VERCEL_GIT_COMMIT_SHA: "41ab06a360b3" })).toBe("41ab06a");
     expect(buildVersion({ VERCEL_GIT_COMMIT_SHA: "" })).toBe("dev");
     expect(buildVersion({})).toBe("dev");
+  });
+});
+
+describe("runtime store configuration", () => {
+  it("opens SQLite directly for local use and through the lazy request store", async () => {
+    const direct = await storeFromEnv({ CLAUSE_STORAGE: "sqlite", CLAUSE_DB: ":memory:" });
+    expect(direct.kind).toBe("sqlite");
+    await direct.close();
+
+    const lazy = lazyStoreFromEnv({ CLAUSE_STORAGE: "sqlite", CLAUSE_DB: ":memory:", CLAUSE_SEED: "0" });
+    expect(lazy.kind).toBe("sqlite");
+    await expect(lazy.checkReady()).resolves.toBeUndefined();
+    await lazy.close();
+  });
+
+  it("requires an explicit database URL and private Blob credentials for Vercel Postgres", async () => {
+    await expect(storeFromEnv({ CLAUSE_STORAGE: "postgres" })).rejects.toThrow(/DATABASE_URL/);
+    await expect(storeFromEnv({ CLAUSE_STORAGE: "postgres", VERCEL: "1", DATABASE_URL: "postgres://example" })).rejects.toThrow(/BLOB_READ_WRITE_TOKEN/);
   });
 });

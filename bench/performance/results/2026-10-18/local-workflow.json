@@ -1,0 +1,8 @@
+{
+  "node": "v24.15.0",
+  "sqlite": true,
+  "localStorage": true,
+  "workflow": true,
+  "exportWorker": true,
+  "wordArchive": true
+}

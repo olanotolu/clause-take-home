@@ -1,0 +1,87 @@
+{
+  "generatedAt": "2026-10-19T00:10:28.651Z",
+  "node": "v24.15.0",
+  "base": "https://clause-take-home-n0yg14etx-subomis-projects-22c86536.vercel.app/api",
+  "results": [
+    {
+      "byteLength": 26214400,
+      "utf16Length": 26214400,
+      "hashVerified": true,
+      "preview": true,
+      "edit": true,
+      "search": true,
+      "revert": true,
+      "pinnedReceipt": true,
+      "wordExport": true,
+      "fullReplacementUpload": true
+    }
+  ],
+  "measurements": [
+    {
+      "operation": "GET /documents/:document",
+      "ms": 293.64383399999997,
+      "responseBytes": 838,
+      "status": 200
+    },
+    {
+      "operation": "POST /documents/:document/changes/preview",
+      "ms": 831.413417,
+      "responseBytes": 336,
+      "status": 200
+    },
+    {
+      "operation": "PATCH /documents/:document",
+      "ms": 2397.22725,
+      "responseBytes": 925,
+      "status": 200
+    },
+    {
+      "operation": "GET /documents/search?q=CLAUSE_LOAD_B&mode=exact&ids=:document",
+      "ms": 570.0587499999992,
+      "responseBytes": 447,
+      "status": 200
+    },
+    {
+      "operation": "POST /documents/:document/revert",
+      "ms": 2956.4809999999998,
+      "responseBytes": 836,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 66.79962499999965,
+      "responseBytes": 170,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 72.16150000000016,
+      "responseBytes": 171,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 64.20437499999935,
+      "responseBytes": 172,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 78.15800000000127,
+      "responseBytes": 711,
+      "status": 200
+    },
+    {
+      "operation": "POST /documents/uploads/intents",
+      "ms": 53.777333,
+      "responseBytes": 984,
+      "status": 201
+    },
+    {
+      "operation": "POST /documents/uploads/complete",
+      "ms": 2785.0537920000006,
+      "responseBytes": 821,
+      "status": 200
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { api, type SettingsStatus } from "../lib/api.ts";
+import { api, documentWorker, type SettingsStatus } from "../lib/api.ts";
 import { useSettings } from "../lib/settings.tsx";
 import { formatDate } from "../lib/settings-core.ts";
-import { kb, wordCount } from "../lib/wordDelta.ts";
+import { kb } from "../lib/wordDelta.ts";
 import { navigate } from "../lib/router.ts";
 import { STATUS_LABEL } from "../lib/requests.ts";
 import { useWorkspace } from "../lib/workspace.tsx";
@@ -11,6 +11,8 @@ export function DetailsTab() {
   const ws = useWorkspace();
   const { settings } = useSettings();
   const doc = ws.doc!;
+  const [metrics,setMetrics]=useState<{wordCount:number;byteLength:number}|null>(null);
+  useEffect(()=>{let live=true;void documentWorker().metrics(doc.id,doc.version).then(value=>{if(live)setMetrics(value);});return()=>{live=false;};},[doc.id,doc.version]);
   const [rules, setRules] = useState<number | null>(null);
   const [status, setStatus] = useState<SettingsStatus | null>(null);
 
@@ -26,8 +28,8 @@ export function DetailsTab() {
     ["Title", doc.title],
     ["Current version", `v${doc.version}`],
     ["Characters", doc.content.length.toLocaleString()],
-    ["Words", wordCount(doc.content).toLocaleString()],
-    ["Size", kb(new TextEncoder().encode(doc.content).length)],
+    ["Words", metrics?metrics.wordCount.toLocaleString():"…"],
+    ["Size", metrics?kb(metrics.byteLength):"…"],
     ["Created", formatDate(doc.createdAt, settings.dateFormat)],
     ["Last updated", formatDate(doc.updatedAt, settings.dateFormat)],
     ["SHA-256 of the text", doc.contentHash],

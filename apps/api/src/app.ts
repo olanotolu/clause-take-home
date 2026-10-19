@@ -3,6 +3,7 @@ import swagger from "@fastify/swagger";
 import scalar from "@scalar/fastify-api-reference";
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, hasZodFastifySchemaValidationErrors, type ZodTypeProvider } from "@fastify/type-provider-zod";
 import Fastify, { type FastifyInstance } from "fastify";
+import { z } from "zod";
 import { createSqliteStore } from "./store/sqlite.ts";
 import type { Store } from "./store/types.ts";
 import type { App } from "./types.ts";
@@ -23,6 +24,10 @@ import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { IntegrationError } from "./integrations/service.ts";
 import type { SemanticEvaluator } from "./review/types.ts";
 import type { EditSuggestionProvider } from "./suggest.ts";
+import { start } from "workflow/api";
+import { jobsWorkflow } from "../workflows/jobs.ts";
+import { registerJobRoutes } from "./routes/jobs.ts";
+import { flushTelemetryBounded, initTelemetry, instrumentStore, recordRoute, recordWebVital } from "./telemetry.ts";
 
 /** Large enough for the 10 MB+ documents the service is designed for. Oversized bodies get a 413. */
 export const BODY_LIMIT = 50 * 1024 * 1024;
@@ -47,11 +52,16 @@ export interface AppOptions {
   createRateLimit?: { max: number; timeWindow: string };
   /** Source of AI edit proposals. Omit to disable /suggest (503). The rest of the API never depends on it. */
   suggestionProvider?: EditSuggestionProvider;
+  /** Test seam for the durable job provider. Production uses the Workflow SDK. */
+  startJobWorkflow?: (jobId:string)=>Promise<unknown>;
+  startExportWorkflow?: (args:{jobId:string;documentId:string;fromVersion:number;toVersion:number})=>Promise<unknown>;
 }
 
 declare module "fastify" {
   interface FastifyInstance {
     store: Store;
+    startJobWorkflow: (jobId:string)=>Promise<unknown>;
+    startExportWorkflow: (args:{jobId:string;documentId:string;fromVersion:number;toVersion:number})=>Promise<unknown>;
   }
   interface FastifyReply {
     problem(error: DomainError): FastifyReply;
@@ -59,6 +69,7 @@ declare module "fastify" {
 }
 
 export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> {
+  initTelemetry();
   const app = Fastify({
     logger: opts.logger ?? false,
     bodyLimit: opts.bodyLimit ?? BODY_LIMIT,
@@ -85,10 +96,25 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
     return jsonParser(req, body as string, done);
   });
 
-  const store = opts.store ?? createSqliteStore(opts.dbPath ?? ":memory:");
+  const store = instrumentStore(opts.store ?? createSqliteStore(opts.dbPath ?? ":memory:"));
   app.decorate("store", store);
+  app.decorate("startJobWorkflow",opts.startJobWorkflow ?? ((jobId)=>start(jobsWorkflow,[jobId])));
+  app.decorate("startExportWorkflow",opts.startExportWorkflow ?? ((args)=>app.startJobWorkflow(args.jobId)));
+  registerJobRoutes(app.withTypeProvider<ZodTypeProvider>());
   app.addHook("onClose", async () => {
     await store.close();
+  });
+
+  const requestStarted = new WeakMap<object, number>();
+  app.addHook("onRequest", async (req) => { requestStarted.set(req, performance.now()); });
+  app.addHook("onSend",async(req,reply,payload)=>{const started=requestStarted.get(req);if(started!==undefined)reply.header("server-timing",`clause;dur=${(performance.now()-started).toFixed(2)}`);return payload;});
+  app.addHook("onResponse", async (req, reply) => {
+    const started = requestStarted.get(req);
+    if (started !== undefined) recordRoute({ method: req.method, route: req.routeOptions.url ?? "unmatched", status: reply.statusCode, durationMs: performance.now() - started });
+    if (process.env.VERCEL) {
+      const { waitUntil } = await import("@vercel/functions");
+      waitUntil(flushTelemetryBounded());
+    }
   });
 
   app.decorateReply("problem", function (this: import("fastify").FastifyReply, error: DomainError) {
@@ -111,7 +137,11 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
     if (status === 429) return reply.code(429).send({ error: "Too many requests; slow down and try again later", code: 429, type: "RATE_LIMITED" });
     if (status === 413) return reply.code(413).send({ error: `Request body exceeds ${BODY_LIMIT} bytes`, code: 413, type: "PAYLOAD_TOO_LARGE" });
     if (status >= 400 && status < 500) return reply.code(status).send({ error: err instanceof Error ? err.message : "Bad request", code: status, type: "BAD_REQUEST" });
-    req.log.error({ err }, "unhandled error");
+    const candidate=typeof err==="object"&&err!==null&&"code" in err?err.code:undefined;
+    const errorCode=typeof candidate==="string"&&/^[0-9A-Z]{5}$/.test(candidate)?candidate:"INTERNAL";
+    const failure={event:"clause.request.failure",method:req.method,route:req.routeOptions.url??"unmatched",errorCode};
+    if(process.env.VERCEL)console.error(JSON.stringify(failure));
+    else req.log.error(failure,"unhandled error");
     return reply.code(500).send({ error: "Internal server error", code: 500, type: "INTERNAL" });
   });
 
@@ -147,6 +177,20 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   await app.register(scalar, { routePrefix: "/docs" });
   app.get("/openapi.json", { schema: { hide: true } }, async () => app.swagger());
   app.get("/health", { schema: { hide: true } }, async () => ({ status: "ok" }));
+  app.get("/ready", { schema: { hide: true } }, async (_req, reply) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([store.checkReady(),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error("readiness timeout")),2000);})]);
+      return { status: "ready" };
+    }
+    catch { return reply.code(503).send({ status: "not_ready" }); }
+    finally { if(timer) clearTimeout(timer); }
+  });
+  app.post("/telemetry/vitals", { schema:{hide:true,body:z.strictObject({name:z.enum(["CLS","INP","LCP"]),value:z.number().finite().min(0).max(120_000)})} }, async (req,reply)=>{
+    const body=req.body as {name:"CLS"|"INP"|"LCP";value:number};
+    recordWebVital(body.name,body.value);
+    return reply.code(204).send(null);
+  });
 
   // global:false: nothing is limited unless a route opts in: document create/copy and template create, Clause CI checks
   // (document and request), and suggestions. Limits are per process, not per tenant.

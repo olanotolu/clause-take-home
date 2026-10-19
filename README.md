@@ -6,19 +6,45 @@
 
 | open | what you'll see |
 |---|---|
-| **[live demo](https://clause-take-home.vercel.app/#/documents)** | the running app: open a sample contract, press **make a copy**, edit, run clause ci |
-| **[walkthrough video (8:50)](https://clause-take-home.vercel.app/video)** | narrated tour with chapters, captions and a transcript |
+| **[live demo](https://clause-take-home.vercel.app/#/documents)** | public Vercel URL; the page is currently not ready because its database readiness check returns 503 (checked October 19, 2026). The local seeded app below is usable while the hosted database is restored |
+| **[walkthrough video (8:50)](https://clause-take-home.vercel.app/video)** | narrated tour with chapters, captions and a transcript; recorded october 16, before the large-document work |
 | **[api reference](https://clause-take-home.vercel.app/api/docs/)** | interactive openapi reference, generated from the same schemas that validate requests |
+| **full assessment submission (pdf)** | detailed take-home response, infrastructure design, implementation evidence, limitations, and live discussion guide; saved on the submitter's Desktop and kept outside this repository |
+| **[editable assessment source](docs/ASSESSMENT_SUBMISSION.md)** | the markdown source used to produce the submission pdf |
 | **[production design](INFRA.md)** | part ii, one page: measured numbers against targets, decisions by topic, risks |
 | **[one-page pdf](output/pdf/CLAUSE-infrastructure.pdf)** | the same production design as a pdf |
+| **[operations](docs/OPERATIONS.md)** | how it runs: durable jobs, migrations and recovery, telemetry, the rollout gate |
+| **[performance audit](docs/INFRA_PERFORMANCE_AUDIT_2026_10_18.md)** | dated infrastructure findings and the follow-up verification status |
 | **[scope map](ASSESSMENT_SCOPE.md)** | each item in the brief mapped to the code and test that answer it; extras labelled |
 
-[![clause ci on a proposed edit: 2 broken by this edit, exact checks 1 of 2, model-supported 3 of 4 (advisory)](docs/img/clause-ci.png)](https://clause-take-home.vercel.app/#/documents)
-<sub>clause ci on a proposed edit to the sample nda: a protected passage was removed (exact check, no model involved), and the model flags that a notice obligation became optional (advisory). click to open the demo.</sub>
+## product screenshots
+
+The workspace, library, editor, search, and mobile views are fresh October 19 captures of the current app from a local, seeded build. The contracts and workspace requests shown are fictional sample data. The Clause CI image is an earlier captured staged-edit report; its model results are advisory.
+
+<table>
+  <tr>
+    <td><a href="docs/img/screenshots/workspace.png"><img src="docs/img/screenshots/workspace.png" alt="CLAUSE workspace board with fictional contract review requests" width="640"></a><br><sub>Workspace board · prioritized contract review requests</sub></td>
+    <td><a href="docs/img/screenshots/documents.png"><img src="docs/img/screenshots/documents.png" alt="CLAUSE document library showing five fictional sample contracts" width="640"></a><br><sub>Document library · versions, sizes, and sample labels</sub></td>
+  </tr>
+  <tr>
+    <td><a href="docs/img/screenshots/editor.png"><img src="docs/img/screenshots/editor.png" alt="CLAUSE read-only contract editor with staged edit tools" width="640"></a><br><sub>Contract view · CodeMirror text surface and staged-edit tools</sub></td>
+    <td><a href="docs/img/screenshots/search.png"><img src="docs/img/screenshots/search.png" alt="CLAUSE ranked search result with a verified source passage in the NDA" width="640"></a><br><sub>In-document search · ranked result linked to its source passage</sub></td>
+  </tr>
+  <tr>
+    <td><a href="docs/img/screenshots/workspace-mobile.png"><img src="docs/img/screenshots/workspace-mobile.png" alt="Mobile CLAUSE workspace with fictional review requests and bottom navigation" width="320"></a><br><sub>Mobile workspace · responsive request board and navigation</sub></td>
+    <td><a href="docs/img/screenshots/editor-mobile.png"><img src="docs/img/screenshots/editor-mobile.png" alt="Mobile CLAUSE contract view with the document and search tools tabs" width="320"></a><br><sub>Mobile contract view · document and tools remain reachable on a phone</sub></td>
+  </tr>
+  <tr>
+    <td><a href="docs/img/clause-ci.png"><img src="docs/img/clause-ci.png" alt="CLAUSE CI results comparing saved contract requirements before and after a staged NDA edit" width="640"></a><br><sub>Clause CI · requirements checked against a staged NDA edit; model results are advisory</sub></td>
+    <td></td>
+  </tr>
+</table>
+
+The screenshots are product views, not benchmark evidence. Performance measurements and their environment are documented in [performance](#performance) and the [dated reports](bench/performance/results/).
 
 > the demo is a shared workspace with fictional contracts and no sign-in. the five sample contracts are read-only: use **make a copy** to edit one. don't put real contracts in it.
 
-**on this page:** [where to look](#where-to-look) · [run it](#run-it) · [brief → implementation](#what-was-asked-and-where-it-is) · [api](#the-api-at-a-glance) · [design decisions](#design-decisions-and-trade-offs) · [performance](#performance) · [tests](#how-its-tested) · [clause ci and ai](#clause-ci-and-ai-suggestions) · [production](#production-design-part-ii) · [limits](#limits) · [repo map](#repository-map)
+**on this page:** [screenshots](#product-screenshots) · [where to look](#where-to-look) · [run it](#run-it) · [brief → implementation](#what-was-asked-and-where-it-is) · [api](#the-api-at-a-glance) · [design decisions](#design-decisions-and-trade-offs) · [performance](#performance) · [tests](#how-its-tested) · [clause ci and ai](#clause-ci-and-ai-suggestions) · [production](#production-design-part-ii) · [limits](#limits) · [repo map](#repository-map)
 
 ---
 
@@ -29,9 +55,11 @@
 | how an edit is resolved and applied | [`packages/core/src/resolve.ts`](packages/core/src/resolve.ts), [`apply.ts`](packages/core/src/apply.ts): pure typescript, zero dependencies |
 | how a write stays safe when two people edit | `commitRevision` in [`apps/api/src/store/sqlite.ts`](apps/api/src/store/sqlite.ts), and [`apps/api/test/concurrency.test.ts`](apps/api/test/concurrency.test.ts) |
 | the api contract | [`apps/api/src/schemas.ts`](apps/api/src/schemas.ts) (validation and openapi from one source), [`errors.ts`](apps/api/src/errors.ts), [`routes/documents.ts`](apps/api/src/routes/documents.ts) |
-| search | [`apps/api/src/search.ts`](apps/api/src/search.ts) |
+| search | [`apps/api/src/search.ts`](apps/api/src/search.ts), and the postgres chunk query in [`store/word-search-sql.ts`](apps/api/src/store/word-search-sql.ts) |
+| large documents | [`content-storage.ts`](apps/api/src/content-storage.ts) (bodies by hash in blob or on disk), [`routes/documents.ts`](apps/api/src/routes/documents.ts) (upload intents) |
+| slow work | [`apps/api/src/jobs`](apps/api/src/jobs), [`apps/api/workflows`](apps/api/workflows): exports, imports and maintenance as durable jobs |
 | the tests | [`packages/core/test`](packages/core/test), [`apps/api/test`](apps/api/test), [`e2e/journeys.spec.ts`](e2e/journeys.spec.ts) |
-| part ii | [`INFRA.md`](INFRA.md) (one page), with a longer [appendix](docs/INFRA_APPENDIX.md) |
+| part ii | [`INFRA.md`](INFRA.md) (one page), with a longer [appendix](docs/INFRA_APPENDIX.md); running it: [`docs/OPERATIONS.md`](docs/OPERATIONS.md) |
 | what is core and what is extra | [`ASSESSMENT_SCOPE.md`](ASSESSMENT_SCOPE.md) |
 | what went wrong along the way | [`NOTES.md`](NOTES.md): every real bug, how it was found, what changed |
 
@@ -75,13 +103,13 @@ the brief, in my own words, with the part of the repo that answers each item.
 | **readme** with setup, usage, performance and api rationale | this file | |
 | correct **4xx/5xx** with a json `{ error, code }` body | one error shape for every response, including framework errors; a 500 never leaks a stack or document text | a forced-500 test, the weekly api fuzz |
 | **bulk** changes | `changes` is an array of up to 5,000, applied all-or-nothing | `engine.test.ts`, `documents.test.ts` |
-| **large documents**, near-linear | the new text is rebuilt in one pass; 7 ms for one edit on 10 mib. targets in large batches are found in one pass too (aho–corasick): 5,000 quote changes on 10 mib resolve in about 100 ms | [performance](#performance) |
+| **large documents**, near-linear | the new text is rebuilt in one pass; 7 ms for one edit on 10 mib. targets in large batches are found in one pass too (aho–corasick): 5,000 quote changes on 10 mib resolve in about 100 ms. documents go up to 25 mib: bodies above 1 mib travel through direct uploads and signed urls, so api responses stay small | [performance](#performance), [`large-documents.test.ts`](apps/api/test/large-documents.test.ts) |
 | **concurrency** and repeated matches | `expectedVersion` or `If-Match`, then a compare-and-swap commit: a stale write gets 409 or 412. a quote that matches more than once is refused with every candidate listed | [`concurrency.test.ts`](apps/api/test/concurrency.test.ts), [`etag-race.test.ts`](apps/api/test/etag-race.test.ts) |
-| **indexing**, and its trade-offs | inverted indexes inside the database (sqlite fts5 and trigram; postgres gin and pg_trgm), updated in the same transaction as the edit | [why not an in-memory inverted index](#why-not-an-in-memory-inverted-index) |
+| **indexing**, and its trade-offs | inverted indexes inside the database (sqlite fts5 and trigram; postgres gin over 8,000-character chunks, and pg_trgm), updated in the same transaction as the edit | [why not an in-memory inverted index](#why-not-an-in-memory-inverted-index) |
 | **api design** rationale | resources for reads and writes, named actions where an action isn't a resource update | [design decisions](#design-decisions-and-trade-offs) |
 | **part ii**: production design | [`INFRA.md`](INFRA.md): measured numbers against targets, a decision table by topic, the risks | [pdf](output/pdf/CLAUSE-infrastructure.pdf) |
 
-built beyond the brief, and labelled as extras in [`ASSESSMENT_SCOPE.md`](ASSESSMENT_SCOPE.md): clause ci, ai suggestions, word tracked-changes export, the workspace ui (requests, playbooks, templates), the integrations demo, and the walkthrough video.
+built beyond the brief, and labelled as extras in [`ASSESSMENT_SCOPE.md`](ASSESSMENT_SCOPE.md): clause ci, ai suggestions, word tracked-changes export, the workspace ui (requests, playbooks, templates), the integrations demo, durable background jobs, metrics over opentelemetry, and the walkthrough video.
 
 ---
 
@@ -96,9 +124,13 @@ built beyond the brief, and labelled as extras in [`ASSESSMENT_SCOPE.md`](ASSESS
 | `POST /documents/:id/changes/check` | clause ci: check a proposed edit against saved requirements |
 | `POST /documents/:id/revert` | restore an old version's text as a new version |
 | `GET /documents/:id/revisions[/:version]` | history; one snapshot |
-| `GET /documents/:id/export.docx?from&to` | word file with tracked changes between two versions |
+| `GET /documents/:id/export.docx?from&to` | word file with tracked changes between two versions; a large export returns `202` and a job |
 | `GET /documents/search?q&mode=words\|exact` · `GET /documents/:id/search` | search everything · search one document |
 | `POST /documents/:id/copy` · `DELETE /documents/:id` | copy (for the read-only samples) · delete |
+| `POST /documents/uploads/intents` · `…/uploads/complete` | direct upload for bodies above 1 mib: a signed intent bound to the document and version, then a verified completion |
+| `GET /documents/:id/content[-url]` · `…/revisions/:version/content[-url]` | a body, or a short-lived signed url to it |
+| `GET /jobs/:id` · `POST /jobs/:id/cancel` | progress of an export or import; cancel |
+| `GET /health` · `GET /ready` | process liveness · database schema check |
 | `…/requirements`, `/requests`, `/playbooks`, `/templates`, `/activity`, `/settings/status` | the workspace features ([reference](https://clause-take-home.vercel.app/api/docs/)) |
 
 **an edit and its receipt:**
@@ -113,7 +145,7 @@ curl -s -X PATCH http://localhost:3000/documents/DOC_ID -H 'content-type: applic
   "applied": [{ "index": 0, "start": 1270, "end": 1291, "before": "Receiving Party shall", "after": "Recipient shall", "newStart": 1270, "newEnd": 1285 }],
   "content": "…the full updated text…" }
 ```
-the response also carries `ETag: "v2-2454fa484923"`. send `Prefer: return=minimal` to get the receipt without `content` (on a 10 mib document, 10,486,119 bytes becomes 357). the same header on `changes/preview` returns just the changed spans, no proposed text and no unified diff (10 mib: 10.4 mib becomes 0.35 kib), and the web app rebuilds the text from them.
+the response also carries `ETag: "v2-2454fa484923"`. send `Prefer: return=minimal` to get the receipt without `content` (on a 10 mib document, 10,486,119 bytes becomes 357). the same header on `changes/preview` returns just the changed spans, no proposed text and no unified diff (10 mib: 10.4 mib becomes 0.35 kib), and the web app rebuilds the text from them. on a read, it returns metadata and a content reference without loading the body. above 1 mib, bodies always go by reference.
 
 **the same edit without `occurrence`** is refused, because the quote matches three passages:
 
@@ -158,47 +190,48 @@ every error body is `{ error, code, type, details? }`, with `code` as a number.
 
 the brief floats one. clause has inverted indexes, but they live in the database: fts5 for words and a trigram index for exact phrases on sqlite, gin indexes on postgres. they're updated in the same transaction as the edit, so a committed edit is searchable at once, and the database's page cache keeps the hot parts in memory. a second copy in memory wasn't built because the measurements pointed elsewhere. looking up a term was never slow (about 21 ms for a rare word and 25 ms for a common phrase on 10 mib). the 8.3 s was snippet generation, and of a roughly 790 ms edit, the engine is 7 ms. an in-memory index would speed up the step that was already fast, and costs a rebuild on every cold start, one copy per serverless instance, invalidation across instances, and memory. it pays off in one long-lived process answering many repeated queries on big documents. then i'd cache postings for hot terms keyed by `(query, version)`, so staleness is detectable.
 
-**6. full snapshots per revision, for now.** every version stores its full text. restore and audit are trivially correct, and a restore is just a new version whose text equals an old one, so history only grows. *cost:* a frequently edited 10 mb document costs 10 mb per revision. the production design keeps snapshots in object storage, keyed by the sha-256 the service already computes, with a full copy every ~20 revisions and deltas between.
+**6. immutable versions, bodies stored by hash.** every version is immutable, and a restore is just a new version whose text equals an old one, so history only grows and audit stays simple. bodies above 1 mib live once in private blob storage (a directory locally), keyed by the sha-256 the service already computes; postgres keeps the metadata, the history and the search chunks. a duplicate database body is pruned only after a verified recovery manifest and a restore rehearsal, never automatically. *cost:* two stores to keep consistent, so a daily integrity sweep and orphan cleanup run as jobs. deltas between versions are not built: storage per revision is still a full body.
 
 **7. resources plus named actions.** reads and writes are separate: gets never write, which is what makes caching by etag safe. edits are a `PATCH` on the document. things that aren't a resource update get a named sub-resource: `changes/preview` and `changes/check` compute without writing, `revert` names a version and the server derives the text, `copy` creates a derived document. *why:* a preview isn't a patch that happens not to save, and pretending it is would blur what changes state.
 
-**8. one interface, two databases.** sqlite locally (nothing to install), postgres in production, both behind one `Store` interface, and the whole suite runs against each. that proves the interface describes the domain rather than one database's quirks. postgres uses a generated `tsvector` column, so its index can't drift from the text. its 500,000-character cap comes from the tsvector limit, and anything bigger is refused up front rather than stored unsearchable.
+**8. one interface, two databases.** sqlite locally (nothing to install), postgres in production (supabase), both behind one `Store` interface and the same test suite. postgres search indexes bounded 8,000-character chunks, which lifts the whole-document `tsvector` limit (about 1 mb) and lets documents go up to 25 mib. *cost:* ranking is per chunk, not per document, and the two backends need their own query plans.
 
 **9. ai proposes, the engine validates, a person applies.** a suggestion is at most five bounded quote replacements. it goes through a scope check, then the same engine validation as a human edit, then clause ci, and it comes back staged with `applied: false`. the document is treated as untrusted data in every prompt. each call has a 25 s deadline including queueing. if no ai provider is configured, editing, search and exact checks still work.
+
+**10. slow work is a durable job, not a long request.** large word exports, provider imports and maintenance run as workflow jobs: the request returns `202` with a `statusUrl`, the job persists its checkpoint and progress, at most two run at once, an execution lease stops a duplicate delivery from running twice, and transient failures retry three times. job payloads hold references, never document text. *cost:* a second runtime to observe, and a client that polls.
 
 ---
 
 ## performance
 
-local measurements: apple m4, one process, sqlite, a seeded synthetic 10 mib contract ([`bench/run.ts`](bench/run.ts)). these are not hosted numbers.
+**engine and search, laptop.** apple m4, one process, a seeded synthetic 10 mib contract on sqlite ([`bench/run.ts`](bench/run.ts)), october 16. not hosted numbers.
 
 | operation | measured |
 |---|---|
 | engine: one replacement in 10 mib · a 100-change batch | **7 ms** · 9 ms |
-| full-stack edit, 10 mib | **789 ms**: index updates, the full snapshot and the response, not the engine |
 | words search, 10 mib, rare · common term | **21 · 25 ms** (was 8,337 ms before the fix in decision 4) |
 | exact search, 10 mib, unique · many hits | **16 · 52 ms** |
 | a stale write refused, 10 mib | 409 in 14 ms |
 
-concurrency check ([`scripts/load.ts`](scripts/load.ts), 1 mb documents, one process):
+sqlite is the local backend. it has one writer, so at 8 clients its edit and exact-search p95 miss their targets (879 and 435 ms, october 16); the postgres numbers below are what production runs on.
 
-| p95 at 1 · 8 clients | measured | target | |
+**postgres, laptop, before and after the chunk-query rewrite** (october 19: 32 documents of 400 kb, 8 clients, local postgres 16, the same commit pair; the machine was heavily loaded, so read this as diagnostic):
+
+| p95 at 8 clients | before | after | target |
 |---|---|---|---|
-| read | 2 · 11 ms | 50 ms | met |
-| words search | 2 · 173 ms | 300 ms | met |
-| exact search | 5 · **435 ms** | 300 ms | **missed at 8** |
-| edit | 61 · **879 ms** | 500 ms | **missed at 8**, throughput plateaus near 19 edits/s on one sqlite writer |
+| metadata read | 21 ms | 33 ms | 100 ms |
+| word search | 1,626 ms | **103 ms** | 300 ms |
+| edit (100 of 100 committed) | 409 ms | **246 ms** | 500 ms |
 
-the same check on postgres at its hosted cap (`pnpm load 8 8 --storage=postgres`, 0.47 mb documents, warmed up, two runs, over http):
+**hosted** (october 18: vercel `iad1` with neon, driven from a laptop over the public internet, 1 mib documents, 8 clients, before the rewrite above):
 
 | p95 at 8 clients | measured | target | |
 |---|---|---|---|
-| read | 19–21 ms | 50 ms | met |
-| words search | 129–158 ms | 300 ms | met |
-| exact search | 240–246 ms | 300 ms | met |
-| edit | 437–443 ms (27 edits/s) | 500 ms | met, with little headroom |
+| metadata read | 121 ms | 100 ms | **missed** |
+| word search | 348 ms | 300 ms | **missed** |
+| edit, own document | 268 ms, about 27 commits/s | 500 ms | met |
 
-the misses in the sqlite table are written down rather than the targets moved, and postgres is a different story because its writers don't share one event loop. two cautions. laptop numbers swing about 2× with background load (the sqlite edit p95 was 1.8–2.4 s on a busy afternoon), so read them as ranges. and a freshly loaded postgres database was far slower for its first seconds (words search p95 4.4 s), which is why the tool now warms up before it measures. hosted postgres caps documents at 500,000 characters, so the 10 mib figures are sqlite only, and the 1 mib edit target can't be tested on postgres until the cap is lifted (that needs chunked indexes, see [`INFRA.md`](INFRA.md)). paired reruns and raw logs: [`bench/performance`](bench/performance/README.md).
+at 32 clients search and mixed load produced errors, so there is no capacity claim there. 1, 10 and 25 mib documents passed create, edit, search, revert and export as single hosted runs; a 25 mib edit took about 2.4 s, with api json under 1 kb because bodies go through blob. production moved to supabase on october 18, after neon hit a quota limit, and **no hosted run has used supabase yet**. the misses are written down rather than the targets moved. full reports: [october 18](bench/performance/results/2026-10-18/REPORT.md), [october 19](bench/performance/results/2026-10-19/REPORT.md), [`bench/performance`](bench/performance/README.md).
 
 ---
 
@@ -207,8 +240,8 @@ the misses in the sqlite table are written down rather than the targets moved, a
 | layer | what | where |
 |---|---|---|
 | engine | unit tests and property tests (fast-check, fixed seed, 500 runs) | [`packages/core/test`](packages/core/test) |
-| api | the full suite is 379 tests on sqlite and 384 on postgres, including two real connections racing on one version, a writer injected between commit and response, provider timeouts and cancellation | [`apps/api/test`](apps/api/test) |
-| browser | 10 playwright journeys on desktop and a 390 px phone, with axe accessibility checks after each step | [`e2e/journeys.spec.ts`](e2e/journeys.spec.ts) |
+| api | the full suite is 441 tests on sqlite and 449 on postgres, including two real connections racing on one version, a writer injected between commit and response, provider timeouts and cancellation, 1/10/25 mib uploads, job leases and recovery rehearsal | [`apps/api/test`](apps/api/test) |
+| browser | 9 playwright journeys on desktop and a 390 px phone (18 runs), including large replacements and direct uploads, with axe accessibility checks after each step | [`e2e/journeys.spec.ts`](e2e/journeys.spec.ts) |
 | mutation | flip one operator at a time in the engine and see whether a test notices: 65 of 70 killed; the 5 survivors are equivalent | `pnpm mutate`, [`scripts/mutate.ts`](scripts/mutate.ts) |
 | fuzzing | schemathesis against the openapi spec, seeded, weekly in ci; its first run found five bugs the hand-written tests had missed | [`scripts/fuzz`](scripts/fuzz) |
 
@@ -232,20 +265,21 @@ it informs and the person decides; it doesn't block an edit. it was measured on 
 ## production design (part ii)
 
 [`INFRA.md`](INFRA.md) is one page, every number tagged *measured*, *target* or *untested*. in short:
-- **shape:** cdn and waf with sso in front of at least two stateless api replicas; postgres as the source of truth with the same compare-and-swap; object storage for snapshots; redis only for rate limits and hot search pages; a queue and workers for indexing, imports and ai.
-- **scale:** chunked per-paragraph indexes, per-document row locks, replicas, then partitioning. each step is triggered by a measured problem, not added up front.
-- **security:** oidc/saml, `tenant_id` plus postgres row-level security, per-tenant keys, and an audit log of hashes, never contract text.
-- **operations:** latency by document size, conflict rate, index lag and ai cost per tenant; expand-and-contract migrations; progressive rollout.
-- **risks, stated:** postgres untested at size, two missed p95 targets, no tenancy yet.
+- **shape:** stateless api on vercel functions; postgres as the source of truth with the same compare-and-swap; bodies above 1 mib in private blob, keyed by hash; durable jobs for exports, imports and maintenance; an llm gateway for advisory checks.
+- **scale:** search over 8,000-character chunks (done), per-document row locks and more instances next, then partitioning. each step is triggered by a measured problem, not added up front.
+- **security:** oidc/saml, `tenant_id` plus postgres row-level security, per-tenant keys, and an audit log of hashes, never contract text. today the app connects as a scoped database role over ca-verified tls.
+- **operations:** explicit migrations (never on startup), a readiness check, opentelemetry metrics with no text or ids in labels, starter alerts. the runbook is [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
+- **risks, stated:** hosted metadata and search p95 missed at 8 clients, no hosted run on supabase yet, a 60-connection database budget, no tenancy.
 
-today it runs on vercel (web and api as one project) with neon postgres.
+today it runs on vercel (`iad1`, web and api as one project) with supabase postgres (`us-east-1`) and private vercel blob.
 
 ---
 
 ## limits
 
 - no tenancy, sign-in or confidential audit trail on the demo, and no production security claim.
-- full snapshots and full-text edit responses scale poorly for large documents (decision 6; `return=minimal` helps).
+- hosted latency targets are not yet demonstrated, and nothing has been load-tested on supabase (see [performance](#performance)).
+- every version stores a full body; there are no deltas between versions (decision 6).
 - rate limits and the verdict cache are per process, not per tenant.
 - semantic checks are advisory. a verified quote proves the words exist, not that they support the conclusion.
 - word exports pass xml and pandoc accept/reject checks; not every microsoft word version was tested.
@@ -257,15 +291,19 @@ today it runs on vercel (web and api as one project) with neon postgres.
 
 ```text
 packages/core     the edit engine: resolve, apply, anchor, exact requirement checks (no dependencies)
-apps/api          fastify + zod api: routes, document service, storage (sqlite, postgres), search, clause ci, ai, word export
+apps/api          fastify + zod api on nitro: routes, document service, storage (sqlite, postgres, blob), search, jobs, clause ci, ai, word export
 apps/web          react 19 + vite workspace ui
 e2e/              playwright journeys
-bench/            10 mib benchmark, contractnli judge benchmark, citation experiment
+bench/            10 mib benchmark, k6 and hosted load runs, contractnli and cuad judge benchmarks, citation experiment
 scripts/          load check, mutation harness, fuzz runner, smoke tests
 http/demo.sh      curl walkthrough
 fixtures/         the five fictional sample contracts
+ops/              opentelemetry collector config
+docs/             operations runbook, infra appendix, audit
 ```
 
-**further reading:** [`ASSESSMENT_SCOPE.md`](ASSESSMENT_SCOPE.md) maps the brief to code and labels the extras. [`NOTES.md`](NOTES.md) is the running dev log of real findings. [`docs/INFRA_APPENDIX.md`](docs/INFRA_APPENDIX.md) has the longer production detail. [`DESIGN.md`](DESIGN.md) covers the ui, including font licensing.
+**further reading:** [`ASSESSMENT_SCOPE.md`](ASSESSMENT_SCOPE.md) maps the brief to code and labels the extras. [`NOTES.md`](NOTES.md) is the running dev log of real findings. [`docs/INFRA_APPENDIX.md`](docs/INFRA_APPENDIX.md) has the longer production detail, and [`docs/OPERATIONS.md`](docs/OPERATIONS.md) how to run it. [`DESIGN.md`](DESIGN.md) covers the ui, including font licensing.
+
+**assessment package:** the full submission PDF is saved on the submitter's Desktop, outside this repository · [editable source](docs/ASSESSMENT_SUBMISSION.md) · [one-page infrastructure pdf](output/pdf/CLAUSE-infrastructure.pdf) · [scope map](ASSESSMENT_SCOPE.md) · [operations runbook](docs/OPERATIONS.md) · [performance reports](bench/performance/results/)
 
 ai assistance was used throughout. the claims above rest on tests and measurements in this repository, not on assertions.

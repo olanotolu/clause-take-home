@@ -1,0 +1,286 @@
+{
+  "generatedAt": "2026-10-18T23:59:58.869Z",
+  "node": "v24.15.0",
+  "query": "Common-word search; fictional benchmark documents",
+  "planningMs": 8.302,
+  "executionMs": 96.075,
+  "plan": {
+    "node": "Sort",
+    "rows": 10,
+    "loops": 1,
+    "ms": 95.626,
+    "sortSpace": "Memory",
+    "sortKiB": 27,
+    "children": [
+      {
+        "node": "Function Scan",
+        "rows": 1,
+        "loops": 1,
+        "ms": 0.686,
+        "children": []
+      },
+      {
+        "node": "Unique",
+        "rows": 4224,
+        "loops": 1,
+        "ms": 35.84,
+        "children": [
+          {
+            "node": "Sort",
+            "rows": 4224,
+            "loops": 1,
+            "ms": 34.827,
+            "sortSpace": "Memory",
+            "sortKiB": 655,
+            "children": [
+              {
+                "node": "Nested Loop",
+                "rows": 4224,
+                "loops": 1,
+                "ms": 30.841,
+                "children": [
+                  {
+                    "node": "CTE Scan",
+                    "rows": 1,
+                    "loops": 1,
+                    "ms": 0.688,
+                    "children": []
+                  },
+                  {
+                    "node": "Bitmap Heap Scan",
+                    "rows": 4224,
+                    "loops": 1,
+                    "ms": 29.265,
+                    "children": [
+                      {
+                        "node": "Bitmap Index Scan",
+                        "index": "document_chunks_search_idx",
+                        "rows": 4224,
+                        "loops": 1,
+                        "ms": 0.309,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "node": "Nested Loop",
+        "rows": 4224,
+        "loops": 1,
+        "ms": 51.404,
+        "children": [
+          {
+            "node": "CTE Scan",
+            "rows": 4224,
+            "loops": 1,
+            "ms": 36.818,
+            "children": []
+          },
+          {
+            "node": "Index Scan",
+            "index": "document_chunks_pkey",
+            "rows": 1,
+            "loops": 4224,
+            "ms": 0.003,
+            "children": []
+          }
+        ]
+      },
+      {
+        "node": "Aggregate",
+        "rows": 32,
+        "loops": 1,
+        "ms": 88.401,
+        "children": [
+          {
+            "node": "Aggregate",
+            "rows": 32,
+            "loops": 1,
+            "ms": 88.385,
+            "children": [
+              {
+                "node": "Append",
+                "rows": 32,
+                "loops": 1,
+                "ms": 88.37,
+                "children": [
+                  {
+                    "node": "Aggregate",
+                    "rows": 32,
+                    "loops": 1,
+                    "ms": 88.343,
+                    "children": [
+                      {
+                        "node": "CTE Scan",
+                        "rows": 4224,
+                        "loops": 1,
+                        "ms": 52.892,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "node": "Nested Loop",
+                    "rows": 0,
+                    "loops": 1,
+                    "ms": 0.021,
+                    "children": [
+                      {
+                        "node": "CTE Scan",
+                        "rows": 1,
+                        "loops": 1,
+                        "ms": 0.001,
+                        "children": []
+                      },
+                      {
+                        "node": "Bitmap Heap Scan",
+                        "rows": 0,
+                        "loops": 1,
+                        "ms": 0.018,
+                        "children": [
+                          {
+                            "node": "Bitmap Index Scan",
+                            "index": "documents_title_search_idx",
+                            "rows": 0,
+                            "loops": 1,
+                            "ms": 0.008,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "node": "Limit",
+        "rows": 10,
+        "loops": 1,
+        "ms": 0.09,
+        "children": [
+          {
+            "node": "Sort",
+            "rows": 10,
+            "loops": 1,
+            "ms": 0.088,
+            "sortSpace": "Memory",
+            "sortKiB": 27,
+            "children": [
+              {
+                "node": "Nested Loop",
+                "rows": 32,
+                "loops": 1,
+                "ms": 0.067,
+                "children": [
+                  {
+                    "node": "CTE Scan",
+                    "rows": 32,
+                    "loops": 1,
+                    "ms": 0.003,
+                    "children": []
+                  },
+                  {
+                    "node": "Index Scan",
+                    "index": "documents_pkey",
+                    "rows": 1,
+                    "loops": 32,
+                    "ms": 0.002,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "node": "Nested Loop",
+        "rows": 10,
+        "loops": 1,
+        "ms": 95.588,
+        "children": [
+          {
+            "node": "Nested Loop",
+            "rows": 10,
+            "loops": 1,
+            "ms": 95.546,
+            "children": [
+              {
+                "node": "Nested Loop",
+                "rows": 10,
+                "loops": 1,
+                "ms": 88.512,
+                "children": [
+                  {
+                    "node": "Aggregate",
+                    "rows": 1,
+                    "loops": 1,
+                    "ms": 88.411,
+                    "children": [
+                      {
+                        "node": "CTE Scan",
+                        "rows": 32,
+                        "loops": 1,
+                        "ms": 88.406,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "node": "CTE Scan",
+                    "rows": 10,
+                    "loops": 1,
+                    "ms": 0.096,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "node": "Limit",
+                "rows": 1,
+                "loops": 10,
+                "ms": 0.703,
+                "children": [
+                  {
+                    "node": "Sort",
+                    "rows": 1,
+                    "loops": 10,
+                    "ms": 0.702,
+                    "sortSpace": "Memory",
+                    "sortKiB": 25,
+                    "children": [
+                      {
+                        "node": "CTE Scan",
+                        "rows": 132,
+                        "loops": 10,
+                        "ms": 0.679,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "node": "Index Scan",
+            "index": "document_chunks_pkey",
+            "rows": 1,
+            "loops": 10,
+            "ms": 0.003,
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

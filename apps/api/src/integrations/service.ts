@@ -1,3 +1,5 @@
+import type { RemoteFile } from "../jobs/types.ts";
+export type { RemoteFile } from "../jobs/types.ts";
 import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
 import type { IntegrationConnection, IntegrationProvider, Store } from "../store/types.ts";
 import { providerById, providerConfig, PROVIDERS } from "./providers.ts";
@@ -8,7 +10,7 @@ export class IntegrationError extends Error {
   constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
 }
 
-const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 15_000;
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 
@@ -26,7 +28,7 @@ async function providerFetch(url: string, init: RequestInit = {}, timeoutMs = RE
 
 /** Read a provider response without buffering more than the import limit in memory. */
 export async function readLimitedResponse(response: Response, limit = MAX_IMPORT_BYTES): Promise<Buffer> {
-  const tooLarge = () => new IntegrationError(413, "FILE_TOO_LARGE", "Files larger than 20 MB cannot be imported.");
+  const tooLarge = () => new IntegrationError(413, "FILE_TOO_LARGE", "Files larger than 25 MiB cannot be imported.");
   const declaredLength = response.headers.get("content-length");
   if (declaredLength && /^\d+$/.test(declaredLength) && Number(declaredLength) > limit) {
     await response.body?.cancel().catch(() => {});
@@ -239,62 +241,66 @@ async function refreshAccessToken(store: Store, provider: IntegrationProvider, s
   throw failure ?? new IntegrationError(401, "PROVIDER_AUTH_EXPIRED", `Reconnect ${providerById(provider)?.name ?? provider} to continue importing.`);
 }
 
-export interface RemoteFile { id: string; name: string; mimeType: string; folder: boolean; parentId?: string; driveId?: string }
 export interface FilePage { files: RemoteFile[]; nextPageToken: string | null }
+type ProviderRow=Record<string,unknown>;
+const providerRow=(value:unknown):ProviderRow=>typeof value==="object"&&value!==null&&!Array.isArray(value)?value as ProviderRow:{};
+const providerRows=(value:unknown):ProviderRow[]=>Array.isArray(value)?value.map(providerRow):[];
+const providerText=(value:unknown,fallback=""):string=>typeof value==="string"?value:typeof value==="number"&&Number.isFinite(value)?String(value):fallback;
 const jsonRequest = async (url: string, token: string, init?: RequestInit) => {
   const response = await providerFetch(url, { ...init, headers: { authorization: `Bearer ${token}`, ...init?.headers } });
   if (!response.ok) throw new IntegrationError(response.status === 401 ? 401 : 502, response.status === 401 ? "PROVIDER_AUTH_EXPIRED" : "PROVIDER_REQUEST_FAILED", `The provider could not complete this request (${response.status}).`);
-  return response.json().catch((error) => { throw networkError(error); }) as Promise<Record<string, any>>;
+  return response.json().catch((error) => { throw networkError(error); }) as Promise<ProviderRow>;
 };
 
 export async function browseFiles(store: Store, provider: IntegrationProvider, parentId = "", driveId = "", pageToken = ""): Promise<FilePage> {
   const token = await accessToken(store, provider);
   const config = providerConfig(provider);
-  let body: Record<string, any>;
+  let body: ProviderRow;
   let files: RemoteFile[];
   let nextPageToken: string | null = null;
   if (provider === "google_drive") {
     const params = new URLSearchParams({ pageSize: "100", orderBy: "folder,name", fields: "nextPageToken,files(id,name,mimeType,parents)", q: parentId ? `'${parentId.replaceAll("'", "\\'")}' in parents and trashed = false` : "'root' in parents and trashed = false" });
     if (pageToken) params.set("pageToken", pageToken);
     body = await jsonRequest(`${config.apiBase}/files?${params}`, token);
-    files = (body.files ?? []).map((f: any) => ({ id: f.id, name: f.name, mimeType: f.mimeType, folder: f.mimeType === "application/vnd.google-apps.folder", parentId: f.parents?.[0] }));
-    nextPageToken = body.nextPageToken ?? null;
+    files = providerRows(body.files).map((f)=>({id:providerText(f.id),name:providerText(f.name),mimeType:providerText(f.mimeType,"application/octet-stream"),folder:f.mimeType==="application/vnd.google-apps.folder",...(Array.isArray(f.parents)&&typeof f.parents[0]==="string"?{parentId:f.parents[0]}:{})}));
+    nextPageToken = providerText(body.nextPageToken)||null;
   } else if (provider === "dropbox") {
     body = await jsonRequest(`${config.apiBase}/files/list_folder${pageToken ? "/continue" : ""}`, token, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pageToken ? { cursor: pageToken } : { path: parentId, recursive: false, limit: 100 }) });
-    files = (body.entries ?? []).map((f: any) => ({ id: f.id, name: f.name, mimeType: f['.tag'] === "folder" ? "folder" : (f.name.split(".").pop()?.toLowerCase() === "pdf" ? "application/pdf" : "application/octet-stream"), folder: f['.tag'] === "folder", parentId: f.path_lower }));
-    nextPageToken = body.has_more ? body.cursor : null;
+    files = providerRows(body.entries).map((f)=>{const name=providerText(f.name);const folder=f[".tag"]==="folder";return {id:providerText(f.id),name,mimeType:folder?"folder":(name.split(".").pop()?.toLowerCase()==="pdf"?"application/pdf":"application/octet-stream"),folder,...(typeof f.path_lower==="string"?{parentId:f.path_lower}:{})};});
+    nextPageToken = body.has_more ? providerText(body.cursor)||null : null;
   } else if (provider === "box") {
     const folder = parentId || "0";
     const params = new URLSearchParams({ limit: "100", fields: "id,name,type,parent,extension", ...(pageToken && { offset: pageToken }) });
     body = await jsonRequest(`${config.apiBase}/folders/${encodeURIComponent(folder)}/items?${params}`, token);
-    files = (body.entries ?? []).map((f: any) => ({ id: f.id, name: f.name, mimeType: f.extension === "pdf" ? "application/pdf" : "application/octet-stream", folder: f.type === "folder", parentId: f.parent?.id }));
-    nextPageToken = body.next_offset < body.total_count ? String(body.next_offset) : null;
+    files = providerRows(body.entries).map((f)=>{const parent=providerRow(f.parent);return {id:providerText(f.id),name:providerText(f.name),mimeType:f.extension==="pdf"?"application/pdf":"application/octet-stream",folder:f.type==="folder",...(typeof parent.id==="string"?{parentId:parent.id}:{})};});
+    const next=Number(body.next_offset),total=Number(body.total_count);
+    nextPageToken = Number.isFinite(next)&&Number.isFinite(total)&&next<total ? String(next) : null;
   } else if (provider === "onedrive" || provider === "sharepoint") {
     let path: string;
-    let data: any[];
+    let data: ProviderRow[];
     if (pageToken) {
       const nextUrl = new URL(pageToken);
       if (nextUrl.origin !== new URL(config.apiBase).origin) throw new IntegrationError(400, "INVALID_PAGE_TOKEN", "The provider returned an invalid page cursor.");
       body = await jsonRequest(nextUrl.toString(), token);
-      data = body.value ?? [];
-      files = data.map((f: any) => ({ id: f.id, name: f.name, mimeType: f.file?.mimeType ?? "application/octet-stream", folder: Boolean(f.folder), parentId: f.parentReference?.id, driveId: f.parentReference?.driveId ?? driveId }));
+      data = providerRows(body.value);
+      files = data.map((f)=>{const file=providerRow(f.file);const parent=providerRow(f.parentReference);return {id:providerText(f.id),name:providerText(f.name),mimeType:providerText(file.mimeType,"application/octet-stream"),folder:Boolean(f.folder),...(typeof parent.id==="string"?{parentId:parent.id}:{}),driveId:providerText(parent.driveId,driveId)};});
     } else if (provider === "sharepoint" && !driveId) {
       path = "/me/drives?$top=100";
       body = await jsonRequest(`${config.apiBase}${path}`, token);
-      files = (body.value ?? []).map((f: any) => ({ id: f.id, name: f.name, mimeType: "drive", folder: true, driveId: f.id }));
+      files = providerRows(body.value).map((f)=>({id:providerText(f.id),name:providerText(f.name),mimeType:"drive",folder:true,driveId:providerText(f.id)}));
     } else {
       const drivePath = driveId ? `/drives/${encodeURIComponent(driveId)}` : "/me/drive";
       path = parentId ? `${drivePath}/items/${encodeURIComponent(parentId)}/children` : `${drivePath}/root/children`;
       body = await jsonRequest(`${config.apiBase}${path}?$top=100&$select=id,name,file,folder,parentReference`, token);
-      data = body.value ?? [];
-      files = data.map((f: any) => ({ id: f.id, name: f.name, mimeType: f.file?.mimeType ?? "application/octet-stream", folder: Boolean(f.folder), parentId: f.parentReference?.id, driveId: f.parentReference?.driveId ?? driveId }));
+      data = providerRows(body.value);
+      files = data.map((f)=>{const file=providerRow(f.file);const parent=providerRow(f.parentReference);return {id:providerText(f.id),name:providerText(f.name),mimeType:providerText(file.mimeType,"application/octet-stream"),folder:Boolean(f.folder),...(typeof parent.id==="string"?{parentId:parent.id}:{}),driveId:providerText(parent.driveId,driveId)};});
     }
-    nextPageToken = body["@odata.nextLink"] ?? null;
+    nextPageToken = providerText(body["@odata.nextLink"])||null;
   } else {
     const endpoint = provider === "imanage" ? (parentId ? `/folders/${encodeURIComponent(parentId)}/children` : "/folders/root/children") : (parentId ? `/folders/${encodeURIComponent(parentId)}/documents` : "/documents");
     body = await jsonRequest(`${config.apiBase.replace(/\/$/, "")}${endpoint}${pageToken ? `?page=${encodeURIComponent(pageToken)}` : ""}`, token);
-    files = (body.files ?? body.documents ?? body.data ?? body.items ?? []).map((f: any) => ({ id: String(f.id ?? f.document_id ?? f.docId), name: String(f.name ?? f.title ?? f.file_name), mimeType: String(f.mimeType ?? f.mime_type ?? "application/octet-stream"), folder: Boolean(f.folder ?? f.is_folder ?? f.type === "folder"), parentId }));
-    nextPageToken = body.nextPageToken ?? body.next_page_token ?? null;
+    files = providerRows(body.files??body.documents??body.data??body.items).map((f)=>({id:providerText(f.id??f.document_id??f.docId),name:providerText(f.name??f.title??f.file_name),mimeType:providerText(f.mimeType??f.mime_type,"application/octet-stream"),folder:Boolean(f.folder??f.is_folder??f.type==="folder"),...(parentId?{parentId}:{})}));
+    nextPageToken = providerText(body.nextPageToken??body.next_page_token)||null;
   }
   return { files: files.filter((f) => f.id && f.name), nextPageToken };
 }

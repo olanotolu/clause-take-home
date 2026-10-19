@@ -1,4 +1,5 @@
-export const wordCount = (s: string): number => (s.trim() ? s.trim().split(/\s+/).length : 0);
+import { countWords } from "@clause/core/count-words";
+export const wordCount=countWords;
 
 /** Words added and removed by replacing `before` with `after`. Counts are per side, never netted, so a swap reads +4 / -4. */
 export function wordDelta(before: string, after: string): { added: number; removed: number } {

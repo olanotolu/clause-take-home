@@ -1,0 +1,365 @@
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+
+     execution: local
+        script: /Users/term_/Desktop/Sandstone/bench/performance/k6.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 32 max VUs, 2m30s max duration (incl. graceful stop):
+              * load: 100 iterations shared among 32 VUs (maxDuration: 2m0s, gracefulStop: 30s)
+
+
+running (0m00.9s), 32/32 VUs, 17 complete and 0 interrupted iterations
+load   [  17% ] 32 VUs  0m00.9s/2m0s  017/100 shared iters
+
+running (0m01.9s), 25/32 VUs, 75 complete and 0 interrupted iterations
+load   [  75% ] 32 VUs  0m01.9s/2m0s  075/100 shared iters
+{
+  "generatedAt": "2026-10-19T15:48:29.753Z",
+  "base": "https://clause-take-home-c6z6nu23x-subomis-projects-22c86536.vercel.app/api",
+  "bytes": 1048576,
+  "phase": "warm",
+  "scenario": "contention",
+  "clients": 32,
+  "writeAttemptLimit": 100,
+  "metadata": {
+    "p(90)": 124.4244,
+    "p(95)": 157.68725,
+    "p(99)": 204.44439999999986,
+    "max": 358.132,
+    "min": 42.971,
+    "med": 62.8275
+  },
+  "search": null,
+  "edit": {
+    "min": 53.39,
+    "med": 395.87199999999996,
+    "p(90)": 577.6925,
+    "p(95)": 626.17205,
+    "p(99)": 656.6426799999999,
+    "max": 691.261
+  },
+  "serverMetadata": {
+    "p(95)": 17.579999999999988,
+    "p(99)": 90.24159999999999,
+    "max": 95.35,
+    "min": 10.72,
+    "med": 13.665,
+    "p(90)": 15.688
+  },
+  "serverSearch": null,
+  "serverEdit": {
+    "min": 12.81,
+    "med": 326.73,
+    "p(90)": 526.58,
+    "p(95)": 582.888,
+    "p(99)": 619.5592999999999,
+    "max": 660.08
+  },
+  "attemptedWrites": {
+    "rate": 41.338576167153356,
+    "count": 100
+  },
+  "committedWrites": {
+    "count": 4,
+    "rate": 1.6535430466861343
+  },
+  "conflicts": {
+    "count": 96,
+    "rate": 39.685033120467224
+  },
+  "failures": {
+    "count": 0,
+    "rate": 0
+  },
+  "serverFailures": null,
+  "clientFailures": null,
+  "transportFailures": null,
+  "transferredBytes": {
+    "count": 276553,
+    "rate": 114323.07254754762
+  },
+  "responseBytes": {
+    "count": 53648,
+    "rate": 22177.319342154435
+  },
+  "thresholds": {
+    "clause_server_edit_ms": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 582.888,
+        "p(99)": 619.5592999999999,
+        "max": 660.08,
+        "min": 12.81,
+        "med": 326.73,
+        "p(90)": 526.58
+      }
+    },
+    "clause_cas_conflicts": {
+      "values": {
+        "rate": 39.685033120467224,
+        "count": 96
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "iteration_duration": {
+      "values": {
+        "min": 211.708125,
+        "med": 641.5585625,
+        "p(90)": 1073.6814584,
+        "p(95)": 1110.0102625,
+        "p(99)": 1495.4453574999998,
+        "max": 1616.446375
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 29.344,
+        "min": 0.024,
+        "med": 0.233,
+        "p(90)": 3.995600000000003,
+        "p(95)": 7.755999999999993,
+        "p(99)": 25.106859999999994
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 200
+      }
+    },
+    "clause_committed_writes": {
+      "values": {
+        "count": 4,
+        "rate": 1.6535430466861343
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "vus": {
+      "contains": "default",
+      "values": {
+        "min": 25,
+        "max": 32,
+        "value": 25
+      },
+      "type": "gauge"
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 152.348,
+        "min": 0,
+        "med": 0,
+        "p(90)": 39.85850000000001,
+        "p(95)": 44.07934999999999,
+        "p(99)": 82.82725999999992
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 42.76,
+        "med": 127.9675,
+        "p(90)": 506.5376,
+        "p(95)": 572.2716499999999,
+        "p(99)": 655.63085,
+        "max": 690.757
+      }
+    },
+    "clause_response_bytes": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 22177.319342154435,
+        "count": 53648
+      }
+    },
+    "clause_write_attempts": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 100,
+        "rate": 41.338576167153356
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 11.610179999999993,
+        "max": 25.654,
+        "min": 0.016,
+        "med": 0.0885,
+        "p(90)": 1.2356000000000014,
+        "p(95)": 4.018349999999988
+      }
+    },
+    "clause_metadata_ms": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 42.971,
+        "med": 62.8275,
+        "p(90)": 124.4244,
+        "p(95)": 157.68725,
+        "p(99)": 204.44439999999986,
+        "max": 358.132
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 686.0592999999997,
+        "p(99)": 888.0169299999999,
+        "max": 907.684,
+        "min": 0,
+        "med": 0.001,
+        "p(90)": 368.1544000000001
+      }
+    },
+    "vus_max": {
+      "values": {
+        "value": 32,
+        "min": 32,
+        "max": 32
+      },
+      "type": "gauge",
+      "contains": "default"
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 200,
+        "rate": 82.67715233430671
+      }
+    },
+    "clause_server_metadata_ms": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 95.35,
+        "min": 10.72,
+        "med": 13.665,
+        "p(90)": 15.688,
+        "p(95)": 17.579999999999988,
+        "p(99)": 90.24159999999999
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 89572,
+        "rate": 37027.789444442606
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 276553,
+        "rate": 114323.07254754762
+      }
+    },
+    "clause_http_failures": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 611.3856999999996,
+        "p(99)": 782.48189,
+        "max": 825.788,
+        "min": 0,
+        "med": 0,
+        "p(90)": 298.60090000000014
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 577.47925,
+        "p(99)": 655.7722600000001,
+        "max": 691.261,
+        "min": 42.971,
+        "med": 128.1755,
+        "p(90)": 506.8317
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 100,
+        "fails": 0,
+        "rate": 1
+      }
+    },
+    "clause_edit_ms": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 53.39,
+        "med": 395.87199999999996,
+        "p(90)": 577.6925,
+        "p(95)": 626.17205,
+        "p(99)": 656.6426799999999,
+        "max": 691.261
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 128.1755,
+        "p(90)": 506.8317,
+        "p(95)": 577.47925,
+        "p(99)": 655.7722600000001,
+        "max": 691.261,
+        "min": 42.971
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 100,
+        "rate": 41.338576167153356
+      }
+    }
+  }
+}
+
+running (0m02.4s), 00/32 VUs, 100 complete and 0 interrupted iterations
+load ✓ [ 100% ] 32 VUs  0m02.4s/2m0s  100/100 shared iters

@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-10-19T00:23:29.388Z",
+  "deployment": "https://clause-take-home-mz3wt7ftu-subomis-projects-22c86536.vercel.app",
+  "generatorRegion": "iad1",
+  "cloudNode": "v24.21.0",
+  "databaseError": {
+    "code": "53000",
+    "message": "Your account or project has exceeded the quota. Upgrade your plan to increase limits."
+  },
+  "cloudBenchmark": "blocked before fixture creation",
+  "routes": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "ms": 2046.8311250000002,
+      "body": {
+        "status": "ok"
+      }
+    },
+    {
+      "path": "/api/ready",
+      "status": 503,
+      "ms": 386.44779199999994,
+      "body": {
+        "status": "not_ready"
+      }
+    }
+  ],
+  "followup": {
+    "generatedAt": "2026-10-19T14:39:38.491Z",
+    "observations": [
+      {
+        "path": "/api/health",
+        "status": 200,
+        "ms": 2364.638541,
+        "body": {
+          "status": "ok"
+        }
+      },
+      {
+        "path": "/api/ready",
+        "status": 503,
+        "ms": 295.3878749999999,
+        "body": {
+          "status": "not_ready"
+        }
+      }
+    ]
+  }
+}

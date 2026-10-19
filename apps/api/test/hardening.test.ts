@@ -2,8 +2,20 @@ import { describe, expect, it } from "vitest";
 import { createSemanticEvaluator } from "../src/review/evaluator.ts";
 import { testApp, createDoc } from "./helpers.ts";
 import type { Judge } from "../src/review/judges/types.ts";
+import { buildApp } from "../src/app.ts";
+import { testStore } from "./helpers.ts";
 
 describe("AI request budgets", () => {
+  it("keeps liveness independent from database readiness", async () => {
+    const store = await testStore();
+    store.checkReady = async () => { throw new Error("database unavailable"); };
+    const app = await buildApp({ store });
+    expect((await app.inject({ method: "GET", url: "/health" })).statusCode).toBe(200);
+    expect(await (await app.inject({ method: "GET", url: "/ready" })).json()).toEqual({ status: "not_ready" });
+    expect((await app.inject({ method: "GET", url: "/ready" })).statusCode).toBe(503);
+    await app.close();
+  });
+
   it("times out a hung suggestion, cancels the provider, redacts details, and writes nothing", async () => {
     let aborted = false;
     const app = await testApp({ aiTimeoutMs: 20, suggestionProvider: { kind: "fixture", model: "hung", suggest: (_input, options) => new Promise(() => options?.signal.addEventListener("abort", () => { aborted = true; })) } });
@@ -99,7 +111,12 @@ it("the API keeps its search page coherent if another edit commits before snippe
   expect(response.statusCode).toBe(200);
   expect(response.json().total).toBe(1);
   expect(response.json().results[0]).toMatchObject({ documentId: doc.id, version: 1 });
-  expect(response.json().results[0].hits[0].target.quote.exact.toLowerCase()).toContain("target");
+  const hit=response.json().results[0].hits[0];
+  expect(hit.target).toBeDefined();
+  if (!hit.target) throw new Error("search hit has no target");
+  const target=hit.target;
+  const expected="position" in target?target.position.expectedText:target.quote.exact;
+  expect(expected.toLowerCase()).toContain("target");
   expect((await app.store.getDocument(doc.id))?.version).toBe(2);
   await app.close();
 });

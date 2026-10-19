@@ -1,10 +1,12 @@
 import { Pencil, ShieldCheck, Search, X } from "../ui/icons.tsx";
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { countOccurrences } from "../lib/segments.ts";
+import { documentWorker } from "../lib/api.ts";
 import { plural } from "../lib/wordDelta.ts";
 import { Button } from "../ui/Button.tsx";
 
 interface Props {
+  documentId:string;
+  version:number;
   container: RefObject<HTMLElement | null>;
   content: string;
   selection: { start: number; end: number };
@@ -18,12 +20,14 @@ interface Props {
  * Appears next to the selected passage. Positioned from the highlighted span itself (not the native selection, which
  * is cleared when the highlight re-renders), inside the scroll container so it moves with the text.
  */
-export function SelectionToolbar({ container, content, selection, onStage, onProtect, onFind, onClear }: Props) {
+export function SelectionToolbar({ documentId,version,container, content, selection, onStage, onProtect, onFind, onClear }: Props) {
   const selected = content.slice(selection.start, selection.end);
   const [pos, setPos] = useState<{ top: number; bottom: number; left: number } | null>(null);
   const [composing, setComposing] = useState(false);
   const [text, setText] = useState(selected);
   const area = useRef<HTMLTextAreaElement>(null);
+  const [occurrences,setOccurrences]=useState<number|null>(null);
+  useEffect(()=>{let active=true;setOccurrences(null);void documentWorker().occurrences(documentId,version,selection.start,selection.end).then(result=>{if(active)setOccurrences(result?.count??null);});return()=>{active=false;};},[documentId,version,selection.start,selection.end]);
 
   // A new selection starts fresh.
   useEffect(() => {
@@ -62,7 +66,6 @@ export function SelectionToolbar({ container, content, selection, onStage, onPro
   }, [onClear]);
 
   if (!pos) return null;
-  const occurrences = countOccurrences(content, selected);
   const unchanged = text === selected;
 
   return (
@@ -71,7 +74,7 @@ export function SelectionToolbar({ container, content, selection, onStage, onPro
         // biome-ignore lint/a11y/useSemanticElements: a styled popover composer; a fieldset would bring browser borders and legend layout
         <div className="pop rounded-card bg-paper p-3 shadow-lift [--origin:top_left]" role="group" aria-label="Replace selected passage">
           <label htmlFor="replace-text" className="mb-1 block text-xs font-medium text-muted">
-            Replace with <span className="font-normal">· {occurrences === 1 ? "unique in this version" : `appears ${plural(occurrences, "time")}, anchored by its context`}</span>
+            Replace with <span className="font-normal">· {occurrences===null?"anchored to this passage":occurrences === 1 ? "unique in this version" : `appears ${plural(occurrences, "time")}, anchored by its context`}</span>
           </label>
           <textarea
             id="replace-text"

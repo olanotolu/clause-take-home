@@ -20,13 +20,13 @@ If I rebuilt this in four hours, I would keep: the pure edit engine, the compare
 
 ## Extras built on top of the core
 
-Clause CI (checks an edit against saved requirements), AI suggestions (proposals only; the engine validates them), the Word tracked-changes export, the web app, requests/playbooks/templates, the Integrations page and the walkthrough video. Each works, none was asked for, and none is needed to evaluate the core.
+Clause CI (checks an edit against saved requirements), AI suggestions (proposals only; the engine validates them), the Word tracked-changes export, the web app, requests/playbooks/templates, the Integrations page, durable background jobs (exports, imports, maintenance), OpenTelemetry metrics and the walkthrough video. Each works, none was asked for, and none is needed to evaluate the core.
 
 ## Things that look more finished than they are
 
 - **Integrations:** the page in the UI runs on sample files and never calls the real connector API. The connectors exist and are tested with stubbed providers, but need OAuth credentials the demo does not have. Its "import" writes placeholder documents into the shared database.
 - **Clause CI, semantic checks:** advisory. A quote is checked to exist in the document, not to support the model's conclusion.
-- **Postgres at size:** the hosted database caps documents at 500,000 characters and has not been load-tested; the 10 MiB numbers are SQLite.
+- **Postgres at size:** documents go up to 25 MiB (search runs over 8,000-character chunks, bodies above 1 MiB live in Blob). 1, 10 and 25 MiB flows passed as single hosted runs; concurrent traffic at those sizes is untested, and no hosted load run has used the current Supabase database.
 - **No tenancy, sign-in or audit trail** on the demo. It is a shared workspace; the five sample contracts are read-only, everything else is disposable.
 
 ## Not built, on purpose

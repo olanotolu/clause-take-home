@@ -35,21 +35,38 @@ export async function openDocument(page: Page, title: string) {
  * receives the mouseup it listens for. (Dragging by pixels is flaky across viewports; this exercises the same handler.)
  */
 export async function selectPassage(page: Page, text: string) {
-  await page.evaluate((needle) => {
-    for (const span of document.querySelectorAll<HTMLElement>("[data-start]")) {
-      const node = span.firstChild;
-      const at = node?.textContent?.indexOf(needle) ?? -1;
-      if (!node || at < 0) continue;
-      const range = document.createRange();
-      range.setStart(node, at);
-      range.setEnd(node, at + needle.length);
-      const sel = window.getSelection()!;
-      sel.removeAllRanges();
-      sel.addRange(range);
-      span.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-      return;
+  await page.evaluate(async (needle) => {
+    const scroller = document.querySelector<HTMLElement>(".cm-scroller");
+    if (!scroller) throw new Error("document editor is not mounted");
+    for (let attempt = 0; attempt < 200; attempt++) {
+      for (const line of document.querySelectorAll<HTMLElement>(".cm-line")) {
+        const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+        const nodes: Text[] = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+        const joined = nodes.map((node) => node.data).join("");
+        const at = joined.indexOf(needle);
+        if (at < 0) continue;
+        const locate = (offset: number) => {
+          let remaining = offset;
+          for (const node of nodes) { if (remaining <= node.length) return { node, offset: remaining }; remaining -= node.length; }
+          return { node: nodes.at(-1)!, offset: nodes.at(-1)!.length };
+        };
+        const start = locate(at), end = locate(at + needle.length);
+        const range = document.createRange();
+        range.setStart(start.node, start.offset);
+        range.setEnd(end.node, end.offset);
+        const selection = window.getSelection()!;
+        selection.removeAllRanges();
+        selection.addRange(range);
+        line.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        return;
+      }
+      const next = Math.min(scroller.scrollTop + Math.max(1, scroller.clientHeight * 0.8), scroller.scrollHeight);
+      if (next <= scroller.scrollTop) break;
+      scroller.scrollTop = next;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     }
-    throw new Error(`passage not found in the rendered document: ${needle}`);
+    throw new Error(`passage not found in the document: ${needle}`);
   }, text);
 }
 

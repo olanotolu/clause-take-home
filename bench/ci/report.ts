@@ -16,7 +16,7 @@ type Nli = (typeof NLI)[number];
 const TO_NLI: Record<JudgeLabel, Nli> = { entailed: "Entailment", contradicted: "Contradiction", not_mentioned: "NotMentioned", unclear: "Abstain" };
 const asNli = (r: RawRecord | undefined): Nli => (r?.answer ? TO_NLI[r.answer.label] : "Abstain"); // an outage counts as no answer
 
-export interface Texts { static: Map<string, string>; before: Map<string, string>; after_pos: Map<string, string>; after_ctrl: Map<string, string> }
+export interface Texts { static: Map<string, string>; cuad: Map<string, string>; before: Map<string, string>; after_pos: Map<string, string>; after_ctrl: Map<string, string> }
 
 export interface JudgeSummary {
   judge: string;
@@ -32,6 +32,7 @@ export interface JudgeSummary {
     brier: number | null;
     confusion: ReturnType<typeof confusion<Nli>>;
   };
+  cuad: { n: number; attempted: number; cases: number; negativeCases: number; accuracy: ReturnType<typeof wilson>; falsePassRate: ReturnType<typeof wilson>; categories: Record<string, { n: number; negativeCases: number; accuracy: ReturnType<typeof wilson>; falsePassRate: ReturnType<typeof wilson> }> };
   regression: { pairs: number; usable: number; detected: number; falseAlarm: number; separates: number; recallAll: ReturnType<typeof wilson> };
   product: { usable: number; flaggedPos: number; flaggedCtrl: number; failPos: number; reviewPos: number; failCtrl: number; reviewCtrl: number } | null;
   quotes: { total: number; verified: number } | null;
@@ -51,6 +52,20 @@ export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, text
   const rep = classReport(NLI, m);
   const binCorrect = cases.static.filter((c) => (c.label === "Entailment") === (asNli(get(c.id, "static")) === "Entailment")).length;
   const probs = cases.static.flatMap((c) => { const a = get(c.id, "static")?.answer; return a?.pEntailed === undefined ? [] : [{ p: a.pEntailed, outcome: c.label === "Entailment" }]; });
+  const attemptedCuadIds = new Set(rs.filter((r) => r.kind === "cuad").map((r) => r.caseId));
+  const cuadCasesAttempted = cases.cuadStatic.filter((c) => attemptedCuadIds.has(c.id));
+  const cuadRows = cuadCasesAttempted.map((c) => {
+    const r = get(c.id, "cuad");
+    const outcome = combineJudges(texts.cuad.get(c.id) ?? "", [r?.answer ? { judgeId: judge, answer: r.answer } : { judgeId: judge }]).verdict;
+    const predicted = outcome === "PASS";
+    return { ...c, predicted, correct: predicted === c.hasClause };
+  });
+  const catNames = [...new Set(cuadRows.map((x) => x.category))];
+  const catStats = Object.fromEntries(catNames.map((category) => {
+    const rows = cuadRows.filter((x) => x.category === category);
+    const falsePass = rows.filter((x) => !x.hasClause && x.predicted).length;
+    return [category, { n: rows.length, negativeCases: rows.filter((x) => !x.hasClause).length, accuracy: wilson(rows.filter((x) => x.correct).length, rows.length), falsePassRate: wilson(falsePass, rows.filter((x) => !x.hasClause).length) }];
+  }));
 
   // Label-level regression: a pair is usable if the judge saw the requirement as satisfied BEFORE the edit.
   let usable = 0, detected = 0, falseAlarm = 0, separates = 0, detectedAll = 0;
@@ -85,7 +100,7 @@ export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, text
   let qTotal = 0, qVerified = 0;
   for (const r of rs) {
     if (!r.answer?.quotes.length) continue;
-    const t = r.kind === "static" ? texts.static.get(r.caseId) : texts[r.kind].get(r.caseId);
+    const t = r.kind === "static" ? texts.static.get(r.caseId) : r.kind === "cuad" ? texts.cuad.get(r.caseId) : texts[r.kind].get(r.caseId);
     if (!t) continue;
     for (const e of verifyQuotes(t, r.answer.quotes, 10)) { qTotal++; if (e.verified) qVerified++; }
   }
@@ -108,6 +123,7 @@ export function summarize(judge: string, rs: RawRecord[], cases: CasesFile, text
       brier: probs.length ? brier(probs) : null,
       confusion: m,
     },
+    cuad: { n: cuadRows.length, attempted: cuadRows.length, cases: cases.cuadStatic.length, negativeCases: cuadRows.filter((x) => !x.hasClause).length, accuracy: wilson(cuadRows.filter((x) => x.correct).length, cuadRows.length), falsePassRate: wilson(cuadRows.filter((x) => !x.hasClause && x.predicted).length, cuadRows.filter((x) => !x.hasClause).length), categories: catStats },
     regression: { pairs: cases.regression.length, usable, detected, falseAlarm, separates, recallAll: wilson(detectedAll, cases.regression.length) },
     product: pu || rs.length ? { usable: pu, flaggedPos: fp, flaggedCtrl: fc, failPos: failP, reviewPos: revP, failCtrl: failC, reviewCtrl: revC } : null,
     quotes: qTotal ? { total: qTotal, verified: qVerified } : null,
@@ -142,6 +158,7 @@ export function renderMarkdown(args: { summaries: JudgeSummary[]; cases: CasesFi
   L.push("Can a judge tell whether a contract **satisfies a requirement**, and does it notice when an edit **stops** satisfying it? Data: [ContractNLI](https://stanfordnlp.github.io/contract-nli/) (Koreeda & Manning, *Findings of EMNLP 2021*; CC BY 4.0): real NDAs with expert labels and evidence spans. The requirement text is ContractNLI's own hypothesis wording.", "");
   L.push(`- **Static task** (n=${cases.static.length}, 20 per label from the test split): classify each document as *Entailment*, *Contradiction* or *NotMentioned* for one hypothesis.`);
   L.push(`- **Regression task** (n=${cases.regression.length} pairs): for a hypothesis the experts marked *Entailment*, (a) **delete the expert-marked evidence sentences** (should stop being satisfied) and (b) as a control **delete ${cases.meta.controlSpans} unrelated sentences** (should stay satisfied). Edits are applied with CLAUSE's own edit engine.`);
+  L.push(`- **CUAD task** (n=${cases.cuadStatic.length} fixed cases, contracts ≤${cases.meta.maxCuadDocChars.toLocaleString()} characters): test contract clauses across ${new Set(cases.cuadStatic.map((c) => c.category)).size} expert-annotated categories. Each category contributes a deterministic positive and negative example when available; cases use the official CUAD test split.`);
   L.push(`- Cases, seed (${cases.meta.seed}) and thresholds were **committed before any judge ran** on them (commit \`cafc0d5\`). The keyword baseline's one threshold was tuned on the dev split only (dev macro-F1 ${config.heuristicDevMacroF1}).`, "");
   L.push("## Judges", "", `- **keyword-baseline**: no model; best-matching sentence by distinctive-word overlap (τ=${config.heuristicTau}), negation mismatch ⇒ contradicted. Its quotes are real sentences, so they verify.`);
   for (const s of summaries.filter((x) => x.judge !== "keyword-baseline")) L.push(`- **${s.judge}**`);
@@ -159,19 +176,30 @@ export function renderMarkdown(args: { summaries: JudgeSummary[]; cases: CasesFi
   for (const s of summaries) { const p = s.product; if (!p) continue; L.push(`| ${s.judge} | ${p.usable}/${s.regression.pairs} | ${p.failPos} / ${p.reviewPos} (of ${p.usable}) | ${p.failCtrl} / ${p.reviewCtrl} (of ${p.usable}) |`); }
   L.push("");
 
-  L.push("## Evidence integrity, latency, cost", "", "| Judge | Quotes found verbatim in the text | Latency p50 / p95 per call | Tokens (in / out) | Cost for this run |", "|---|---|---|---|---|");
+  L.push("## CUAD: clause detection", "", "PASS is counted as detecting a clause; FAIL or NEEDS_REVIEW counts as no detection. False PASS rate is measured only on attempted agreements annotated as lacking the category. A provider error counts as no detection; an unattempted case is excluded and shown in the coverage column.", "", "| Judge | Cases attempted / frozen | Accuracy [95% CI] | False PASS rate [95% CI] |", "|---|---:|---|---|");
+  for (const s of summaries) {
+    L.push(`| ${s.judge} | ${s.cuad.attempted}/${s.cuad.cases} | ${fmtCi(Math.round(s.cuad.accuracy.p * s.cuad.n), s.cuad.n)} | ${s.cuad.negativeCases ? fmtCi(Math.round(s.cuad.falsePassRate.p * s.cuad.negativeCases), s.cuad.negativeCases) : "n/a"} |`);
+  }
+  for (const s of summaries) {
+    L.push("", `### ${s.judge} by CUAD category`, "", "| Category | Cases | Accuracy [95% CI] | False PASS [95% CI] |", "|---|---:|---|---|");
+    for (const [category, m] of Object.entries(s.cuad.categories)) {
+      L.push(`| ${category} | ${m.n} | ${fmtCi(Math.round(m.accuracy.p * m.n), m.n)} | ${m.negativeCases ? fmtCi(Math.round(m.falsePassRate.p * m.negativeCases), m.negativeCases) : "n/a"} |`);
+    }
+  }
+
+  L.push("## Evidence integrity, latency, cost", "", "| Judge | Calls / errors | Quotes found verbatim in the text | Latency p50 / p95 per answered call | Tokens (in / out) | Estimated cost from reported tokens |", "|---|---:|---|---|---|---|");
   for (const s of summaries) {
     const price = prices[s.judge];
-    const cost = s.tokens && price ? `$${(s.tokens.input * price.prompt + s.tokens.output * price.completion).toFixed(2)} (${s.calls} calls)` : s.tokens ? "price unavailable" : "n/a";
-    L.push(`| ${s.judge} | ${s.quotes ? fmtCi(s.quotes.verified, s.quotes.total) : "n/a (no quotes)"} | ${fmtMs(s.latency.p50)} / ${fmtMs(s.latency.p95)} | ${s.tokens ? `${s.tokens.input.toLocaleString()} / ${s.tokens.output.toLocaleString()}` : "n/a"} | ${cost} |`);
+    const cost = s.tokens && price ? `$${(s.tokens.input * price.prompt + s.tokens.output * price.completion).toFixed(2)}` : s.tokens ? "price unavailable" : "n/a";
+    L.push(`| ${s.judge} | ${s.calls} / ${s.errors} | ${s.quotes ? fmtCi(s.quotes.verified, s.quotes.total) : "n/a (no quotes)"} | ${fmtMs(s.latency.p50)} / ${fmtMs(s.latency.p95)} | ${s.tokens ? `${s.tokens.input.toLocaleString()} / ${s.tokens.output.toLocaleString()}` : "n/a"} | ${cost} |`);
   }
   L.push("", "## How to read this, and its limits", "");
   L.push(`- **Small samples.** n=${cases.static.length} static items and ${cases.regression.length} pairs give wide intervals (a 95% interval on 30 trials is roughly ±17 points). Differences between rows that fall inside each other's intervals are **not evidence that one judge is better**.`);
   L.push("- **Automatic labels have noise.** The regression 'truth' assumes the experts marked *all* supporting sentences; if one was missed, deleting the marked ones may not remove entailment, which would show up as a missed flag that is the label's fault, not the judge's.");
-  L.push("- **NDAs only**, English, documents ≤ 20,000 characters. Nothing here says how any judge behaves on other contract types.");
+  L.push(`- ContractNLI covers English NDAs up to ${cases.meta.maxDocChars.toLocaleString()} characters; CUAD covers commercial contracts across 41 categories, sampled from contracts up to ${cases.meta.maxCuadDocChars.toLocaleString()} characters.`);
   L.push("- One run per judge at temperature 0; models can change behind an alias, so the exact model ids above are part of the result.");
   L.push("- This measures whether a judge's answer matches the experts' labels. It does not measure legal correctness, and CLAUSE CI's reports remain advisory.", "");
-  L.push("Dataset: ContractNLI, Koreeda & Manning (2021), CC BY 4.0, https://stanfordnlp.github.io/contract-nli/", "");
+  L.push("Datasets: ContractNLI, Koreeda & Manning (2021), CC BY 4.0, https://stanfordnlp.github.io/contract-nli/; CUAD, The Atticus Project (2021), CC BY 4.0, https://www.atticusprojectai.org/cuad/.", "");
   return L.join("\n");
 }
 
@@ -180,7 +208,7 @@ async function main() {
   const cases = JSON.parse(readFileSync(join(import.meta.dirname, "cases.json"), "utf8")) as CasesFile;
   const config = JSON.parse(readFileSync(join(import.meta.dirname, "config.json"), "utf8")) as Record<string, unknown> & { llmModel: string; jevModel: string };
   const { buildJobs } = await import("./run.ts");
-  const texts: Texts = { static: new Map(), before: new Map(), after_pos: new Map(), after_ctrl: new Map() };
+  const texts: Texts = { static: new Map(), cuad: new Map(), before: new Map(), after_pos: new Map(), after_ctrl: new Map() };
   for (const j of buildJobs()) texts[j.kind].set(j.caseId, j.text);
 
   const arms = [

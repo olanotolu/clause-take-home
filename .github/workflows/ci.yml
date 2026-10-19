@@ -40,8 +40,41 @@ jobs:
         run: pnpm lint
       - name: Tests, with coverage floors
         run: pnpm test:coverage
+      - name: Build API and isolated export worker
+        if: matrix.node == 24
+        run: pnpm --filter @clause/api build
+      - name: Verify local durable Workflow and export worker
+        if: matrix.node == 24
+        run: node scripts/workflow-smoke.ts
       - name: Build web app
         run: pnpm --filter @clause/web build
+
+  telemetry:
+    name: OTLP collector delivery
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Download pinned official collector
+        run: |
+          curl --fail --location --retry 3 https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.163.1/otelcol_0.163.1_linux_amd64.tar.gz --output /tmp/otelcol.tar.gz
+          echo "13e8983077dbfcd2fda38e842262b6bf7539b9310f48d981239989f78264445c  /tmp/otelcol.tar.gz" | sha256sum --check
+          mkdir /tmp/otelcol
+          tar -xzf /tmp/otelcol.tar.gz -C /tmp/otelcol
+      - name: Verify real metric export and sensitive label exclusion
+        run: |
+          /tmp/otelcol/otelcol --config ops/otel-collector.yaml > /tmp/otel-capture.log 2>&1 &
+          collector_pid=$!
+          trap 'kill "$collector_pid"' EXIT
+          OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 CLAUSE_OTEL_CAPTURE=/tmp/otel-capture.log node scripts/telemetry-smoke.ts
 
   # The same suite, run against a real Postgres: this is the backend the hosted deployment uses.
   test-postgres:

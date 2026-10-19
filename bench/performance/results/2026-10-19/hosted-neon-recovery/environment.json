@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-10-19T15:48:34.113Z",
+  "node": "v24.15.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "fixture": {
+    "base": "https://clause-take-home-c6z6nu23x-subomis-projects-22c86536.vercel.app/api",
+    "bytes": 1048576,
+    "documents": 32
+  },
+  "initialLoad": [
+    601.19921875,
+    354.32470703125,
+    282.66064453125
+  ],
+  "finalLoad": [
+    704.275390625,
+    576.8203125,
+    411.5791015625
+  ],
+  "before": null,
+  "after": null,
+  "diagnosticsScope": "Per instance; these counters are not fleet totals",
+  "coldState": "Not asserted: initial requests do not prove a cold function",
+  "runs": [
+    {
+      "clients": 1,
+      "scenario": "metadata",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "search",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "edit",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "contention",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "mixed",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 8,
+      "scenario": "metadata",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "search",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 8,
+      "scenario": "edit",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "contention",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "mixed",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 99
+    },
+    {
+      "clients": 32,
+      "scenario": "metadata",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 32,
+      "scenario": "search",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 32,
+      "scenario": "edit",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 32,
+      "scenario": "contention",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    },
+    {
+      "clients": 32,
+      "scenario": "mixed",
+      "phase": "warm",
+      "writeIterations": 100,
+      "exitCode": 0
+    }
+  ]
+}

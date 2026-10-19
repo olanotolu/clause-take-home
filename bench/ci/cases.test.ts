@@ -3,8 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildCases, type CasesFile } from "./build-cases.ts";
 import { annotationsOf, loadSplit } from "./dataset.ts";
+import { loadCuadSplit } from "./cuad-dataset.ts";
 
-const dataPresent = existsSync(join(import.meta.dirname, "data", "contract-nli", "test.json"));
+const dataPresent = existsSync(join(import.meta.dirname, "data", "contract-nli", "test.json")) && existsSync(join(import.meta.dirname, "data", "cuad", "test.json"));
 const committed = JSON.parse(readFileSync(join(import.meta.dirname, "cases.json"), "utf8")) as CasesFile;
 
 describe.skipIf(!dataPresent)("benchmark cases (need the dataset: node bench/ci/fetch-data.ts)", () => {
@@ -47,5 +48,35 @@ describe.skipIf(!dataPresent)("benchmark cases (need the dataset: node bench/ci/
       for (const c of p.controlSpans) for (const e of p.evidenceSpans) expect(overlaps(c, e), `${p.id}`).toBe(false);
       for (const [, e] of [...p.evidenceSpans, ...p.controlSpans]) expect(e).toBeLessThanOrEqual(doc.text.length);
     }
+  });
+
+  it("freezes CUAD test examples deterministically with category and label balance where available", () => {
+    const testItems = loadCuadSplit("test");
+    const byId = new Map(testItems.map((x) => [x.id, x]));
+    expect(committed.meta.cuadZipSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(committed.meta.maxCuadDocChars).toBe(20_000);
+    expect(committed.cuadStatic.length).toBeGreaterThanOrEqual(70);
+    expect(committed.cuadStatic.every((c) => byId.has(c.id.slice("cuad-test-".length)))).toBe(true);
+    for (const c of committed.cuadStatic) {
+      const item = byId.get(c.id.slice("cuad-test-".length))!;
+      expect(item.text.length).toBeLessThanOrEqual(committed.meta.maxCuadDocChars);
+      expect(c.documentId).toBe(item.documentId);
+      expect(c.category).toBe(item.category);
+      expect(c.hasClause).toBe(item.hasClause);
+    }
+    for (const category of new Set(committed.cuadStatic.map((c) => c.category))) {
+      const rows = committed.cuadStatic.filter((c) => c.category === category);
+      expect(rows.length).toBeLessThanOrEqual(2);
+      expect(new Set(rows.map((c) => c.hasClause)).size).toBe(rows.length === 2 ? 2 : 1);
+    }
+  });
+
+  it("keeps CUAD development contracts disjoint from the frozen test contracts", () => {
+    const testIds = new Set(committed.cuadStatic.map((c) => c.documentId));
+    const trainIds = new Set(loadCuadSplit("train").map((c) => c.documentId));
+    expect(committed.cuadDev.every((c) => !testIds.has(c.documentId))).toBe(true);
+    expect(committed.cuadDev.every((c) => trainIds.has(c.documentId))).toBe(true);
+    expect(committed.cuadStatic.every((c) => !trainIds.has(c.documentId))).toBe(true);
+    expect(committed.meta.note).toContain("CC BY 4.0");
   });
 });

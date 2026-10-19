@@ -16,8 +16,9 @@ import type { CasesFile } from "./build-cases.ts";
 import config from "./config.json" with { type: "json" };
 import { loadSplit, type NliDocument } from "./dataset.ts";
 import { createHeuristicJudge } from "./heuristic.ts";
+import { loadCuadSplit } from "./cuad-dataset.ts";
 
-export type CallKind = "static" | "before" | "after_pos" | "after_ctrl";
+export type CallKind = "static" | "cuad" | "before" | "after_pos" | "after_ctrl";
 export interface RawRecord {
   judge: string;
   caseId: string;
@@ -34,6 +35,7 @@ mkdirSync(resultsDir, { recursive: true });
 const cases = JSON.parse(readFileSync(join(import.meta.dirname, "cases.json"), "utf8")) as CasesFile;
 const test = loadSplit("test");
 const docs = new Map(test.documents.map((d) => [d.id, d]));
+const cuad = new Map(loadCuadSplit("test").map((d) => [d.id, d]));
 
 /** Deletes spans from a document using the product's own edit engine (position selectors with expectedText). */
 function deleteSpans(doc: NliDocument, spans: [number, number][]): string {
@@ -47,6 +49,12 @@ export interface Job { caseId: string; kind: CallKind; requirement: string; text
 export function buildJobs(): Job[] {
   const jobs: Job[] = [];
   for (const c of cases.static) jobs.push({ caseId: c.id, kind: "static", requirement: test.labels[c.hypothesis]!.hypothesis, text: docs.get(c.docId)!.text });
+  for (const c of cases.cuadStatic) {
+    const sourceId = c.id.slice("cuad-test-".length);
+    const item = cuad.get(sourceId);
+    if (!item) throw new Error(`missing CUAD item ${sourceId}`);
+    jobs.push({ caseId: c.id, kind: "cuad", requirement: c.requirement, text: item.text });
+  }
   for (const p of cases.regression) {
     const doc = docs.get(p.docId)!;
     const requirement = test.labels[p.hypothesis]!.hypothesis;
@@ -70,7 +78,7 @@ function loadDone(file: string): Set<string> {
 async function main() {
   const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : undefined;
   const jobs = buildJobs();
-  console.log(`${jobs.length} judge calls per model (${cases.static.length} static + ${cases.regression.length} pairs x 3 texts)`);
+  console.log(`${jobs.length} judge calls per model (${cases.static.length} ContractNLI + ${cases.cuadStatic.length} CUAD + ${cases.regression.length} regression texts)`);
   const jobsToRun = (file: string) => { const done = loadDone(file); return jobs.filter((j) => !done.has(`${j.caseId}|${j.kind}`)); };
 
   const arms: { id: string; file: string; make: (usage: { in: number; out: number }) => Judge; concurrency: number }[] = [
@@ -104,7 +112,7 @@ async function main() {
       }
       rec.ms = Math.round(performance.now() - t0);
       if (usage.in || usage.out) { rec.inputTokens = usage.in; rec.outputTokens = usage.out; }
-      if (!fatal || rec.answer) appendFileSync(file, JSON.stringify(rec) + "\n");
+      if (!fatal || rec.answer || rec.error) appendFileSync(file, JSON.stringify(rec) + "\n");
       if (++finished % 20 === 0) console.log(`  ${finished}/${todo.length}`);
     });
     if (fatal) console.log(`  STOPPED: ${fatal}`);

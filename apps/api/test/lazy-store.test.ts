@@ -32,7 +32,7 @@ describe("lazyStore (a serverless instance must boot even while the database is 
     const lazy = lazyStore({ kind: real.kind, maxContentChars: real.maxContentChars }, async () => real);
     const doc = await lazy.insertDocument({ title: "NDA", content: "Receiving Party shall not disclose Confidential Information." });
     expect(((await lazy.wordsPage("disclose", { limit: 100, offset: 0 })).items).map((r) => r.id)).toEqual([doc.id]);
-    expect((await lazy.exactCandidates("shall not disclose")).length).toBeGreaterThan(0);
+    expect((await lazy.exactPage("shall not disclose", { limit: 10, offset: 0, hitsPerDocument: 5 })).items.length).toBeGreaterThan(0);
     expect((await lazy.wordsPage("disclose", { limit: 1, offset: 0 })).items[0]?.content).toContain("Receiving Party");
     await lazy.addRequirement(doc.id, { kind: "absent", text: "perpetual" });
     expect(await lazy.listRequirements(doc.id)).toHaveLength(1);

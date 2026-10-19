@@ -2,11 +2,13 @@
  "meta": {
   "seed": 20261015,
   "datasetZipSha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+  "cuadZipSha256": "f8161d18bea4e9c05e78fa6dda61c19c846fb8087ea969c172753bc2f45b999a",
   "maxDocChars": 20000,
+  "maxCuadDocChars": 20000,
   "perLabel": 20,
   "pairs": 30,
   "controlSpans": 3,
-  "note": "Ids and offsets only. Texts come from ContractNLI (CC BY 4.0, Koreeda & Manning 2021), downloaded by fetch-data.ts."
+  "note": "Ids and offsets only. ContractNLI and CUAD source data are CC BY 4.0; see dataset provenance in RESULTS.md."
  },
  "dev": [
   {
@@ -1770,6 +1772,1060 @@
      10644
     ]
    ]
+  }
+ ],
+ "cuadDev": [
+  {
+   "id": "cuad-train-MANAKOASERVICESCORP_11_21_2007-EX-7.5-STRATEGIC ALLIANCE AGREEMENT__Affiliate License-Licensee_0",
+   "documentId": "MANAKOASERVICESCORP_11_21_2007-EX-7.5-STRATEGIC ALLIANCE AGREEMENT",
+   "category": "Affiliate License-Licensee",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensee.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-KNOWLABS,INC_08_15_2005-EX-10-INTELLECTUAL PROPERTY AGREEMENT__Affiliate License-Licensee_0",
+   "documentId": "KNOWLABS,INC_08_15_2005-EX-10-INTELLECTUAL PROPERTY AGREEMENT",
+   "category": "Affiliate License-Licensee",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensee.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-GluMobileInc_20070319_S-1A_EX-10.09_436630_EX-10.09_Content License Agreement4__Affiliate License-Licensor_0",
+   "documentId": "GluMobileInc_20070319_S-1A_EX-10.09_436630_EX-10.09_Content License Agreement4",
+   "category": "Affiliate License-Licensor",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensor.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-NETZEEINC_11_14_2002-EX-10.3-MAINTENANCE AGREEMENT__Agreement Date_0",
+   "documentId": "NETZEEINC_11_14_2002-EX-10.3-MAINTENANCE AGREEMENT",
+   "category": "Agreement Date",
+   "requirement": "This agreement contains a clause about Agreement Date.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-LIGHTBRIDGECORP_11_23_2015-EX-10.26-STRATEGIC ALLIANCE AGREEMENT__Agreement Date_0",
+   "documentId": "LIGHTBRIDGECORP_11_23_2015-EX-10.26-STRATEGIC ALLIANCE AGREEMENT",
+   "category": "Agreement Date",
+   "requirement": "This agreement contains a clause about Agreement Date.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-GluMobileInc_20070319_S-1A_EX-10.09_436630_EX-10.09_Content License Agreement3__Anti-Assignment_0",
+   "documentId": "GluMobileInc_20070319_S-1A_EX-10.09_436630_EX-10.09_Content License Agreement3",
+   "category": "Anti-Assignment",
+   "requirement": "This agreement contains a clause about Anti-Assignment.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-ORBSATCORP_08_17_2007-EX-7.3-STRATEGIC ALLIANCE AGREEMENT__Anti-Assignment_0",
+   "documentId": "ORBSATCORP_08_17_2007-EX-7.3-STRATEGIC ALLIANCE AGREEMENT",
+   "category": "Anti-Assignment",
+   "requirement": "This agreement contains a clause about Anti-Assignment.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement3__Audit Rights_0",
+   "documentId": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement3",
+   "category": "Audit Rights",
+   "requirement": "This agreement contains a clause about Audit Rights.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-FEDERATEDGOVERNMENTINCOMESECURITIESINC_04_28_2020-EX-99.SERV AGREE-SERVICES AGREEMENT__Audit Rights_0",
+   "documentId": "FEDERATEDGOVERNMENTINCOMESECURITIESINC_04_28_2020-EX-99.SERV AGREE-SERVICES AGREEMENT",
+   "category": "Audit Rights",
+   "requirement": "This agreement contains a clause about Audit Rights.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-PelicanDeliversInc_20200211_S-1_EX-10.3_11975895_EX-10.3_Development Agreement1__Cap On Liability_0",
+   "documentId": "PelicanDeliversInc_20200211_S-1_EX-10.3_11975895_EX-10.3_Development Agreement1",
+   "category": "Cap On Liability",
+   "requirement": "This agreement contains a clause about Cap On Liability.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PFSFUNDS_06_26_2020-EX-99.H OTH MAT CONT-SERVICES AGREEMENT__Cap On Liability_1",
+   "documentId": "PFSFUNDS_06_26_2020-EX-99.H OTH MAT CONT-SERVICES AGREEMENT",
+   "category": "Cap On Liability",
+   "requirement": "This agreement contains a clause about Cap On Liability.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-VgrabCommunicationsInc_20200129_10-K_EX-10.33_11958828_EX-10.33_Development Agreement__Change Of Control_0",
+   "documentId": "VgrabCommunicationsInc_20200129_10-K_EX-10.33_11958828_EX-10.33_Development Agreement",
+   "category": "Change Of Control",
+   "requirement": "This agreement contains a clause about Change Of Control.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-HertzGroupRealtyTrustInc_20190920_S-11A_EX-10.8_11816941_EX-10.8_Trademark License Agreement__Change Of Control_0",
+   "documentId": "HertzGroupRealtyTrustInc_20190920_S-11A_EX-10.8_11816941_EX-10.8_Trademark License Agreement",
+   "category": "Change Of Control",
+   "requirement": "This agreement contains a clause about Change Of Control.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-SOLUTIONSVENDINGINTERNATIONAL,INC_03_31_2020-EX1A-1 UNDR AGMT-SERVICES AGREEMENT__Competitive Restriction Exception_0",
+   "documentId": "SOLUTIONSVENDINGINTERNATIONAL,INC_03_31_2020-EX1A-1 UNDR AGMT-SERVICES AGREEMENT",
+   "category": "Competitive Restriction Exception",
+   "requirement": "This agreement contains a clause about Competitive Restriction Exception.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-KUBIENT,INC_07_02_2020-EX-10.14-MASTER SERVICES AGREEMENT_Part2__Competitive Restriction Exception_0",
+   "documentId": "KUBIENT,INC_07_02_2020-EX-10.14-MASTER SERVICES AGREEMENT_Part2",
+   "category": "Competitive Restriction Exception",
+   "requirement": "This agreement contains a clause about Competitive Restriction Exception.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-ImperialGardenResortInc_20161028_DRS (on F-1)_EX-10.13_9963189_EX-10.13_Outsourcing Agreement__Covenant Not To Sue_0",
+   "documentId": "ImperialGardenResortInc_20161028_DRS (on F-1)_EX-10.13_9963189_EX-10.13_Outsourcing Agreement",
+   "category": "Covenant Not To Sue",
+   "requirement": "This agreement contains a clause about Covenant Not To Sue.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-MorganStanleyDirectLendingFund_20191119_10-12GA_EX-10.5_11898508_EX-10.5_Trademark License Agreement__Covenant Not To Sue_1",
+   "documentId": "MorganStanleyDirectLendingFund_20191119_10-12GA_EX-10.5_11898508_EX-10.5_Trademark License Agreement",
+   "category": "Covenant Not To Sue",
+   "requirement": "This agreement contains a clause about Covenant Not To Sue.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-NYLIACVARIABLEANNUITYSEPARATEACCOUNTIII_04_10_2020-EX-99.8.KK-SERVICE AGREEMENT__Document Name_0",
+   "documentId": "NYLIACVARIABLEANNUITYSEPARATEACCOUNTIII_04_10_2020-EX-99.8.KK-SERVICE AGREEMENT",
+   "category": "Document Name",
+   "requirement": "This agreement contains a clause about Document Name.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-MOVADOGROUPINC_04_30_2003-EX-10.28-ENDORSEMENT AGREEMENT__Effective Date_0",
+   "documentId": "MOVADOGROUPINC_04_30_2003-EX-10.28-ENDORSEMENT AGREEMENT",
+   "category": "Effective Date",
+   "requirement": "This agreement contains a clause about Effective Date.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-NETGEAR,INC_04_21_2003-EX-10.16-AMENDMENT TO THE DISTRIBUTOR AGREEMENT BETWEEN INGRAM MICRO AND NETGEAR__Effective Date_0",
+   "documentId": "NETGEAR,INC_04_21_2003-EX-10.16-AMENDMENT TO THE DISTRIBUTOR AGREEMENT BETWEEN INGRAM MICRO AND NETGEAR",
+   "category": "Effective Date",
+   "requirement": "This agreement contains a clause about Effective Date.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-TcPipelinesLp_20160226_10-K_EX-99.12_9454048_EX-99.12_Transportation Agreement__Exclusivity_0",
+   "documentId": "TcPipelinesLp_20160226_10-K_EX-99.12_9454048_EX-99.12_Transportation Agreement",
+   "category": "Exclusivity",
+   "requirement": "This agreement contains a clause about Exclusivity.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-LUCIDINC_04_15_2011-EX-10.9-DISTRIBUTOR AGREEMENT__Exclusivity_0",
+   "documentId": "LUCIDINC_04_15_2011-EX-10.9-DISTRIBUTOR AGREEMENT",
+   "category": "Exclusivity",
+   "requirement": "This agreement contains a clause about Exclusivity.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-XLITECHNOLOGIES,INC_12_02_2015-EX-10.02-STRATEGIC ALLIANCE AGREEMENT__Expiration Date_0",
+   "documentId": "XLITECHNOLOGIES,INC_12_02_2015-EX-10.02-STRATEGIC ALLIANCE AGREEMENT",
+   "category": "Expiration Date",
+   "requirement": "This agreement contains a clause about Expiration Date.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PFSFUNDS_06_26_2020-EX-99.H OTH MAT CONT-SERVICES AGREEMENT__Expiration Date_0",
+   "documentId": "PFSFUNDS_06_26_2020-EX-99.H OTH MAT CONT-SERVICES AGREEMENT",
+   "category": "Expiration Date",
+   "requirement": "This agreement contains a clause about Expiration Date.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement__Governing Law_0",
+   "documentId": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement",
+   "category": "Governing Law",
+   "requirement": "This agreement contains a clause about Governing Law.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-EmmisCommunicationsCorp_20191125_8-K_EX-10.6_11906433_EX-10.6_Marketing Agreement__Governing Law_0",
+   "documentId": "EmmisCommunicationsCorp_20191125_8-K_EX-10.6_11906433_EX-10.6_Marketing Agreement",
+   "category": "Governing Law",
+   "requirement": "This agreement contains a clause about Governing Law.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement__Insurance_0",
+   "documentId": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement",
+   "category": "Insurance",
+   "requirement": "This agreement contains a clause about Insurance.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PharmagenInc_20120803_8-KA_EX-10.1_7693204_EX-10.1_Endorsement Agreement__Insurance_1",
+   "documentId": "PharmagenInc_20120803_8-KA_EX-10.1_7693204_EX-10.1_Endorsement Agreement",
+   "category": "Insurance",
+   "requirement": "This agreement contains a clause about Insurance.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-DOMINIADVISORTRUST_02_18_2005-EX-99.(H)(2)-SPONSORSHIP AGREEMENT__Ip Ownership Assignment_0",
+   "documentId": "DOMINIADVISORTRUST_02_18_2005-EX-99.(H)(2)-SPONSORSHIP AGREEMENT",
+   "category": "Ip Ownership Assignment",
+   "requirement": "This agreement contains a clause about Ip Ownership Assignment.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-WOMENSGOLFUNLIMITEDINC_03_29_2000-EX-10.13-ENDORSEMENT AGREEMENT - Intellectual Property Rights                 Confidentiality and Non-Use Obligations Agreement__Ip Ownership Assignment_1",
+   "documentId": "WOMENSGOLFUNLIMITEDINC_03_29_2000-EX-10.13-ENDORSEMENT AGREEMENT - Intellectual Property Rights                 Confidentiality and Non-Use Obligations Agreement",
+   "category": "Ip Ownership Assignment",
+   "requirement": "This agreement contains a clause about Ip Ownership Assignment.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-BravatekSolutionsInc_20170418_8-K_EX-10.1_10205739_EX-10.1_Reseller Agreement__Irrevocable Or Perpetual License_0",
+   "documentId": "BravatekSolutionsInc_20170418_8-K_EX-10.1_10205739_EX-10.1_Reseller Agreement",
+   "category": "Irrevocable Or Perpetual License",
+   "requirement": "This agreement contains a clause about Irrevocable Or Perpetual License.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Irrevocable Or Perpetual License_0",
+   "documentId": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT",
+   "category": "Irrevocable Or Perpetual License",
+   "requirement": "This agreement contains a clause about Irrevocable Or Perpetual License.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-NETGEAR,INC_04_21_2003-EX-10.16-AMENDMENT TO THE DISTRIBUTOR AGREEMENT BETWEEN INGRAM MICRO AND NETGEAR__Joint Ip Ownership_0",
+   "documentId": "NETGEAR,INC_04_21_2003-EX-10.16-AMENDMENT TO THE DISTRIBUTOR AGREEMENT BETWEEN INGRAM MICRO AND NETGEAR",
+   "category": "Joint Ip Ownership",
+   "requirement": "This agreement contains a clause about Joint Ip Ownership.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-ADMA BioManufacturing, LLC -  Amendment #3 to Manufacturing Agreement __License Grant_0",
+   "documentId": "ADMA BioManufacturing, LLC -  Amendment #3 to Manufacturing Agreement ",
+   "category": "License Grant",
+   "requirement": "This agreement contains a clause about License Grant.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-AMERICASSHOPPINGMALLINC_12_10_1999-EX-10.2-SITE DEVELOPMENT AND HOSTING AGREEMENT__License Grant_0",
+   "documentId": "AMERICASSHOPPINGMALLINC_12_10_1999-EX-10.2-SITE DEVELOPMENT AND HOSTING AGREEMENT",
+   "category": "License Grant",
+   "requirement": "This agreement contains a clause about License Grant.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-BLACKBOXSTOCKSINC_08_05_2014-EX-10.1-DISTRIBUTOR AGREEMENT__Liquidated Damages_0",
+   "documentId": "BLACKBOXSTOCKSINC_08_05_2014-EX-10.1-DISTRIBUTOR AGREEMENT",
+   "category": "Liquidated Damages",
+   "requirement": "This agreement contains a clause about Liquidated Damages.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-RISEEDUCATIONCAYMANLTD_04_17_2020-EX-4.23-SERVICE AGREEMENT__Liquidated Damages_0",
+   "documentId": "RISEEDUCATIONCAYMANLTD_04_17_2020-EX-4.23-SERVICE AGREEMENT",
+   "category": "Liquidated Damages",
+   "requirement": "This agreement contains a clause about Liquidated Damages.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-PlayboyEnterprisesInc_20090220_10-QA_EX-10.2_4091580_EX-10.2_Content License Agreement_ Marketing Agreement_ Sales-Purchase Agreement2__Minimum Commitment_0",
+   "documentId": "PlayboyEnterprisesInc_20090220_10-QA_EX-10.2_4091580_EX-10.2_Content License Agreement_ Marketing Agreement_ Sales-Purchase Agreement2",
+   "category": "Minimum Commitment",
+   "requirement": "This agreement contains a clause about Minimum Commitment.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-TICKETSCOMINC_06_22_1999-EX-10.22-SPONSORSHIP AGREEMENT__Minimum Commitment_0",
+   "documentId": "TICKETSCOMINC_06_22_1999-EX-10.22-SPONSORSHIP AGREEMENT",
+   "category": "Minimum Commitment",
+   "requirement": "This agreement contains a clause about Minimum Commitment.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-TcPipelinesLp_20160226_10-K_EX-99.12_9454048_EX-99.12_Transportation Agreement__Most Favored Nation_0",
+   "documentId": "TcPipelinesLp_20160226_10-K_EX-99.12_9454048_EX-99.12_Transportation Agreement",
+   "category": "Most Favored Nation",
+   "requirement": "This agreement contains a clause about Most Favored Nation.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-GAINSCOINC_01_21_2010-EX-10.41-SPONSORSHIP AGREEMENT__Most Favored Nation_0",
+   "documentId": "GAINSCOINC_01_21_2010-EX-10.41-SPONSORSHIP AGREEMENT",
+   "category": "Most Favored Nation",
+   "requirement": "This agreement contains a clause about Most Favored Nation.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-WebmdHealthCorp_20050908_S-1A_EX-10.7_1027007_EX-10.7_Content License Agreement__No-Solicit Of Customers_0",
+   "documentId": "WebmdHealthCorp_20050908_S-1A_EX-10.7_1027007_EX-10.7_Content License Agreement",
+   "category": "No-Solicit Of Customers",
+   "requirement": "This agreement contains a clause about No-Solicit Of Customers.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3__No-Solicit Of Customers_1",
+   "documentId": "PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3",
+   "category": "No-Solicit Of Customers",
+   "requirement": "This agreement contains a clause about No-Solicit Of Customers.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-NYLIACVARIABLEANNUITYSEPARATEACCOUNTIII_04_10_2020-EX-99.8.KK-SERVICE AGREEMENT__No-Solicit Of Employees_0",
+   "documentId": "NYLIACVARIABLEANNUITYSEPARATEACCOUNTIII_04_10_2020-EX-99.8.KK-SERVICE AGREEMENT",
+   "category": "No-Solicit Of Employees",
+   "requirement": "This agreement contains a clause about No-Solicit Of Employees.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-COOLTECHNOLOGIES,INC_10_25_2017-EX-10.71-Strategic Alliance Agreement__No-Solicit Of Employees_0",
+   "documentId": "COOLTECHNOLOGIES,INC_10_25_2017-EX-10.71-Strategic Alliance Agreement",
+   "category": "No-Solicit Of Employees",
+   "requirement": "This agreement contains a clause about No-Solicit Of Employees.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-OLDAPIWIND-DOWNLTD_01_08_2016-EX-1.3-AGENCY AGREEMENT2__Non-Compete_0",
+   "documentId": "OLDAPIWIND-DOWNLTD_01_08_2016-EX-1.3-AGENCY AGREEMENT2",
+   "category": "Non-Compete",
+   "requirement": "This agreement contains a clause about Non-Compete.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Non-Compete_1",
+   "documentId": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT",
+   "category": "Non-Compete",
+   "requirement": "This agreement contains a clause about Non-Compete.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-MARSHALLHOLDINGSINTERNATIONAL,INC_04_14_2004-EX-10.15-ENDORSEMENT AGREEMENT__Non-Disparagement_0",
+   "documentId": "MARSHALLHOLDINGSINTERNATIONAL,INC_04_14_2004-EX-10.15-ENDORSEMENT AGREEMENT",
+   "category": "Non-Disparagement",
+   "requirement": "This agreement contains a clause about Non-Disparagement.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-XLITECHNOLOGIES,INC_12_11_2015-EX-10.1-Sponsorship Agreement__Non-Disparagement_0",
+   "documentId": "XLITECHNOLOGIES,INC_12_11_2015-EX-10.1-Sponsorship Agreement",
+   "category": "Non-Disparagement",
+   "requirement": "This agreement contains a clause about Non-Disparagement.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement2__Non-Transferable License_0",
+   "documentId": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement2",
+   "category": "Non-Transferable License",
+   "requirement": "This agreement contains a clause about Non-Transferable License.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-AMERICASSHOPPINGMALLINC_12_10_1999-EX-10.2-SITE DEVELOPMENT AND HOSTING AGREEMENT__Non-Transferable License_0",
+   "documentId": "AMERICASSHOPPINGMALLINC_12_10_1999-EX-10.2-SITE DEVELOPMENT AND HOSTING AGREEMENT",
+   "category": "Non-Transferable License",
+   "requirement": "This agreement contains a clause about Non-Transferable License.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-REWALKROBOTICSLTD_07_10_2014-EX-10.2-STRATEGIC ALLIANCE AGREEMENT__Notice Period To Terminate Renewal_0",
+   "documentId": "REWALKROBOTICSLTD_07_10_2014-EX-10.2-STRATEGIC ALLIANCE AGREEMENT",
+   "category": "Notice Period To Terminate Renewal",
+   "requirement": "This agreement contains a clause about Notice Period To Terminate Renewal.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PacificapEntertainmentHoldingsInc_20051115_8-KA_EX-1.01_4300894_EX-1.01_Content License Agreement__Notice Period To Terminate Renewal_0",
+   "documentId": "PacificapEntertainmentHoldingsInc_20051115_8-KA_EX-1.01_4300894_EX-1.01_Content License Agreement",
+   "category": "Notice Period To Terminate Renewal",
+   "requirement": "This agreement contains a clause about Notice Period To Terminate Renewal.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-SoupmanInc_20150814_8-K_EX-10.1_9230148_EX-10.1_Franchise Agreement3__Parties_0",
+   "documentId": "SoupmanInc_20150814_8-K_EX-10.1_9230148_EX-10.1_Franchise Agreement3",
+   "category": "Parties",
+   "requirement": "This agreement contains a clause about Parties.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-DataCallTechnologies_20060918_SB-2A_EX-10.9_944510_EX-10.9_Content License Agreement__Parties_1",
+   "documentId": "DataCallTechnologies_20060918_SB-2A_EX-10.9_944510_EX-10.9_Content License Agreement",
+   "category": "Parties",
+   "requirement": "This agreement contains a clause about Parties.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement4__Post-Termination Services_0",
+   "documentId": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement4",
+   "category": "Post-Termination Services",
+   "requirement": "This agreement contains a clause about Post-Termination Services.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Post-Termination Services_0",
+   "documentId": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT",
+   "category": "Post-Termination Services",
+   "requirement": "This agreement contains a clause about Post-Termination Services.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-JINGWEIINTERNATIONALLTD_10_04_2007-EX-10.7-INTELLECTUAL PROPERTY AGREEMENT__Price Restrictions_0",
+   "documentId": "JINGWEIINTERNATIONALLTD_10_04_2007-EX-10.7-INTELLECTUAL PROPERTY AGREEMENT",
+   "category": "Price Restrictions",
+   "requirement": "This agreement contains a clause about Price Restrictions.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-NETZEEINC_11_14_2002-EX-10.3-MAINTENANCE AGREEMENT__Price Restrictions_0",
+   "documentId": "NETZEEINC_11_14_2002-EX-10.3-MAINTENANCE AGREEMENT",
+   "category": "Price Restrictions",
+   "requirement": "This agreement contains a clause about Price Restrictions.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-SOLUTIONSVENDINGINTERNATIONAL,INC_03_31_2020-EX1A-1 UNDR AGMT-SERVICES AGREEMENT__Renewal Term_0",
+   "documentId": "SOLUTIONSVENDINGINTERNATIONAL,INC_03_31_2020-EX1A-1 UNDR AGMT-SERVICES AGREEMENT",
+   "category": "Renewal Term",
+   "requirement": "This agreement contains a clause about Renewal Term.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-NETZEEINC_11_14_2002-EX-10.3-MAINTENANCE AGREEMENT__Renewal Term_0",
+   "documentId": "NETZEEINC_11_14_2002-EX-10.3-MAINTENANCE AGREEMENT",
+   "category": "Renewal Term",
+   "requirement": "This agreement contains a clause about Renewal Term.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-PrecheckHealthServicesInc_20200320_8-K_EX-99.2_12070169_EX-99.2_Distributor Agreement__Revenue/Profit Sharing_0",
+   "documentId": "PrecheckHealthServicesInc_20200320_8-K_EX-99.2_12070169_EX-99.2_Distributor Agreement",
+   "category": "Revenue/Profit Sharing",
+   "requirement": "This agreement contains a clause about Revenue/Profit Sharing.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-GluMobileInc_20070319_S-1A_EX-10.09_436630_EX-10.09_Content License Agreement3__Revenue/Profit Sharing_0",
+   "documentId": "GluMobileInc_20070319_S-1A_EX-10.09_436630_EX-10.09_Content License Agreement3",
+   "category": "Revenue/Profit Sharing",
+   "requirement": "This agreement contains a clause about Revenue/Profit Sharing.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3__Rofr/Rofo/Rofn_0",
+   "documentId": "PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3",
+   "category": "Rofr/Rofo/Rofn",
+   "requirement": "This agreement contains a clause about Rofr/Rofo/Rofn.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-ORBSATCORP_08_17_2007-EX-7.3-STRATEGIC ALLIANCE AGREEMENT__Rofr/Rofo/Rofn_0",
+   "documentId": "ORBSATCORP_08_17_2007-EX-7.3-STRATEGIC ALLIANCE AGREEMENT",
+   "category": "Rofr/Rofo/Rofn",
+   "requirement": "This agreement contains a clause about Rofr/Rofo/Rofn.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-ADUROBIOTECH,INC_06_02_2020-EX-10.7-CONSULTING AGREEMENT__Source Code Escrow_0",
+   "documentId": "ADUROBIOTECH,INC_06_02_2020-EX-10.7-CONSULTING AGREEMENT",
+   "category": "Source Code Escrow",
+   "requirement": "This agreement contains a clause about Source Code Escrow.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2__Termination For Convenience_0",
+   "documentId": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2",
+   "category": "Termination For Convenience",
+   "requirement": "This agreement contains a clause about Termination For Convenience.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PrecheckHealthServicesInc_20200320_8-K_EX-99.2_12070169_EX-99.2_Distributor Agreement__Termination For Convenience_0",
+   "documentId": "PrecheckHealthServicesInc_20200320_8-K_EX-99.2_12070169_EX-99.2_Distributor Agreement",
+   "category": "Termination For Convenience",
+   "requirement": "This agreement contains a clause about Termination For Convenience.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-RISEEDUCATIONCAYMANLTD_04_17_2020-EX-4.23-SERVICE AGREEMENT__Third Party Beneficiary_0",
+   "documentId": "RISEEDUCATIONCAYMANLTD_04_17_2020-EX-4.23-SERVICE AGREEMENT",
+   "category": "Third Party Beneficiary",
+   "requirement": "This agreement contains a clause about Third Party Beneficiary.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-PrudentialBancorpInc_20170606_8-K_EX-10.4_10474434_EX-10.4_Endorsement Agreement__Third Party Beneficiary_1",
+   "documentId": "PrudentialBancorpInc_20170606_8-K_EX-10.4_10474434_EX-10.4_Endorsement Agreement",
+   "category": "Third Party Beneficiary",
+   "requirement": "This agreement contains a clause about Third Party Beneficiary.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-RgcResourcesInc_20151216_8-K_EX-10.3_9372751_EX-10.3_Franchise Agreement__Uncapped Liability_0",
+   "documentId": "RgcResourcesInc_20151216_8-K_EX-10.3_9372751_EX-10.3_Franchise Agreement",
+   "category": "Uncapped Liability",
+   "requirement": "This agreement contains a clause about Uncapped Liability.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-MorganStanleyDirectLendingFund_20191119_10-12GA_EX-10.5_11898508_EX-10.5_Trademark License Agreement__Uncapped Liability_1",
+   "documentId": "MorganStanleyDirectLendingFund_20191119_10-12GA_EX-10.5_11898508_EX-10.5_Trademark License Agreement",
+   "category": "Uncapped Liability",
+   "requirement": "This agreement contains a clause about Uncapped Liability.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3__Unlimited/All-You-Can-Eat-License_0",
+   "documentId": "PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3",
+   "category": "Unlimited/All-You-Can-Eat-License",
+   "requirement": "This agreement contains a clause about Unlimited/All-You-Can-Eat-License.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-FulucaiProductionsLtd_20131223_10-Q_EX-10.9_8368347_EX-10.9_Content License Agreement__Unlimited/All-You-Can-Eat-License_1",
+   "documentId": "FulucaiProductionsLtd_20131223_10-Q_EX-10.9_8368347_EX-10.9_Content License Agreement",
+   "category": "Unlimited/All-You-Can-Eat-License",
+   "requirement": "This agreement contains a clause about Unlimited/All-You-Can-Eat-License.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-HOLIDAYRVSUPERSTORESINC_04_15_2002-EX-10.13-ENDORSEMENT AGREEMENT__Volume Restriction_0",
+   "documentId": "HOLIDAYRVSUPERSTORESINC_04_15_2002-EX-10.13-ENDORSEMENT AGREEMENT",
+   "category": "Volume Restriction",
+   "requirement": "This agreement contains a clause about Volume Restriction.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-ON4COMMUNICATIONSINC_07_02_2009-EX-10.1-PROMOTION AGREEMENT__Volume Restriction_0",
+   "documentId": "ON4COMMUNICATIONSINC_07_02_2009-EX-10.1-PROMOTION AGREEMENT",
+   "category": "Volume Restriction",
+   "requirement": "This agreement contains a clause about Volume Restriction.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-train-SCOUTCAMINC_05_12_2020-EX-10.22-SERVICES AGREEMENT__Warranty Duration_0",
+   "documentId": "SCOUTCAMINC_05_12_2020-EX-10.22-SERVICES AGREEMENT",
+   "category": "Warranty Duration",
+   "requirement": "This agreement contains a clause about Warranty Duration.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-train-CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement4__Warranty Duration_0",
+   "documentId": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement4",
+   "category": "Warranty Duration",
+   "requirement": "This agreement contains a clause about Warranty Duration.",
+   "hasClause": true
+  }
+ ],
+ "cuadStatic": [
+  {
+   "id": "cuad-test-GALERATHERAPEUTICS,INC_02_14_2020-EX-99.A-JOINT FILING AGREEMENT__Affiliate License-Licensee",
+   "documentId": "GALERATHERAPEUTICS,INC_02_14_2020-EX-99.A-JOINT FILING AGREEMENT",
+   "category": "Affiliate License-Licensee",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensee.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-ALCOSTORESINC_12_14_2005-EX-10.26-AGENCY AGREEMENT__Affiliate License-Licensee",
+   "documentId": "ALCOSTORESINC_12_14_2005-EX-10.26-AGENCY AGREEMENT",
+   "category": "Affiliate License-Licensee",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensee.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-PAXMEDICA,INC_07_02_2020-EX-10.12-Master Service Agreement__Affiliate License-Licensor",
+   "documentId": "PAXMEDICA,INC_07_02_2020-EX-10.12-Master Service Agreement",
+   "category": "Affiliate License-Licensor",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensor.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-ArconicRolledProductsCorp_20191217_10-12B_EX-2.7_11923804_EX-2.7_Trademark License Agreement__Affiliate License-Licensor",
+   "documentId": "ArconicRolledProductsCorp_20191217_10-12B_EX-2.7_11923804_EX-2.7_Trademark License Agreement",
+   "category": "Affiliate License-Licensor",
+   "requirement": "This agreement contains a clause about Affiliate License-Licensor.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-ACCELERATEDTECHNOLOGIESHOLDINGCORP_04_24_2003-EX-10.13-JOINT VENTURE AGREEMENT__Agreement Date",
+   "documentId": "ACCELERATEDTECHNOLOGIESHOLDINGCORP_04_24_2003-EX-10.13-JOINT VENTURE AGREEMENT",
+   "category": "Agreement Date",
+   "requirement": "This agreement contains a clause about Agreement Date.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT__Agreement Date",
+   "documentId": "TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT",
+   "category": "Agreement Date",
+   "requirement": "This agreement contains a clause about Agreement Date.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-ScansourceInc_20190822_10-K_EX-10.39_11793959_EX-10.39_Distributor Agreement__Anti-Assignment",
+   "documentId": "ScansourceInc_20190822_10-K_EX-10.39_11793959_EX-10.39_Distributor Agreement",
+   "category": "Anti-Assignment",
+   "requirement": "This agreement contains a clause about Anti-Assignment.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-SPOKHOLDINGS,INC_06_19_2020-EX-10.1-COOPERATION AGREEMENT__Anti-Assignment",
+   "documentId": "SPOKHOLDINGS,INC_06_19_2020-EX-10.1-COOPERATION AGREEMENT",
+   "category": "Anti-Assignment",
+   "requirement": "This agreement contains a clause about Anti-Assignment.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-SPIENERGYCO,LTD_07_10_2014-EX-10-Cooperation Agreement of 50MWp Photovoltaic Grid-connected Power Generation Project in Yangqiao of~1__Audit Rights",
+   "documentId": "SPIENERGYCO,LTD_07_10_2014-EX-10-Cooperation Agreement of 50MWp Photovoltaic Grid-connected Power Generation Project in Yangqiao of~1",
+   "category": "Audit Rights",
+   "requirement": "This agreement contains a clause about Audit Rights.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-ALCOSTORESINC_12_14_2005-EX-10.26-AGENCY AGREEMENT__Audit Rights",
+   "documentId": "ALCOSTORESINC_12_14_2005-EX-10.26-AGENCY AGREEMENT",
+   "category": "Audit Rights",
+   "requirement": "This agreement contains a clause about Audit Rights.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement__Cap On Liability",
+   "documentId": "HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement",
+   "category": "Cap On Liability",
+   "requirement": "This agreement contains a clause about Cap On Liability.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement1__Cap On Liability",
+   "documentId": "PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement1",
+   "category": "Cap On Liability",
+   "requirement": "This agreement contains a clause about Cap On Liability.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT__Change Of Control",
+   "documentId": "VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT",
+   "category": "Change Of Control",
+   "requirement": "This agreement contains a clause about Change Of Control.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-MphaseTechnologiesInc_20030911_10-K_EX-10.15_1560667_EX-10.15_Co-Branding Agreement__Change Of Control",
+   "documentId": "MphaseTechnologiesInc_20030911_10-K_EX-10.15_1560667_EX-10.15_Co-Branding Agreement",
+   "category": "Change Of Control",
+   "requirement": "This agreement contains a clause about Change Of Control.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement2__Competitive Restriction Exception",
+   "documentId": "PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement2",
+   "category": "Competitive Restriction Exception",
+   "requirement": "This agreement contains a clause about Competitive Restriction Exception.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-FEDERATEDGOVERNMENTINCOMESECURITIESINC_04_28_2020-EX-99.SERV AGREE-SERVICES AGREEMENT_POWEROF__Covenant Not To Sue",
+   "documentId": "FEDERATEDGOVERNMENTINCOMESECURITIESINC_04_28_2020-EX-99.SERV AGREE-SERVICES AGREEMENT_POWEROF",
+   "category": "Covenant Not To Sue",
+   "requirement": "This agreement contains a clause about Covenant Not To Sue.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-ArconicRolledProductsCorp_20191217_10-12B_EX-2.7_11923804_EX-2.7_Trademark License Agreement__Covenant Not To Sue",
+   "documentId": "ArconicRolledProductsCorp_20191217_10-12B_EX-2.7_11923804_EX-2.7_Trademark License Agreement",
+   "category": "Covenant Not To Sue",
+   "requirement": "This agreement contains a clause about Covenant Not To Sue.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-ThriventVariableInsuranceAccountB_20190701_N-6_EX-99.D(IV)_11720968_EX-99.D(IV)_Endorsement Agreement__Document Name",
+   "documentId": "ThriventVariableInsuranceAccountB_20190701_N-6_EX-99.D(IV)_11720968_EX-99.D(IV)_Endorsement Agreement",
+   "category": "Document Name",
+   "requirement": "This agreement contains a clause about Document Name.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT__Effective Date",
+   "documentId": "VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT",
+   "category": "Effective Date",
+   "requirement": "This agreement contains a clause about Effective Date.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement1__Effective Date",
+   "documentId": "PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement1",
+   "category": "Effective Date",
+   "requirement": "This agreement contains a clause about Effective Date.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-PRECIGEN,INC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT__Exclusivity",
+   "documentId": "PRECIGEN,INC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT",
+   "category": "Exclusivity",
+   "requirement": "This agreement contains a clause about Exclusivity.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement__Exclusivity",
+   "documentId": "XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement",
+   "category": "Exclusivity",
+   "requirement": "This agreement contains a clause about Exclusivity.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-RMRGROUPINC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT__Expiration Date",
+   "documentId": "RMRGROUPINC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT",
+   "category": "Expiration Date",
+   "requirement": "This agreement contains a clause about Expiration Date.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-TRIZETTOGROUPINC_08_18_1999-EX-10.17-TECHNICAL INFRASTRUCTURE MAINTENANCE AGREEMENT__Expiration Date",
+   "documentId": "TRIZETTOGROUPINC_08_18_1999-EX-10.17-TECHNICAL INFRASTRUCTURE MAINTENANCE AGREEMENT",
+   "category": "Expiration Date",
+   "requirement": "This agreement contains a clause about Expiration Date.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-MFAFINANCIAL,INC_07_06_2020-EX-99.D-JOINT FILING AGREEMENT__Governing Law",
+   "documentId": "MFAFINANCIAL,INC_07_06_2020-EX-99.D-JOINT FILING AGREEMENT",
+   "category": "Governing Law",
+   "requirement": "This agreement contains a clause about Governing Law.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-PRIMEENERGYRESOURCESCORP_04_02_2007-EX-10.28-COMPLETION AND LIQUIDITY MAINTENANCE AGREEMENT__Governing Law",
+   "documentId": "PRIMEENERGYRESOURCESCORP_04_02_2007-EX-10.28-COMPLETION AND LIQUIDITY MAINTENANCE AGREEMENT",
+   "category": "Governing Law",
+   "requirement": "This agreement contains a clause about Governing Law.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT__Insurance",
+   "documentId": "VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT",
+   "category": "Insurance",
+   "requirement": "This agreement contains a clause about Insurance.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-EcoScienceSolutionsInc_20180406_8-K_EX-10.1_11135398_EX-10.1_Sponsorship Agreement__Insurance",
+   "documentId": "EcoScienceSolutionsInc_20180406_8-K_EX-10.1_11135398_EX-10.1_Sponsorship Agreement",
+   "category": "Insurance",
+   "requirement": "This agreement contains a clause about Insurance.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-BOLIVARMININGCORP_05_23_2003-EX-2.1-VISP WEB SITE BUILDING AND HOSTING AGREEMENT__Ip Ownership Assignment",
+   "documentId": "BOLIVARMININGCORP_05_23_2003-EX-2.1-VISP WEB SITE BUILDING AND HOSTING AGREEMENT",
+   "category": "Ip Ownership Assignment",
+   "requirement": "This agreement contains a clause about Ip Ownership Assignment.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT__Ip Ownership Assignment",
+   "documentId": "TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT",
+   "category": "Ip Ownership Assignment",
+   "requirement": "This agreement contains a clause about Ip Ownership Assignment.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-EcoScienceSolutionsInc_20180406_8-K_EX-10.1_11135398_EX-10.1_Sponsorship Agreement__Irrevocable Or Perpetual License",
+   "documentId": "EcoScienceSolutionsInc_20180406_8-K_EX-10.1_11135398_EX-10.1_Sponsorship Agreement",
+   "category": "Irrevocable Or Perpetual License",
+   "requirement": "This agreement contains a clause about Irrevocable Or Perpetual License.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-MSCIINC_02_28_2008-EX-10.10-__Irrevocable Or Perpetual License",
+   "documentId": "MSCIINC_02_28_2008-EX-10.10-",
+   "category": "Irrevocable Or Perpetual License",
+   "requirement": "This agreement contains a clause about Irrevocable Or Perpetual License.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-WESTERN COPPER - NON-COMPETITION AGREEMENT__Joint Ip Ownership",
+   "documentId": "WESTERN COPPER - NON-COMPETITION AGREEMENT",
+   "category": "Joint Ip Ownership",
+   "requirement": "This agreement contains a clause about Joint Ip Ownership.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-SPIENERGYCO,LTD_07_10_2014-EX-10-Cooperation Agreement of 50MWp Photovoltaic Grid-connected Power Generation Project in Yangqiao of~1__License Grant",
+   "documentId": "SPIENERGYCO,LTD_07_10_2014-EX-10-Cooperation Agreement of 50MWp Photovoltaic Grid-connected Power Generation Project in Yangqiao of~1",
+   "category": "License Grant",
+   "requirement": "This agreement contains a clause about License Grant.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-CURAEGISTECHNOLOGIES,INC_05_26_2010-EX-1-CORPORATE SPONSORSHIP AGREEMENT__License Grant",
+   "documentId": "CURAEGISTECHNOLOGIES,INC_05_26_2010-EX-1-CORPORATE SPONSORSHIP AGREEMENT",
+   "category": "License Grant",
+   "requirement": "This agreement contains a clause about License Grant.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-MSCIINC_02_28_2008-EX-10.10-__Liquidated Damages",
+   "documentId": "MSCIINC_02_28_2008-EX-10.10-",
+   "category": "Liquidated Damages",
+   "requirement": "This agreement contains a clause about Liquidated Damages.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-WatchitMediaInc_20061201_8-K_EX-10.1_4148672_EX-10.1_Content License Agreement__Liquidated Damages",
+   "documentId": "WatchitMediaInc_20061201_8-K_EX-10.1_4148672_EX-10.1_Content License Agreement",
+   "category": "Liquidated Damages",
+   "requirement": "This agreement contains a clause about Liquidated Damages.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-RMRGROUPINC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT__Minimum Commitment",
+   "documentId": "RMRGROUPINC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT",
+   "category": "Minimum Commitment",
+   "requirement": "This agreement contains a clause about Minimum Commitment.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-KENTUCKYUTILITIESCO_03_25_2003-EX-10.65-TRANSPORTATION AGREEMENT__Minimum Commitment",
+   "documentId": "KENTUCKYUTILITIESCO_03_25_2003-EX-10.65-TRANSPORTATION AGREEMENT",
+   "category": "Minimum Commitment",
+   "requirement": "This agreement contains a clause about Minimum Commitment.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-ArconicRolledProductsCorp_20191217_10-12B_EX-2.7_11923804_EX-2.7_Trademark License Agreement__Most Favored Nation",
+   "documentId": "ArconicRolledProductsCorp_20191217_10-12B_EX-2.7_11923804_EX-2.7_Trademark License Agreement",
+   "category": "Most Favored Nation",
+   "requirement": "This agreement contains a clause about Most Favored Nation.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-SPIENERGYCO,LTD_07_10_2014-EX-10-Cooperation Agreement of 50MWp Photovoltaic Grid-connected Power Generation Project in Yangqiao of~1__No-Solicit Of Customers",
+   "documentId": "SPIENERGYCO,LTD_07_10_2014-EX-10-Cooperation Agreement of 50MWp Photovoltaic Grid-connected Power Generation Project in Yangqiao of~1",
+   "category": "No-Solicit Of Customers",
+   "requirement": "This agreement contains a clause about No-Solicit Of Customers.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-BOLIVARMININGCORP_05_23_2003-EX-2.1-VISP WEB SITE BUILDING AND HOSTING AGREEMENT__No-Solicit Of Customers",
+   "documentId": "BOLIVARMININGCORP_05_23_2003-EX-2.1-VISP WEB SITE BUILDING AND HOSTING AGREEMENT",
+   "category": "No-Solicit Of Customers",
+   "requirement": "This agreement contains a clause about No-Solicit Of Customers.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-MphaseTechnologiesInc_20030911_10-K_EX-10.15_1560667_EX-10.15_Co-Branding Agreement__No-Solicit Of Employees",
+   "documentId": "MphaseTechnologiesInc_20030911_10-K_EX-10.15_1560667_EX-10.15_Co-Branding Agreement",
+   "category": "No-Solicit Of Employees",
+   "requirement": "This agreement contains a clause about No-Solicit Of Employees.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-EcoScienceSolutionsInc_20180406_8-K_EX-10.1_11135398_EX-10.1_Sponsorship Agreement__Non-Compete",
+   "documentId": "EcoScienceSolutionsInc_20180406_8-K_EX-10.1_11135398_EX-10.1_Sponsorship Agreement",
+   "category": "Non-Compete",
+   "requirement": "This agreement contains a clause about Non-Compete.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT__Non-Compete",
+   "documentId": "TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT",
+   "category": "Non-Compete",
+   "requirement": "This agreement contains a clause about Non-Compete.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-ScansourceInc_20190822_10-K_EX-10.39_11793959_EX-10.39_Distributor Agreement__Non-Disparagement",
+   "documentId": "ScansourceInc_20190822_10-K_EX-10.39_11793959_EX-10.39_Distributor Agreement",
+   "category": "Non-Disparagement",
+   "requirement": "This agreement contains a clause about Non-Disparagement.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement1__Non-Transferable License",
+   "documentId": "PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement1",
+   "category": "Non-Transferable License",
+   "requirement": "This agreement contains a clause about Non-Transferable License.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement__Non-Transferable License",
+   "documentId": "HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement",
+   "category": "Non-Transferable License",
+   "requirement": "This agreement contains a clause about Non-Transferable License.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-MFAFINANCIAL,INC_07_06_2020-EX-99.D-JOINT FILING AGREEMENT__Notice Period To Terminate Renewal",
+   "documentId": "MFAFINANCIAL,INC_07_06_2020-EX-99.D-JOINT FILING AGREEMENT",
+   "category": "Notice Period To Terminate Renewal",
+   "requirement": "This agreement contains a clause about Notice Period To Terminate Renewal.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-WEBHELPCOMINC_03_22_2000-EX-10.8-HOSTING AGREEMENT__Notice Period To Terminate Renewal",
+   "documentId": "WEBHELPCOMINC_03_22_2000-EX-10.8-HOSTING AGREEMENT",
+   "category": "Notice Period To Terminate Renewal",
+   "requirement": "This agreement contains a clause about Notice Period To Terminate Renewal.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-PRECIGEN,INC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT__Parties",
+   "documentId": "PRECIGEN,INC_01_22_2020-EX-99.1-JOINT FILING AGREEMENT",
+   "category": "Parties",
+   "requirement": "This agreement contains a clause about Parties.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-SoupmanInc_20150814_8-K_EX-10.1_9230148_EX-10.1_Franchise Agreement4__Post-Termination Services",
+   "documentId": "SoupmanInc_20150814_8-K_EX-10.1_9230148_EX-10.1_Franchise Agreement4",
+   "category": "Post-Termination Services",
+   "requirement": "This agreement contains a clause about Post-Termination Services.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-WEBHELPCOMINC_03_22_2000-EX-10.8-HOSTING AGREEMENT__Post-Termination Services",
+   "documentId": "WEBHELPCOMINC_03_22_2000-EX-10.8-HOSTING AGREEMENT",
+   "category": "Post-Termination Services",
+   "requirement": "This agreement contains a clause about Post-Termination Services.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement__Price Restrictions",
+   "documentId": "HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement",
+   "category": "Price Restrictions",
+   "requirement": "This agreement contains a clause about Price Restrictions.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT__Renewal Term",
+   "documentId": "VIVINT SOLAR, INC. - NON-COMPETITION AGREEMENT",
+   "category": "Renewal Term",
+   "requirement": "This agreement contains a clause about Renewal Term.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-CHIPMOSTECHNOLOGIESBERMUDALTD_04_18_2016-EX-4.72-Strategic Alliance Agreement__Renewal Term",
+   "documentId": "CHIPMOSTECHNOLOGIESBERMUDALTD_04_18_2016-EX-4.72-Strategic Alliance Agreement",
+   "category": "Renewal Term",
+   "requirement": "This agreement contains a clause about Renewal Term.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement__Revenue/Profit Sharing",
+   "documentId": "HfEnterprisesInc_20191223_S-1_EX-10.22_11931299_EX-10.22_Development Agreement",
+   "category": "Revenue/Profit Sharing",
+   "requirement": "This agreement contains a clause about Revenue/Profit Sharing.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-BOLIVARMININGCORP_05_23_2003-EX-2.1-VISP WEB SITE BUILDING AND HOSTING AGREEMENT__Revenue/Profit Sharing",
+   "documentId": "BOLIVARMININGCORP_05_23_2003-EX-2.1-VISP WEB SITE BUILDING AND HOSTING AGREEMENT",
+   "category": "Revenue/Profit Sharing",
+   "requirement": "This agreement contains a clause about Revenue/Profit Sharing.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement2__Rofr/Rofo/Rofn",
+   "documentId": "PcquoteComInc_19990721_S-1A_EX-10.11_6377149_EX-10.11_Co-Branding Agreement2",
+   "category": "Rofr/Rofo/Rofn",
+   "requirement": "This agreement contains a clause about Rofr/Rofo/Rofn.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-WESTERN COPPER - NON-COMPETITION AGREEMENT__Rofr/Rofo/Rofn",
+   "documentId": "WESTERN COPPER - NON-COMPETITION AGREEMENT",
+   "category": "Rofr/Rofo/Rofn",
+   "requirement": "This agreement contains a clause about Rofr/Rofo/Rofn.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-ONEMAINHOLDINGS,INC_02_20_2020-EX-99.D-JOINT FILING AGREEMENT__Source Code Escrow",
+   "documentId": "ONEMAINHOLDINGS,INC_02_20_2020-EX-99.D-JOINT FILING AGREEMENT",
+   "category": "Source Code Escrow",
+   "requirement": "This agreement contains a clause about Source Code Escrow.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-MSCIINC_02_28_2008-EX-10.10-__Termination For Convenience",
+   "documentId": "MSCIINC_02_28_2008-EX-10.10-",
+   "category": "Termination For Convenience",
+   "requirement": "This agreement contains a clause about Termination For Convenience.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement__Termination For Convenience",
+   "documentId": "XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement",
+   "category": "Termination For Convenience",
+   "requirement": "This agreement contains a clause about Termination For Convenience.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-LohaCompanyltd_20191209_F-1_EX-10.16_11917878_EX-10.16_Supply Agreement__Third Party Beneficiary",
+   "documentId": "LohaCompanyltd_20191209_F-1_EX-10.16_11917878_EX-10.16_Supply Agreement",
+   "category": "Third Party Beneficiary",
+   "requirement": "This agreement contains a clause about Third Party Beneficiary.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-GridironBionutrientsInc_20171206_8-K_EX-10.2_10972556_EX-10.2_Endorsement Agreement__Uncapped Liability",
+   "documentId": "GridironBionutrientsInc_20171206_8-K_EX-10.2_10972556_EX-10.2_Endorsement Agreement",
+   "category": "Uncapped Liability",
+   "requirement": "This agreement contains a clause about Uncapped Liability.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-WEBHELPCOMINC_03_22_2000-EX-10.8-HOSTING AGREEMENT__Uncapped Liability",
+   "documentId": "WEBHELPCOMINC_03_22_2000-EX-10.8-HOSTING AGREEMENT",
+   "category": "Uncapped Liability",
+   "requirement": "This agreement contains a clause about Uncapped Liability.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-MFAFINANCIAL,INC_07_06_2020-EX-99.D-JOINT FILING AGREEMENT__Unlimited/All-You-Can-Eat-License",
+   "documentId": "MFAFINANCIAL,INC_07_06_2020-EX-99.D-JOINT FILING AGREEMENT",
+   "category": "Unlimited/All-You-Can-Eat-License",
+   "requirement": "This agreement contains a clause about Unlimited/All-You-Can-Eat-License.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement__Unlimited/All-You-Can-Eat-License",
+   "documentId": "XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement",
+   "category": "Unlimited/All-You-Can-Eat-License",
+   "requirement": "This agreement contains a clause about Unlimited/All-You-Can-Eat-License.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-CENTRACKINTERNATIONALINC_10_29_1999-EX-10.3-WEB SITE HOSTING AGREEMENT__Volume Restriction",
+   "documentId": "CENTRACKINTERNATIONALINC_10_29_1999-EX-10.3-WEB SITE HOSTING AGREEMENT",
+   "category": "Volume Restriction",
+   "requirement": "This agreement contains a clause about Volume Restriction.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-KENTUCKYUTILITIESCO_03_25_2003-EX-10.65-TRANSPORTATION AGREEMENT__Volume Restriction",
+   "documentId": "KENTUCKYUTILITIESCO_03_25_2003-EX-10.65-TRANSPORTATION AGREEMENT",
+   "category": "Volume Restriction",
+   "requirement": "This agreement contains a clause about Volume Restriction.",
+   "hasClause": true
+  },
+  {
+   "id": "cuad-test-GridironBionutrientsInc_20171206_8-K_EX-10.2_10972556_EX-10.2_Endorsement Agreement__Warranty Duration",
+   "documentId": "GridironBionutrientsInc_20171206_8-K_EX-10.2_10972556_EX-10.2_Endorsement Agreement",
+   "category": "Warranty Duration",
+   "requirement": "This agreement contains a clause about Warranty Duration.",
+   "hasClause": false
+  },
+  {
+   "id": "cuad-test-TRIZETTOGROUPINC_08_18_1999-EX-10.17-TECHNICAL INFRASTRUCTURE MAINTENANCE AGREEMENT__Warranty Duration",
+   "documentId": "TRIZETTOGROUPINC_08_18_1999-EX-10.17-TECHNICAL INFRASTRUCTURE MAINTENANCE AGREEMENT",
+   "category": "Warranty Duration",
+   "requirement": "This agreement contains a clause about Warranty Duration.",
+   "hasClause": true
   }
  ]
 }

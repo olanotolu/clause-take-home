@@ -126,18 +126,20 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         )}
         {hits.length > 0 && (
           <Command.Group heading={`Clause matches · ${hits.length}`} className="[&_[cmdk-group-heading]]:sticky [&_[cmdk-group-heading]]:top-0 [&_[cmdk-group-heading]]:z-10 [&_[cmdk-group-heading]]:bg-paper [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted">
-            {hits.map(({ result, hit }, i) => (
-              <Command.Item key={`${result.documentId}-${i}`} value={`hit-${result.documentId}-${i}`} onSelect={() => { onClose(); ws.pickHit(result, hit); }} className={item}>
+            {hits.map(({ result, hit }) => {
+              const key=`${result.documentId}-${hit.start??hit.snippet.map((segment)=>segment.text).join("")}`;
+              let offset=0;
+              return <Command.Item key={key} value={`hit-${key}`} onSelect={() => { onClose(); ws.pickHit(result, hit); }} className={item}>
                 <TextSelect size={17} className="mt-0.5 shrink-0 text-muted group-data-[selected=true]:text-accent" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{result.title} <span className="tnum font-normal text-muted">· v{result.version}</span></p>
                   <p className="mt-0.5 line-clamp-2 text-[13px] leading-[1.45] text-muted">
-                    {hit.snippet.map((s, k) => (s.match ? <mark key={k} className="rounded-sm bg-hit px-0.5 text-ink">{s.text}</mark> : <span key={k}>{s.text}</span>))}
+                    {hit.snippet.map((s) => {const key=`${offset}-${s.match}-${s.text}`;offset+=s.text.length;return s.match ? <mark key={key} className="rounded-sm bg-hit px-0.5 text-ink">{s.text}</mark> : <span key={key}>{s.text}</span>;})}
                   </p>
                 </div>
                 <ArrowRight size={15} className="shrink-0 text-accent opacity-0 transition-opacity group-data-[selected=true]:opacity-100 group-hover:opacity-100" aria-hidden />
-              </Command.Item>
-            ))}
+              </Command.Item>;
+            })}
           </Command.Group>
         )}
       </Command.List>

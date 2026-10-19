@@ -110,11 +110,15 @@ export const errors = <const C extends number[]>(...codes: C) =>
 export const DocumentOut = z.object({
   id: z.string(),
   title: z.string(),
-  content: z.string(),
+  content: z.string().optional(),
+  contentUrl: z.string().optional(),
   version: z.number().int(),
   contentHash: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  byteLength: z.number().int().optional(),
+  utf16Length: z.number().int().optional(),
+  wordCount: z.number().int().optional(),
   sample: z.boolean().optional().meta({ description: "True for the shared sample contracts: read-only through the API; POST /documents/{id}/copy makes an editable copy." }),
   templateProvenance: z.object({
     templateId: z.string(), title: z.string(), source: z.string(), attribution: z.string(), sourceUrl: z.string(),
@@ -128,8 +132,8 @@ export const AppliedOut = z.object({
   index: z.number().int(),
   start: z.number().int().meta({ description: "Offsets in the ORIGINAL text." }),
   end: z.number().int(),
-  before: z.string(),
-  after: z.string(),
+  before: z.string().optional().meta({description:"Omitted when changed text exceeds the response budget."}),
+  after: z.string().optional().meta({description:"Omitted when changed text exceeds the response budget."}),
   newStart: z.number().int().meta({ description: "Offsets of `after` in the NEW text." }),
   newEnd: z.number().int(),
 });
@@ -138,6 +142,7 @@ export const ReceiptOut = z.object({
   id: z.string(),
   title: z.string(),
   content: z.string().optional().meta({ description: "The full updated document text. Omitted when the request sent `Prefer: return=minimal`." }),
+  contentUrl: z.string().optional().meta({ description: "Short-lived content endpoint for documents above 1 MiB." }),
   previousVersion: z.number().int(),
   version: z.number().int(),
   changed: z.boolean().meta({ description: "False for a no-op (identical text): no new revision is created." }),
@@ -151,11 +156,11 @@ export const PreviewOut = z.object({
   id: z.string(),
   version: z.number().int(),
   wouldChange: z.boolean(),
-  proposedContent: z.string().optional().meta({ description: "The full proposed text. Omitted when the request sent `Prefer: return=minimal`." }),
+  proposedContent: z.string().optional().meta({ description: "The full proposed text. Omitted for minimal responses and documents larger than 1 MiB." }),
   applied: z.array(AppliedOut),
   beforeHash: z.string(),
   afterHash: z.string(),
-  diff: z.string().optional().meta({ description: "Unified diff of current -> proposed. Omitted when the request sent `Prefer: return=minimal`." }),
+  diff: z.string().optional().meta({ description: "Unified diff of current -> proposed. Omitted for minimal responses and documents larger than 1 MiB." }),
 });
 
 export const RevisionInfoOut = z.object({
@@ -163,6 +168,9 @@ export const RevisionInfoOut = z.object({
   contentHash: z.string(),
   createdAt: z.string(),
   summary: z.unknown(),
+  byteLength: z.number().int().optional(),
+  utf16Length: z.number().int().optional(),
+  wordCount: z.number().int().optional(),
 });
 
 const SegmentOut = z.object({ text: z.string(), match: z.boolean() });
@@ -212,6 +220,7 @@ export const RequirementIdParams = IdParams.extend({ rid: z.string().min(1).max(
 export const RequirementOut = z.object({ id: z.string(), documentId: z.string(), kind: RequirementKindSchema, text: z.string(), createdAt: z.string() });
 
 export const CheckBody = ChangesBody.extend({
+  uploadedContent:z.object({intent:z.string().min(1),sha256:z.string().regex(/^[0-9a-f]{64}$/)}).optional(),
   changes: z.array(ChangeSchema).max(5000).meta({ description: "Empty means: check the CURRENT text against the requirements (no edit proposed)." }),
   goal: text().pipe(z.string().min(1).max(500)).optional().meta({ description: "What the edit is meant to achieve, in plain words. Judged like a requirement that should become true." }),
   strictness: z.enum(["balanced", "strict"]).optional().meta({ description: "strict: a semantic PASS needs every judge to be at least 80% sure, otherwise NEEDS_REVIEW. Default balanced." }),
@@ -255,7 +264,7 @@ export const SuggestOut = z.object({
   changes: z.array(ChangeSchema),
   ci: CiReportOut.nullable().optional().meta({ description: "CLAUSE CI report for a valid proposal: the instruction as the goal plus the document's saved requirements. Null when it could not be produced." }),
   validation: z.union([
-    z.object({ valid: z.literal(true), applied: z.array(AppliedOut), diff: z.string() }),
+    z.object({ valid: z.literal(true), applied: z.array(AppliedOut), diff: z.string().optional() }),
     z.object({ valid: z.literal(false), error: z.object({ type: z.string(), error: z.string(), details: z.record(z.string(), z.unknown()).optional() }) }),
   ]),
 });

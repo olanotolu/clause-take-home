@@ -167,7 +167,7 @@ describe("PATCH /documents/:id", () => {
     const store = await testStore();
     const faulty = await buildApp({ store });
     const doc = await createDoc(faulty, "NDA", "Confidential: Redwood acquisition");
-    store.getDocument = async () => { throw new Error("connection to db-7.internal refused while reading 'Redwood acquisition'"); };
+    store.getDocumentMetadata = async () => { throw new Error("connection to db-7.internal refused while reading 'Redwood acquisition'"); };
     const res = await faulty.inject({ method: "GET", url: `/documents/${doc.id}` });
     expect(res.statusCode).toBe(500);
     expect(res.json()).toEqual({ error: "Internal server error", code: 500, type: "INTERNAL" });
@@ -177,6 +177,16 @@ describe("PATCH /documents/:id", () => {
 });
 
 describe("versions and preconditions", () => {
+  it("loads the body only after the supplied precondition matches", async () => {
+    const doc=await createDoc(app,"NDA",NDA);
+    const current=await app.store.getDocumentForEdit(doc.id,{expectedVersion:doc.version});
+    expect(current).toHaveProperty("content",NDA);
+    await patch(app,doc.id,{expectedVersion:1,changes:[quote("Trade Secrets","TS")]});
+    const stale=await app.store.getDocumentForEdit(doc.id,{expectedVersion:1});
+    expect(stale).toMatchObject({version:2,contentHash:expect.any(String)});
+    expect(stale).not.toHaveProperty("content");
+  });
+
   it("rejects a stale expectedVersion with 409 and does not write", async () => {
     const doc = await createDoc(app, "NDA", NDA);
     await patch(app, doc.id, { expectedVersion: 1, changes: [quote("Trade Secrets", "TS")] });

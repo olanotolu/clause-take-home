@@ -1,0 +1,14 @@
+{
+  "deployment": "https://clause-take-home-ck62guqvn-subomis-projects-22c86536.vercel.app",
+  "vercelRegion": "iad1",
+  "firstInstanceId": "02b96c19-eb62-4170-8cdc-8b068c12c6b9",
+  "instanceStartedAt": "2026-10-19T16:07:54.135Z",
+  "uptimeSecondsAtFirstProbe": 9.704557199,
+  "healthStatus": 200,
+  "healthBody": "{\"status\":\"ok\"}",
+  "readinessStatus": 200,
+  "readinessBody": "{\"status\":\"ready\"}",
+  "secondInstanceId": "02b96c19-eb62-4170-8cdc-8b068c12c6b9",
+  "sameInstanceAcrossProbes": true,
+  "diagnosticsStatus": 200
+}

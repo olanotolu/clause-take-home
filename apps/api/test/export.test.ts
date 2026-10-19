@@ -6,6 +6,7 @@ import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { redlineDocx, redlineParts } from "../src/docx.ts";
+import { sha256 } from "@clause/core";
 import { createDoc, patch, quote, testApp, usingPostgres } from "./helpers.ts";
 
 const unescapeXml = (s: string) => s.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&apos;", "'").replaceAll("&amp;", "&");
@@ -173,7 +174,7 @@ describe.skipIf(!hasPandoc)("redlineDocx read by pandoc, a parser we did not wri
 
 describe("GET /documents/:id/export.docx", () => {
   let app: FastifyInstance;
-  beforeEach(async () => void (app = await testApp()));
+  beforeEach(async () => void (app = await testApp({startExportWorkflow:async()=>undefined})));
   afterEach(async () => void (await app.close()));
   const get = (url: string) => app.inject({ method: "GET", url });
 
@@ -209,13 +210,19 @@ describe("GET /documents/:id/export.docx", () => {
     for (const q of ["from=0", "from=abc", "to=1.5", "from=%201"]) expect((await get(`/documents/${d.id}/export.docx?${q}`)).statusCode, q).toBe(400);
   });
 
-  // The hosted Postgres backend refuses documents this large at upload (see postgres.test.ts), so only SQLite can reach this limit.
-  it.skipIf(usingPostgres)("refuses versions too large to diff instead of hanging", async () => {
-    const d = await createDoc(app, "Big", "a ".repeat(600_000));
+  // Large redlines remain available within the supported 25 MiB source-document limit.
+  it.skipIf(usingPostgres)("exports a large document redline", async () => {
+    const content = "a ".repeat(600_000);
+    const intent = await app.inject({ method: "POST", url: "/documents/uploads/intents", payload: { size: Buffer.byteLength(content) } });
+    const upload = intent.json();
+    await app.inject({ method: "POST", url: `${upload.uploadUrl}?intent=${encodeURIComponent(upload.intent)}`, headers: { "content-type": "text/plain" }, payload: content });
+    const created = await app.inject({ method: "POST", url: "/documents/uploads/complete", payload: { intent: upload.intent, title: "Big", sha256: sha256(content) } });
+    expect(created.statusCode).toBe(201);
+    const d = created.json() as { id: string };
     await patch(app, d.id, { changes: [{ operation: "replace", target: { position: { start: 0, end: 1, expectedText: "a" } }, replacement: "b" }] });
     const res = await get(`/documents/${d.id}/export.docx`);
-    expect(res.statusCode).toBe(413);
-    expect(res.json()).toMatchObject({ code: 413, type: "TOO_LARGE_TO_EXPORT" });
+    expect(res.statusCode).toBe(202);
+    expect(res.json()).toMatchObject({status:"queued",statusUrl:expect.stringMatching(/^\/jobs\//)});
   });
 
   it("is declared in the OpenAPI document as a binary .docx", async () => {

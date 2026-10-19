@@ -25,6 +25,7 @@ describe("router", () => {
   it("falls back safely: unknown paths go home, unknown tab goes to edit, bad escapes do not throw", () => {
     expect(parseRoute("")).toEqual({ name: "home" });
     expect(parseRoute("#/nope/x")).toEqual({ name: "home" });
+    expect(parseRoute("#/welcome")).toEqual({ name: "home" });
     expect(parseRoute("#/doc/doc_1")).toEqual({ name: "doc", id: "doc_1", tab: "edit" });
     expect(parseRoute("#/doc/doc_1/zzz")).toEqual({ name: "doc", id: "doc_1", tab: "edit" });
     expect(parseRoute("#/doc/%E0%A4%A")).toEqual({ name: "home" });

@@ -13,6 +13,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 const URL = "https://stanfordnlp.github.io/contract-nli/resources/contract-nli.zip";
+const CUAD_URL = "https://github.com/The-Atticus-Project/cuad/raw/refs/heads/main/data.zip";
 const dir = join(import.meta.dirname, "data");
 const zip = join(dir, "contract-nli.zip");
 mkdirSync(dir, { recursive: true });
@@ -28,3 +29,20 @@ const sha = createHash("sha256").update(readFileSync(zip)).digest("hex");
 console.log(`zip: ${(bytes / 1048576).toFixed(1)} MiB  sha256 ${sha}`);
 execFileSync("unzip", ["-oq", zip, "-d", dir]);
 console.log("unzipped into bench/ci/data/");
+
+const cuadDir = join(dir, "cuad");
+const cuadZip = join(dir, "cuad.zip");
+mkdirSync(cuadDir, { recursive: true });
+if (!existsSync(cuadZip)) {
+  console.log(`downloading ${CUAD_URL}`);
+  const res = await fetch(CUAD_URL);
+  if (!res.ok || !res.body) throw new Error(`CUAD download failed: ${res.status}`);
+  await pipeline(Readable.fromWeb(res.body as never), createWriteStream(cuadZip));
+}
+console.log(`CUAD zip sha256 ${createHash("sha256").update(readFileSync(cuadZip)).digest("hex")}`);
+execFileSync("unzip", ["-oq", cuadZip, "-d", cuadDir]);
+const testFile = join(cuadDir, "test.json");
+const trainFile = join(cuadDir, "train_separate_questions.json");
+if (existsSync(trainFile)) execFileSync("cp", [trainFile, join(cuadDir, "train.json")]);
+if (!existsSync(testFile) || !existsSync(join(cuadDir, "train.json"))) throw new Error("CUAD archive did not contain expected train/test question files");
+console.log("CUAD train/test data ready in bench/ci/data/cuad/");

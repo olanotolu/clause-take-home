@@ -44,6 +44,8 @@ export function EditTab() {
           <DocPane content={doc.content} hits={ws.hits} selection={ws.selection} redline={redlineSpans} flash={flash} onSelect={ws.setSelection} />
           {ws.selection && !redlineSpans && (
             <SelectionToolbar
+              documentId={doc.id}
+              version={doc.version}
               container={scroller}
               content={doc.content}
               selection={ws.selection}

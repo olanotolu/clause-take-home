@@ -1,3 +1,4 @@
+import type { TextSource } from "../lib/projected-text.ts";
 import { Num } from "../ui/Num.tsx";
 import { Activity, AlertTriangle, ArrowRight, Ban, Check, CheckCircle2, CircleSlash, Clock, Lock, ListChecks, Play, ShieldAlert, Sparkles, XCircle } from "../ui/icons.tsx";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -33,7 +34,7 @@ function VerdictIcon({ v, method, size = 18 }: { v: Verdict; method: "exact" | "
 }
 
 /** A readable window of `text` around an evidence span, with the span itself marked. Defensive: only marks what really matches. */
-function Excerpt({ text, evidence, empty, method }: { text: string; evidence: Evidence[]; empty: string; method: "exact" | "model" }) {
+function Excerpt({ text, evidence, empty, method }: { text: TextSource; evidence: Evidence[]; empty: string; method: "exact" | "model" }) {
   const ev = evidence.find((e) => e.verified && text.slice(e.start, e.end) === e.quote);
   if (!ev) {
     const loose = evidence[0];
@@ -143,7 +144,7 @@ function JudgeList({ outcome, label }: { outcome: CheckOutcome; label: string })
   );
 }
 
-function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { r: RequirementReport; original: string; proposed: string; hasEdit: boolean; version: number; applied: Applied[]; onJump: (e: Evidence) => void }) {
+function Detail({ r, original, proposed, hasEdit, version, applied, onJump }: { r: RequirementReport; original: string; proposed: TextSource; hasEdit: boolean; version: number; applied: Applied[]; onJump: (e: Evidence) => void }) {
   const jumpable = r.before.evidence.find((e) => e.verified);
   const p0 = r.before.judges?.find((j) => j.probability !== undefined)?.probability;
   const p1 = r.after.judges?.find((j) => j.probability !== undefined)?.probability;

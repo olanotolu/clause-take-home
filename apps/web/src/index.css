@@ -128,6 +128,11 @@ body {
 .font-display { font-family: var(--font-display); font-weight: 600; letter-spacing: 0; }
 .tnum { font-variant-numeric: tabular-nums; }
 .doc { font-family: var(--font-doc); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; font-size: 16px; }
+.doc .cm-editor, .doc .cm-scroller { overflow: visible; font: inherit; }
+.doc .cm-content { min-height: 1em; padding: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.doc .cm-line { padding: 0; }
+.doc .cm-editor.cm-focused { outline: none; }
+.doc .cm-content:focus { outline: none; }
 .del { background: var(--color-del-bg); color: var(--color-del); text-decoration: line-through; text-decoration-thickness: 1.5px; border-radius: 3px; }
 .ins { background: var(--color-ins-bg); color: var(--color-ins); border-radius: 3px; }
 .hit { background: var(--color-hit); border-radius: 3px; }

@@ -18,7 +18,7 @@ export function registerSearchRoutes(app: App): void {
 
   app.get("/documents/:id/search", { schema: { params: IdParams, querystring: ScopedSearchQuery, response: { 200: ScopedSearchOut, ...errors(400, 404, 500) } } }, async (req, reply) => {
     const { id } = req.params;
-    if (!(await app.store.getDocument(id))) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id });
+    if (!(await app.store.getDocumentMetadata(id))) return reply.problem({ type: "DOCUMENT_NOT_FOUND", id });
     const { q, mode, limit } = req.query;
     try {
       const page = await search(app.store, q, { mode, limit: 1, offset: 0, ids: [id], hitsPerDocument: limit });

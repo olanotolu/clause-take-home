@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-10-19T00:10:07.564Z",
+  "node": "v24.15.0",
+  "base": "https://clause-take-home-n0yg14etx-subomis-projects-22c86536.vercel.app/api",
+  "results": [
+    {
+      "byteLength": 10485760,
+      "utf16Length": 10485760,
+      "hashVerified": true,
+      "preview": true,
+      "edit": true,
+      "search": true,
+      "revert": true,
+      "pinnedReceipt": true,
+      "wordExport": true,
+      "fullReplacementUpload": true
+    }
+  ],
+  "measurements": [
+    {
+      "operation": "GET /documents/:document",
+      "ms": 430.65275,
+      "responseBytes": 838,
+      "status": 200
+    },
+    {
+      "operation": "POST /documents/:document/changes/preview",
+      "ms": 458.15704200000005,
+      "responseBytes": 336,
+      "status": 200
+    },
+    {
+      "operation": "PATCH /documents/:document",
+      "ms": 1149.533417,
+      "responseBytes": 925,
+      "status": 200
+    },
+    {
+      "operation": "GET /documents/search?q=CLAUSE_LOAD_B&mode=exact&ids=:document",
+      "ms": 327.6360830000003,
+      "responseBytes": 447,
+      "status": 200
+    },
+    {
+      "operation": "POST /documents/:document/revert",
+      "ms": 1745.5856670000003,
+      "responseBytes": 836,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 65.86420799999996,
+      "responseBytes": 171,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 49.79708399999981,
+      "responseBytes": 172,
+      "status": 200
+    },
+    {
+      "operation": "GET /jobs/:job",
+      "ms": 78.7992919999997,
+      "responseBytes": 711,
+      "status": 200
+    },
+    {
+      "operation": "POST /documents/uploads/intents",
+      "ms": 145.5014999999994,
+      "responseBytes": 984,
+      "status": 201
+    },
+    {
+      "operation": "POST /documents/uploads/complete",
+      "ms": 1313.9182920000003,
+      "responseBytes": 821,
+      "status": 200
+    }
+  ]
+}

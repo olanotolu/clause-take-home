@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { toast } from "sonner";
@@ -11,6 +11,8 @@ import { navigate } from "../lib/router.ts";
 import { Tabs } from "../ui/Tabs.tsx";
 import { SearchPanel } from "../components/SearchPanel.tsx";
 import { Button } from "../ui/Button.tsx";
+import { useAuth } from "../lib/auth.tsx";
+import { repositories, importRepositoryFile } from "../lib/api.ts";
 
 type ProviderId = "imanage" | "netdocuments" | "onedrive" | "dropbox" | "google_drive" | "sharepoint" | "box";
 interface Provider { id: ProviderId; name: string; description: string; connected: boolean; accountName: string | null; connectedAt: string | null }
@@ -53,6 +55,11 @@ function demoContent(file: RemoteFile, provider: ProviderId): string {
 
 export function IntegrationsView() {
   const ws = useWorkspace();
+  const auth=useAuth();
+  const live=auth.user?.role==="admin";
+  const importController=useRef<AbortController|null>(null);
+  const [importProgress,setImportProgress]=useState(0);
+  useEffect(()=>()=>{importController.current?.abort();},[]);
   const [providerListRef] = useAutoAnimate<HTMLDivElement>({ duration: 220, easing: "ease-out" });
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
   const [sideTab, setSideTab] = useState<"browse" | "search">("browse");
@@ -67,8 +74,23 @@ export function IntegrationsView() {
   const [error, setError] = useState("");
   const [next, setNext] = useState<string | null>(null);
 
+  useEffect(()=>{
+    let current=true;
+    if(live) void auth.bearer().then(async(token)=>{if(!token) return;const result=await repositories.list(token);if(current&&result.ok) setProviders(result.data.providers);});
+    return ()=>{current=false;};
+  },[live,auth.bearer]);
+
   const loadFiles = async (provider: ProviderId, folder = "", drive = "", append = false, _pageToken = "") => {
     setLoading(true); setError("");
+    if(live) {
+      const token=await auth.bearer();
+      if(!token) {setError("Sign in to browse this repository.");setLoading(false);return;}
+      const query=new URLSearchParams({... (folder?{parentId:folder}:{}),...(drive?{driveId:drive}:{}),...(_pageToken?{pageToken:_pageToken}:{})});
+      const result=await repositories.files(provider,token,query);
+      if(result.ok) {setFiles((current)=>append?[...current,...result.data.files]:result.data.files);setNext(result.data.nextPageToken);}
+      else setError(result.error.error);
+      setLoading(false);return;
+    }
     await new Promise((resolve) => window.setTimeout(resolve, 250));
     let demoFiles = DEMO_FILES[provider];
     if (provider === "sharepoint" && drive) demoFiles = [{ id: `${drive}-folder`, name: "Active Matters", mimeType: "folder", folder: true }, { id: `${drive}-nda`, name: "SharePoint NDA.docx", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", folder: false }, { id: `${drive}-pdf`, name: "Outside Counsel Guidelines.pdf", mimeType: "application/pdf", folder: false }];
@@ -84,15 +106,17 @@ export function IntegrationsView() {
     if (provider.connected) await loadFiles(provider.id);
   };
   const connect = async (provider: Provider) => {
+    if(live) {const token=await auth.bearer();if(!token) return;const result=await repositories.connect(provider.id,token);if(result.ok) window.location.assign(result.data.url);else setError(result.error.error);return;}
     setProviders((current) => current.map((item) => item.id === provider.id ? { ...item, connected: true, accountName: "demo@acme.example", connectedAt: new Date().toISOString() } : item));
     setActive(provider.id); setSelected([]); setParentId(""); setDriveId(""); setCrumbs([]);
     await loadFiles(provider.id);
     toast.success(`${provider.name} demo connected.`);
   };
   const disconnect = async (provider: Provider) => {
+    if(live) {const token=await auth.bearer();if(!token) return;const result=await repositories.disconnect(provider.id,token);if(!result.ok) {setError(result.error.error);return;}}
     setProviders((current) => current.map((item) => item.id === provider.id ? { ...item, connected: false, accountName: null, connectedAt: null } : item));
     if (active === provider.id) { setActive(null); setFiles([]); }
-    toast.success(`${provider.name} demo disconnected.`);
+    toast.success(`${provider.name} disconnected.`);
   };
   const enterFolder = async (file: RemoteFile) => {
     if (!active) return;
@@ -112,6 +136,21 @@ export function IntegrationsView() {
   const importSelected = async () => {
     if (!active) return;
     setBusy(true); setError("");
+    if(live) {
+      const token=await auth.bearer();
+      if(!token) {setBusy(false);return;}
+      importController.current?.abort();
+      const controller=new AbortController();importController.current=controller;
+      try {
+        for(const file of files.filter((item)=>selected.includes(item.id)&&!item.folder)) {
+          const result=await importRepositoryFile(active,file,token,{signal:controller.signal,onProgress:setImportProgress});
+          if(!result.ok) {setError(result.error.error);return;}
+          setFiles((current)=>current.map((item)=>item.id===file.id?{...item,imported:true}:item));
+        }
+        await ws.refreshDocs();setSelected([]);toast.success("Documents imported.");
+      } finally {setBusy(false);setImportProgress(0);}
+      return;
+    }
     const chosen = files.filter((file) => selected.includes(file.id) && !file.folder);
     let imported = 0;
     let alreadyImported = 0;
@@ -132,9 +171,9 @@ export function IntegrationsView() {
   return (
     <div className="h-full overflow-y-auto bg-canvas">
       <header className="px-8 pb-5 pt-7 max-[640px]:px-4">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Workspace</p><h1 className="mt-1 text-2xl font-bold">Integrations</h1></div><span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs font-medium text-muted"><span className="size-1.5 rounded-full bg-accent" /> Interactive demo</span></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Workspace</p><h1 className="mt-1 text-2xl font-bold">Integrations</h1></div><span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1.5 text-xs font-medium text-muted"><span className="size-1.5 rounded-full bg-accent" /> {live?"Connected repositories":"Interactive demo"}</span></div>
         <p className="mt-1 max-w-2xl text-sm text-muted">Bring a document into CLAUSE as searchable text. Your source file stays where it is.</p>
-        <p className="mt-2 text-xs text-muted">Explore the setup and import flow with sample files. No repository account or sign-in is needed for this demo.</p>
+        <p className="mt-2 text-xs text-muted">{live?"Connect a repository and import a document. Large files continue in the background.":"Explore the setup and import flow with sample files. No repository account or sign-in is needed for this demo."}</p>
       </header>
       <div className="grid grid-cols-1 gap-5 px-8 pb-10 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] max-[640px]:px-4">
         <section aria-label="Document repositories">
@@ -162,7 +201,7 @@ export function IntegrationsView() {
 
         <section className="flex min-h-72 min-w-0 flex-col overflow-hidden rounded-card border border-line bg-paper" aria-label="Repository browser and search">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <div><h2 className="font-semibold">{active ? providers.find((p) => p.id === active)?.name : "Repository preview"}</h2><p className="text-xs text-muted">{active ? "Select sample documents to import" : "Connect any repository to preview its files."}</p></div>
+            <div><h2 className="font-semibold">{active ? providers.find((p) => p.id === active)?.name : "Repository preview"}</h2><p className="text-xs text-muted">{active ? (live?"Select documents to import":"Select sample documents to import") : "Connect any repository to preview its files."}</p></div>
             {active && <button type="button" onClick={() => { setActive(null); setFiles([]); }} className="rounded-control px-2 py-1 text-xs text-muted hover:bg-line/60">Close</button>}
           </div>
           <Tabs tabs={[{ id: "browse", label: "Browse", icon: <FileText size={14} aria-hidden /> }, { id: "search", label: "Search", icon: <Search size={14} aria-hidden /> }]} value={sideTab} onChange={setSideTab} label="Integration side panel" idPrefix="integrations-side" className="shrink-0 border-b border-line bg-paper px-2" />
@@ -175,7 +214,7 @@ export function IntegrationsView() {
           {active && <>
             <div className="flex items-center gap-1 overflow-x-auto border-b border-line px-3 py-2 text-xs text-muted">
               <button type="button" onClick={() => { setCrumbs([]); setParentId(""); void loadFiles(active, "", driveId); }} className="shrink-0 hover:text-ink">{active === "sharepoint" ? "Libraries" : "Files"}</button>
-              {crumbs.map((crumb, i) => <span key={`${crumb.id}-${i}`} className="flex shrink-0 items-center gap-1"><ChevronRight size={12} /><button type="button" onClick={() => void goToCrumb(i)} className="max-w-36 truncate hover:text-ink">{crumb.name}</button></span>)}
+              {crumbs.map((crumb, i) => <span key={crumb.id} className="flex shrink-0 items-center gap-1"><ChevronRight size={12} /><button type="button" onClick={() => void goToCrumb(i)} className="max-w-36 truncate hover:text-ink">{crumb.name}</button></span>)}
             </div>
             {error && <p role="alert" className="mx-3 mt-3 rounded-control bg-fail-bg px-3 py-2 text-xs text-fail">{error}</p>}
             <div className="max-h-[460px] overflow-y-auto p-2">
@@ -194,7 +233,7 @@ export function IntegrationsView() {
             </div>
             <div className="flex items-center justify-between border-t border-line px-4 py-3">
               <span className="text-xs text-muted">{selected.length} selected</span>
-              <Button size="sm" variant="primary" disabled={!selected.length || busy} onClick={() => void importSelected()}>{busy ? "Importing…" : "Import selected"}</Button>
+              <Button size="sm" variant="primary" disabled={!selected.length || busy} onClick={() => void importSelected()}>{busy ? `Importing… ${live?`${importProgress}%`:""}` : "Import selected"}</Button>
             </div>
           </>}
               </motion.div>}
