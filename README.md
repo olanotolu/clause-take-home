@@ -19,26 +19,12 @@
 
 ## product screenshots
 
-The workspace, library, editor, search, and mobile views are fresh October 19 captures of the current app from a local, seeded build. The contracts and workspace requests shown are fictional sample data. The Clause CI image is an earlier captured staged-edit report; its model results are advisory.
+Two desktop captures from the current app, showing the fictional workspace and contract editor.
 
-<table>
-  <tr>
-    <td><a href="docs/img/screenshots/workspace.png"><img src="docs/img/screenshots/workspace.png" alt="CLAUSE workspace board with fictional contract review requests" width="640"></a><br><sub>Workspace board · prioritized contract review requests</sub></td>
-    <td><a href="docs/img/screenshots/documents.png"><img src="docs/img/screenshots/documents.png" alt="CLAUSE document library showing five fictional sample contracts" width="640"></a><br><sub>Document library · versions, sizes, and sample labels</sub></td>
-  </tr>
-  <tr>
-    <td><a href="docs/img/screenshots/editor.png"><img src="docs/img/screenshots/editor.png" alt="CLAUSE read-only contract editor with staged edit tools" width="640"></a><br><sub>Contract view · CodeMirror text surface and staged-edit tools</sub></td>
-    <td><a href="docs/img/screenshots/search.png"><img src="docs/img/screenshots/search.png" alt="CLAUSE ranked search result with a verified source passage in the NDA" width="640"></a><br><sub>In-document search · ranked result linked to its source passage</sub></td>
-  </tr>
-  <tr>
-    <td><a href="docs/img/screenshots/workspace-mobile.png"><img src="docs/img/screenshots/workspace-mobile.png" alt="Mobile CLAUSE workspace with fictional review requests and bottom navigation" width="320"></a><br><sub>Mobile workspace · responsive request board and navigation</sub></td>
-    <td><a href="docs/img/screenshots/editor-mobile.png"><img src="docs/img/screenshots/editor-mobile.png" alt="Mobile CLAUSE contract view with the document and search tools tabs" width="320"></a><br><sub>Mobile contract view · document and tools remain reachable on a phone</sub></td>
-  </tr>
-  <tr>
-    <td><a href="docs/img/clause-ci.png"><img src="docs/img/clause-ci.png" alt="CLAUSE CI results comparing saved contract requirements before and after a staged NDA edit" width="640"></a><br><sub>Clause CI · requirements checked against a staged NDA edit; model results are advisory</sub></td>
-    <td></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/img/screenshots/workspace.png" alt="CLAUSE workspace board with fictional contract review requests" width="49%">
+  <img src="docs/img/screenshots/editor.png" alt="CLAUSE read-only contract editor with staged edit tools" width="49%">
+</p>
 
 The screenshots are product views, not benchmark evidence. Performance measurements and their environment are documented in [performance](#performance) and the [dated reports](bench/performance/results/).
 
