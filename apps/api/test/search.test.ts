@@ -32,6 +32,15 @@ describe("words search (FTS5 + BM25)", () => {
     expect((await search("terminate")).results[0].documentId).toBe(d.id);
   });
 
+  it("keeps a useful bounded excerpt when a large-document match is a Porter stem", async () => {
+    const d = await createDoc(app, "Long term", `${"boilerplate ".repeat(24_000)}termination survives.`);
+    const hit = (await search("terminate")).results[0].hits[0];
+    expect(hit.snippet.map((part: {text:string})=>part.text).join("")).toContain("termination");
+    expect(marked(hit).join(" ")).toContain("termination");
+    expect(hit.start).toBeUndefined();
+    expect(d.id).toBe((await search("terminate")).results[0].documentId);
+  });
+
   it("returns no results (not an error) when nothing matches", async () => {
     await createDoc(app, "NDA", NDA);
     expect(await search("zebra")).toMatchObject({ total: 0, results: [] });

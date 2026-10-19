@@ -281,14 +281,18 @@ export function sqliteStore(db: Db): Store {
         const snippetNeedle = queryTerms(query)[0]?.split(/\s+/)[0] ?? query;
         const items = ranked.map((r): WordSnapshot => {
           const isWindow = r.size > NATIVE_SNIPPET_MAX_CHARS;
-          const content = isWindow
-            ? (db.prepare("SELECT substr(content,max(1,instr(lower(content),lower(?))-200),400) AS content FROM documents WHERE id=?").get(snippetNeedle,r.id) as {content:string}|undefined)?.content ?? ""
-            : getDoc(r.id)!.content;
-          const snippet = !isWindow
+          const windowRow = isWindow
+            ? db.prepare("WITH doc AS MATERIALIZED (SELECT content,instr(lower(content),lower(?)) AS position,content_utf16 IS NOT NULL AND content_utf16=length(content) AS offset_safe FROM documents WHERE id=?) SELECT position,offset_safe,substr(content,max(1,position-200),400) AS content FROM doc").get(snippetNeedle,r.id) as {position:number;offset_safe:number;content:string}|undefined
+            : undefined;
+          const content = isWindow ? windowRow?.content ?? "" : getDoc(r.id)!.content;
+          // Porter stemming can match a form whose literal query spelling is absent (terminate -> termination).
+          // Let FTS choose a bounded marked snippet for that uncommon fallback instead of returning an unrelated window.
+          const needsStemFallback=isWindow&&!content.toLowerCase().includes(snippetNeedle.toLowerCase());
+          const snippet = !isWindow||needsStemFallback
             ? db.prepare(`SELECT snippet(documents_words, 1, '${OPEN}', '${CLOSE}', '${ELLIPSIS}', 24) AS snip
                 FROM documents_words JOIN documents d ON d.seq = documents_words.rowid WHERE documents_words MATCH ? AND d.id = ?`).get(match, r.id) as { snip: string } | undefined
             : undefined;
-          return { ...r, score: -r.score, content, ...(isWindow?{contentIsWindow:true}:{}), ...(snippet && { nativeSnippet: snippet.snip }) };
+          return { ...r, score: -r.score, content:needsStemFallback?"":content, ...(isWindow?{contentIsWindow:true}:{}), ...(isWindow&&windowRow?.offset_safe&&windowRow.position>0?{contentOffset:Math.max(1,windowRow.position-200)-1}:{}), ...(snippet && { nativeSnippet: snippet.snip }) };
         });
         db.exec("COMMIT");
         return { total: n, items };
