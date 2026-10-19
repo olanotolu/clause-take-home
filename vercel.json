@@ -3,16 +3,51 @@
   "services": {
     "frontend": {
       "root": "apps/web",
-      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
     },
     "backend": {
       "root": "apps/api",
-      "entrypoint": "src/server.ts",
-      "rewrites": [{ "source": "/api/:path(.*)?", "destination": "/:path" }]
+      "rewrites": [
+        {
+          "source": "/api/:path(.*)?",
+          "destination": "/:path"
+        }
+      ],
+      "framework": "nitro"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "backend" } },
-    { "source": "/(.*)", "destination": { "service": "frontend" } }
+    {
+      "source": "/.well-known/workflow/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/maintenance",
+      "schedule": "0 4 * * *"
+    }
+  ],
+  "regions": [
+    "iad1"
   ]
 }

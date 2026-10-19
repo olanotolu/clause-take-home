@@ -1,0 +1,489 @@
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+
+     execution: local
+        script: /Users/term_/Desktop/Sandstone/bench/performance/k6.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 1 max VUs, 2m30s max duration (incl. graceful stop):
+              * load: 100 iterations shared among 1 VUs (maxDuration: 2m0s, gracefulStop: 30s)
+
+
+running (0m01.0s), 1/1 VUs, 2 complete and 0 interrupted iterations
+load   [   2% ] 1 VUs  0m01.0s/2m0s  002/100 shared iters
+
+running (0m02.0s), 1/1 VUs, 4 complete and 0 interrupted iterations
+load   [   4% ] 1 VUs  0m02.0s/2m0s  004/100 shared iters
+
+running (0m03.0s), 1/1 VUs, 6 complete and 0 interrupted iterations
+load   [   6% ] 1 VUs  0m03.0s/2m0s  006/100 shared iters
+
+running (0m04.0s), 1/1 VUs, 9 complete and 0 interrupted iterations
+load   [   9% ] 1 VUs  0m04.0s/2m0s  009/100 shared iters
+
+running (0m05.0s), 1/1 VUs, 11 complete and 0 interrupted iterations
+load   [  11% ] 1 VUs  0m05.0s/2m0s  011/100 shared iters
+
+running (0m06.0s), 1/1 VUs, 13 complete and 0 interrupted iterations
+load   [  13% ] 1 VUs  0m06.0s/2m0s  013/100 shared iters
+
+running (0m07.0s), 1/1 VUs, 16 complete and 0 interrupted iterations
+load   [  16% ] 1 VUs  0m07.0s/2m0s  016/100 shared iters
+
+running (0m08.0s), 1/1 VUs, 17 complete and 0 interrupted iterations
+load   [  17% ] 1 VUs  0m08.0s/2m0s  017/100 shared iters
+
+running (0m09.0s), 1/1 VUs, 20 complete and 0 interrupted iterations
+load   [  20% ] 1 VUs  0m09.0s/2m0s  020/100 shared iters
+
+running (0m10.0s), 1/1 VUs, 22 complete and 0 interrupted iterations
+load   [  22% ] 1 VUs  0m10.0s/2m0s  022/100 shared iters
+
+running (0m11.0s), 1/1 VUs, 24 complete and 0 interrupted iterations
+load   [  24% ] 1 VUs  0m11.0s/2m0s  024/100 shared iters
+
+running (0m12.0s), 1/1 VUs, 26 complete and 0 interrupted iterations
+load   [  26% ] 1 VUs  0m12.0s/2m0s  026/100 shared iters
+
+running (0m13.0s), 1/1 VUs, 28 complete and 0 interrupted iterations
+load   [  28% ] 1 VUs  0m13.0s/2m0s  028/100 shared iters
+
+running (0m14.0s), 1/1 VUs, 30 complete and 0 interrupted iterations
+load   [  30% ] 1 VUs  0m14.0s/2m0s  030/100 shared iters
+
+running (0m15.0s), 1/1 VUs, 32 complete and 0 interrupted iterations
+load   [  32% ] 1 VUs  0m15.0s/2m0s  032/100 shared iters
+
+running (0m16.0s), 1/1 VUs, 35 complete and 0 interrupted iterations
+load   [  35% ] 1 VUs  0m16.0s/2m0s  035/100 shared iters
+
+running (0m17.0s), 1/1 VUs, 37 complete and 0 interrupted iterations
+load   [  37% ] 1 VUs  0m17.0s/2m0s  037/100 shared iters
+
+running (0m18.0s), 1/1 VUs, 39 complete and 0 interrupted iterations
+load   [  39% ] 1 VUs  0m18.0s/2m0s  039/100 shared iters
+
+running (0m19.0s), 1/1 VUs, 41 complete and 0 interrupted iterations
+load   [  41% ] 1 VUs  0m19.0s/2m0s  041/100 shared iters
+
+running (0m20.0s), 1/1 VUs, 44 complete and 0 interrupted iterations
+load   [  44% ] 1 VUs  0m20.0s/2m0s  044/100 shared iters
+
+running (0m21.0s), 1/1 VUs, 45 complete and 0 interrupted iterations
+load   [  45% ] 1 VUs  0m21.0s/2m0s  045/100 shared iters
+
+running (0m22.0s), 1/1 VUs, 48 complete and 0 interrupted iterations
+load   [  48% ] 1 VUs  0m22.0s/2m0s  048/100 shared iters
+
+running (0m23.0s), 1/1 VUs, 50 complete and 0 interrupted iterations
+load   [  50% ] 1 VUs  0m23.0s/2m0s  050/100 shared iters
+
+running (0m24.0s), 1/1 VUs, 52 complete and 0 interrupted iterations
+load   [  52% ] 1 VUs  0m24.0s/2m0s  052/100 shared iters
+
+running (0m25.0s), 1/1 VUs, 54 complete and 0 interrupted iterations
+load   [  54% ] 1 VUs  0m25.0s/2m0s  054/100 shared iters
+
+running (0m26.0s), 1/1 VUs, 56 complete and 0 interrupted iterations
+load   [  56% ] 1 VUs  0m26.0s/2m0s  056/100 shared iters
+
+running (0m27.0s), 1/1 VUs, 58 complete and 0 interrupted iterations
+load   [  58% ] 1 VUs  0m27.0s/2m0s  058/100 shared iters
+
+running (0m28.0s), 1/1 VUs, 60 complete and 0 interrupted iterations
+load   [  60% ] 1 VUs  0m28.0s/2m0s  060/100 shared iters
+
+running (0m29.0s), 1/1 VUs, 62 complete and 0 interrupted iterations
+load   [  62% ] 1 VUs  0m29.0s/2m0s  062/100 shared iters
+
+running (0m30.0s), 1/1 VUs, 64 complete and 0 interrupted iterations
+load   [  64% ] 1 VUs  0m30.0s/2m0s  064/100 shared iters
+
+running (0m31.0s), 1/1 VUs, 66 complete and 0 interrupted iterations
+load   [  66% ] 1 VUs  0m31.0s/2m0s  066/100 shared iters
+
+running (0m32.0s), 1/1 VUs, 68 complete and 0 interrupted iterations
+load   [  68% ] 1 VUs  0m32.0s/2m0s  068/100 shared iters
+
+running (0m33.0s), 1/1 VUs, 69 complete and 0 interrupted iterations
+load   [  69% ] 1 VUs  0m33.0s/2m0s  069/100 shared iters
+
+running (0m34.0s), 1/1 VUs, 71 complete and 0 interrupted iterations
+load   [  71% ] 1 VUs  0m34.0s/2m0s  071/100 shared iters
+
+running (0m35.0s), 1/1 VUs, 73 complete and 0 interrupted iterations
+load   [  73% ] 1 VUs  0m35.0s/2m0s  073/100 shared iters
+
+running (0m36.0s), 1/1 VUs, 76 complete and 0 interrupted iterations
+load   [  76% ] 1 VUs  0m36.0s/2m0s  076/100 shared iters
+
+running (0m37.0s), 1/1 VUs, 77 complete and 0 interrupted iterations
+load   [  77% ] 1 VUs  0m37.0s/2m0s  077/100 shared iters
+
+running (0m38.0s), 1/1 VUs, 79 complete and 0 interrupted iterations
+load   [  79% ] 1 VUs  0m38.0s/2m0s  079/100 shared iters
+
+running (0m39.0s), 1/1 VUs, 82 complete and 0 interrupted iterations
+load   [  82% ] 1 VUs  0m39.0s/2m0s  082/100 shared iters
+
+running (0m40.0s), 1/1 VUs, 84 complete and 0 interrupted iterations
+load   [  84% ] 1 VUs  0m40.0s/2m0s  084/100 shared iters
+
+running (0m41.0s), 1/1 VUs, 86 complete and 0 interrupted iterations
+load   [  86% ] 1 VUs  0m41.0s/2m0s  086/100 shared iters
+
+running (0m42.0s), 1/1 VUs, 87 complete and 0 interrupted iterations
+load   [  87% ] 1 VUs  0m42.0s/2m0s  087/100 shared iters
+
+running (0m43.0s), 1/1 VUs, 89 complete and 0 interrupted iterations
+load   [  89% ] 1 VUs  0m43.0s/2m0s  089/100 shared iters
+
+running (0m44.0s), 1/1 VUs, 92 complete and 0 interrupted iterations
+load   [  92% ] 1 VUs  0m44.0s/2m0s  092/100 shared iters
+
+running (0m45.0s), 1/1 VUs, 94 complete and 0 interrupted iterations
+load   [  94% ] 1 VUs  0m45.0s/2m0s  094/100 shared iters
+
+running (0m46.0s), 1/1 VUs, 96 complete and 0 interrupted iterations
+load   [  96% ] 1 VUs  0m46.0s/2m0s  096/100 shared iters
+
+running (0m47.0s), 1/1 VUs, 99 complete and 0 interrupted iterations
+load   [  99% ] 1 VUs  0m47.0s/2m0s  099/100 shared iters
+{
+  "generatedAt": "2026-10-19T15:45:02.137Z",
+  "base": "https://clause-take-home-c6z6nu23x-subomis-projects-22c86536.vercel.app/api",
+  "bytes": 1048576,
+  "phase": "warm",
+  "scenario": "edit",
+  "clients": 1,
+  "writeAttemptLimit": 100,
+  "metadata": {
+    "min": 41.389,
+    "med": 60.125,
+    "p(90)": 129.501,
+    "p(95)": 132.936,
+    "p(99)": 175.79552,
+    "max": 181.985
+  },
+  "search": null,
+  "edit": {
+    "min": 236.146,
+    "med": 313.1785,
+    "p(90)": 473.0627,
+    "p(95)": 502.46325,
+    "p(99)": 526.0893,
+    "max": 562.155
+  },
+  "serverMetadata": {
+    "p(95)": 15.834,
+    "p(99)": 22.253799999999995,
+    "max": 29.56,
+    "min": 12.79,
+    "med": 13.2,
+    "p(90)": 15.654
+  },
+  "serverSearch": null,
+  "serverEdit": {
+    "min": 202.56,
+    "med": 254.70999999999998,
+    "p(90)": 398.29499999999996,
+    "p(95)": 410.29749999999996,
+    "p(99)": 447.7195,
+    "max": 471.43
+  },
+  "attemptedWrites": {
+    "count": 100,
+    "rate": 2.102664972255125
+  },
+  "committedWrites": {
+    "count": 100,
+    "rate": 2.102664972255125
+  },
+  "conflicts": null,
+  "failures": {
+    "count": 0,
+    "rate": 0
+  },
+  "serverFailures": null,
+  "clientFailures": null,
+  "transportFailures": null,
+  "transferredBytes": {
+    "count": 124301,
+    "rate": 2613.6335871628435
+  },
+  "responseBytes": {
+    "count": 83074,
+    "rate": 1746.7678990512227
+  },
+  "thresholds": {
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 0,
+        "med": 0.001,
+        "p(90)": 0.002,
+        "p(95)": 0.002,
+        "p(99)": 0.0041299999999999774,
+        "max": 89.112
+      }
+    },
+    "http_req_sending": {
+      "values": {
+        "min": 0.136,
+        "med": 0.326,
+        "p(90)": 0.7447,
+        "p(95)": 1.0651999999999993,
+        "p(99)": 5.769179999999998,
+        "max": 17.892
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "clause_metadata_ms": {
+      "contains": "time",
+      "values": {
+        "max": 181.985,
+        "min": 41.389,
+        "med": 60.125,
+        "p(90)": 129.501,
+        "p(95)": 132.936,
+        "p(99)": 175.79552
+      },
+      "type": "trend"
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 100,
+        "rate": 2.102664972255125
+      }
+    },
+    "data_sent": {
+      "contains": "data",
+      "values": {
+        "count": 29846,
+        "rate": 627.5613876192647
+      },
+      "type": "counter"
+    },
+    "http_req_connecting": {
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(90)": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 21.911,
+        "min": 0
+      },
+      "type": "trend"
+    },
+    "clause_response_bytes": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 83074,
+        "rate": 1746.7678990512227
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 1,
+        "min": 1,
+        "max": 1
+      }
+    },
+    "vus_max": {
+      "values": {
+        "value": 1,
+        "min": 1,
+        "max": 1
+      },
+      "type": "gauge",
+      "contains": "default"
+    },
+    "clause_edit_ms": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 562.155,
+        "min": 236.146,
+        "med": 313.1785,
+        "p(90)": 473.0627,
+        "p(95)": 502.46325,
+        "p(99)": 526.0893
+      }
+    },
+    "clause_server_edit_ms": {
+      "values": {
+        "p(90)": 398.29499999999996,
+        "p(95)": 410.29749999999996,
+        "p(99)": 447.7195,
+        "max": 471.43,
+        "min": 202.56,
+        "med": 254.70999999999998
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 524.55185,
+        "max": 562.155,
+        "min": 41.389,
+        "med": 209.0655,
+        "p(90)": 431.1581,
+        "p(95)": 472.7338499999999
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 430.5549,
+        "p(95)": 470.20574999999997,
+        "p(99)": 524.06451,
+        "max": 561.791,
+        "min": 41.103,
+        "med": 208.7415
+      }
+    },
+    "clause_write_attempts": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 100,
+        "rate": 2.102664972255125
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 600.9793664,
+        "p(95)": 638.1780375,
+        "p(99)": 718.51326482,
+        "max": 759.418166,
+        "min": 329.550042,
+        "med": 457.171292
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 55.74,
+        "min": 0,
+        "med": 0,
+        "p(90)": 0
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 200
+      }
+    },
+    "clause_server_metadata_ms": {
+      "contains": "time",
+      "values": {
+        "min": 12.79,
+        "med": 13.2,
+        "p(90)": 15.654,
+        "p(95)": 15.834,
+        "p(99)": 22.253799999999995,
+        "max": 29.56
+      },
+      "type": "trend"
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 124301,
+        "rate": 2613.6335871628435
+      }
+    },
+    "clause_http_failures": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "count": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 562.155,
+        "min": 41.389,
+        "med": 209.0655,
+        "p(90)": 431.1581,
+        "p(95)": 472.7338499999999,
+        "p(99)": 524.55185
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 0.058,
+        "med": 0.1165,
+        "p(90)": 0.48960000000000004,
+        "p(95)": 1.8170499999999978,
+        "p(99)": 9.833209999999994,
+        "max": 42.525
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 100,
+        "fails": 0
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 200,
+        "rate": 4.20532994451025
+      }
+    },
+    "clause_committed_writes": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 100,
+        "rate": 2.102664972255125
+      }
+    }
+  }
+}
+
+running (0m47.6s), 0/1 VUs, 100 complete and 0 interrupted iterations
+load ✓ [ 100% ] 1 VUs  0m47.6s/2m0s  100/100 shared iters

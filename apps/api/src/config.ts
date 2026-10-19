@@ -33,13 +33,14 @@ export function chooseBackend(env: Record<string, string | undefined>): Backend 
   return env.VERCEL ? "postgres" : "sqlite";
 }
 
-export async function storeFromEnv(env: Record<string, string | undefined>, hooks: { onPool?: (pool: import("pg").Pool) => void } = {}): Promise<Store> {
+export async function storeFromEnv(env: Record<string, string | undefined>, hooks: { onPool?: (pool: import("pg").Pool) => void } = {}, options: { autoMigrate?: boolean } = {}): Promise<Store> {
   if (chooseBackend(env) === "postgres") {
-    const url = env.DATABASE_URL ?? env.POSTGRES_URL;
+    const url = (env.CLAUSE_DATABASE_SCHEMA ? env.DATABASE_URL_UNPOOLED ?? env.POSTGRES_URL_NON_POOLING : undefined) ?? env.DATABASE_URL ?? env.POSTGRES_URL;
     if (!url) throw new Error("Postgres storage selected but DATABASE_URL is not set");
+    if (env.VERCEL && !env.BLOB_READ_WRITE_TOKEN) throw new Error("Vercel Postgres deployments require BLOB_READ_WRITE_TOKEN for private large-document storage");
     // CLAUSE_DATABASE_CA is the PEM certificate authority for the database; "\n" escapes are expanded so it fits one env var.
     const ca = env.CLAUSE_DATABASE_CA?.replace(/\\n/g, "\n");
-    return createPostgresStore({ connectionString: url, max: Number(env.CLAUSE_PG_POOL_MAX ?? 3), ...(ca && { ca }), ...(hooks.onPool && { onPool: hooks.onPool }) });
+    return createPostgresStore({ connectionString: url, ...(env.CLAUSE_DATABASE_SCHEMA?{schema:env.CLAUSE_DATABASE_SCHEMA}:{}), max: Number(env.CLAUSE_PG_POOL_MAX ?? 3), autoMigrate: options.autoMigrate ?? true, ...(ca && { ca }), ...(hooks.onPool && { onPool: hooks.onPool }) });
   }
   const path = env.CLAUSE_DB ?? DEFAULT_DB_PATH;
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
@@ -54,7 +55,7 @@ export async function storeFromEnv(env: Record<string, string | undefined>, hook
 export function lazyStoreFromEnv(env: Record<string, string | undefined>, hooks: { onPool?: (pool: import("pg").Pool) => void } = {}): Store {
   const kind = chooseBackend(env);
   return lazyStore({ kind, maxContentChars: kind === "postgres" ? POSTGRES_MAX_CONTENT_CHARS : Number.POSITIVE_INFINITY }, async () => {
-    const store = await storeFromEnv(env, hooks);
+    const store = await storeFromEnv(env, hooks, { autoMigrate: !env.VERCEL });
     if (env.CLAUSE_SEED === "1") {
       await store.ensureSamples(SEED_DOCUMENTS);
       // Independent of the documents check, so a database seeded before these tables existed still gets them (once).

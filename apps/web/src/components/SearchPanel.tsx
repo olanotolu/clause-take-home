@@ -15,9 +15,10 @@ interface Props {
 }
 
 function Snippet({ hit }: { hit: Hit }) {
+  let offset=0;
   return (
     <span className="text-[13px] leading-snug text-ink/80">
-      {hit.snippet.map((s, i) => (s.match ? <mark key={i} className="rounded-sm bg-hit px-0.5 text-ink">{s.text}</mark> : <span key={i}>{s.text}</span>))}
+      {hit.snippet.map((s) => {const key=`${offset}-${s.match}-${s.text}`;offset+=s.text.length;return s.match ? <mark key={key} className="rounded-sm bg-hit px-0.5 text-ink">{s.text}</mark> : <span key={key}>{s.text}</span>;})}
     </span>
   );
 }
@@ -95,8 +96,8 @@ export function SearchPanel({ refreshKey, seed, onOpen, onPick, onResults }: Pro
               </div>
             </button>
             <ul className="divide-y divide-line/70 px-1 pb-1">
-              {r.hits.map((h, i) => (
-                <li key={i}>
+              {r.hits.map((h) => (
+                <li key={`${r.documentId}-${h.start??h.snippet.map((segment)=>segment.text).join("")}`}>
                   <button type="button" onClick={() => onPick(r, h)} disabled={h.start === undefined} title={h.start === undefined ? "No verified offset for this hit" : "Select this passage to edit"} className="block w-full rounded px-2 py-1.5 text-left hover:bg-canvas disabled:cursor-default disabled:hover:bg-transparent">
                     <Snippet hit={h} />
                   </button>

@@ -3,8 +3,19 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch --env-file-if-exists=../../.env.local src/server.ts",
-    "start": "node --env-file-if-exists=../../.env.local src/server.ts"
+    "dev": "nitro dev",
+    "build": "node scripts/manual-benchmark.ts && nitro build && node scripts/build-worker.ts",
+    "db:migrate": "node --env-file-if-exists=../../.env.local src/ops.ts migrate",
+    "db:backfill-content": "node --env-file-if-exists=../../.env.local src/ops.ts backfill-content",
+    "db:verify-content": "node --env-file-if-exists=../../.env.local src/ops.ts verify-content",
+    "start": "node --env-file-if-exists=../../.env.local .output/server/index.mjs",
+    "db:manifest-content": "node --env-file-if-exists=../../.env.local src/ops.ts manifest-content",
+    "db:rehearse-content": "node --env-file-if-exists=../../.env.local src/ops.ts rehearse-content",
+    "db:prune-content": "node --env-file-if-exists=../../.env.local src/ops.ts prune-content",
+    "db:restore-content": "node --env-file-if-exists=../../.env.local src/ops.ts restore-content",
+    "db:cleanup-content": "node --env-file-if-exists=../../.env.local src/ops.ts cleanup-content",
+    "jobs:queue": "node --env-file-if-exists=../../.env.local src/ops.ts queue",
+    "jobs:dispatch": "node --env-file-if-exists=../../.env.local src/ops.ts dispatch"
   },
   "dependencies": {
     "@clause/core": "workspace:*",
@@ -13,7 +24,11 @@
     "@fastify/type-provider-zod": "^1.0.1",
     "@napi-rs/canvas": "0.1.80",
     "@openrouter/ai-sdk-provider": "3.1.0",
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.223.0",
+    "@opentelemetry/sdk-metrics": "2.2.0",
     "@scalar/fastify-api-reference": "^1.74.0",
+    "@vercel/blob": "2.8.2",
     "@vercel/functions": "^3.10.1",
     "ai": "^7.0.142",
     "diff": "^9.0.0",
@@ -21,14 +36,17 @@
     "fastify": "^5.12.7",
     "jose": "^6.2.12",
     "mammoth": "^1.13.0",
+    "nitro": "3.0.260903-beta",
     "pdf-parse": "^2.4.5",
     "pg": "^8.23.1",
+    "rollup": "^4.64.7",
+    "workflow": "5.2.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
     "jszip": "^3.10.1",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": "24.x"

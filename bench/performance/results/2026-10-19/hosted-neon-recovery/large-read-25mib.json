@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-10-19T15:50:36.680Z",
+  "node": "v24.15.0",
+  "base": "https://clause-take-home-c6z6nu23x-subomis-projects-22c86536.vercel.app/api",
+  "results": [
+    {
+      "byteLength": 26214400,
+      "repetitions": 5,
+      "verifiedBytes": 131072000,
+      "p50Ms": 275.6941670000001,
+      "p90Ms": 683.5305830000001,
+      "p95Ms": 683.5305830000001,
+      "p99Ms": 683.5305830000001,
+      "samplesMs": [
+        683.5305830000001,
+        279.404041,
+        228.3067920000001,
+        211.31837500000006,
+        275.6941670000001
+      ],
+      "allHashesVerified": true
+    }
+  ]
+}

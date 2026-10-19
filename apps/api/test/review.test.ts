@@ -86,7 +86,11 @@ describe("POST /documents/:id/changes/check (deterministic requirements)", () =>
   afterEach(async () => void (await app.close()));
   const add = (id: string, kind: string, text: string) => app.inject({ method: "POST", url: `/documents/${id}/requirements`, payload: { kind, text } });
   const check = (id: string, body: unknown, headers: Record<string, string> = {}) => app.inject({ method: "POST", url: `/documents/${id}/changes/check`, payload: body as object, headers });
-  const byText = (report: { requirements: { text: string }[] }, text: string) => report.requirements.find((r) => r.text === text) as any;
+  const byText = (report: { requirements: { text: string; delta: string; before: { verdict: string; detail?:string; evidence: { start: number; end: number; verified?: boolean; quote?: string }[] }; after: { verdict: string; detail?:string; evidence: { start: number; end: number }[] }; touchedBy?: number[]; detail?: string }[] }, text: string) => {
+    const item=report.requirements.find((r)=>r.text===text);
+    if(!item) throw new Error(`missing requirement result: ${text}`);
+    return item;
+  };
 
   it("an unrelated edit leaves every requirement held, and the mechanical verdict stands on its own", async () => {
     const d = await createDoc(app, "NDA", NDA);
@@ -108,8 +112,8 @@ describe("POST /documents/:id/changes/check (deterministic requirements)", () =>
     const r = (await check(d.id, { changes: [quote("three (3) years", "two (2) years")] })).json();
     const item = byText(r, "three (3) years");
     expect(item).toMatchObject({ delta: "regressed", before: { verdict: "PASS" }, after: { verdict: "FAIL" } });
-    expect(item.before.evidence[0]).toMatchObject({ verified: true, quote: "three (3) years" });
-    expect(NDA.slice(item.before.evidence[0].start, item.before.evidence[0].end)).toBe("three (3) years"); // offsets index the current text
+    expect(item.before.evidence[0]!).toMatchObject({ verified: true, quote: "three (3) years" });
+    expect(NDA.slice(item.before.evidence[0]!.start, item.before.evidence[0]!.end)).toBe("three (3) years"); // offsets index the current text
     expect(r.summary.regressed).toBe(1);
   });
 
@@ -120,7 +124,7 @@ describe("POST /documents/:id/changes/check (deterministic requirements)", () =>
     const item = byText(r, "perpetual");
     expect(item).toMatchObject({ delta: "regressed", after: { verdict: "FAIL" } });
     const proposed = NDA.replace("three (3) years", "a perpetual term");
-    expect(proposed.slice(item.after.evidence[0].start, item.after.evidence[0].end)).toBe("perpetual");
+    expect(proposed.slice(item.after.evidence[0]!.start, item.after.evidence[0]!.end)).toBe("perpetual");
   });
 
   it("`unchanged` names the change that altered the passage; an edit elsewhere leaves it held", async () => {

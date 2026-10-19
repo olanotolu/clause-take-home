@@ -1,6 +1,9 @@
 import { applyChanges, type AppliedChange, type Change, type EditResult, type Result } from "@clause/core";
 import type { DomainError } from "./errors.ts";
 import { ContentTooLargeError, summarize, type DocumentRecord, type Store } from "./store/types.ts";
+import { INLINE_CONTENT_BYTES, newContentPath, removeStoredContent, uploadToStorage } from "./content-storage.ts";
+
+export const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 
 export interface ChangeRequest {
   expectedVersion?: number | undefined;
@@ -34,7 +37,7 @@ const IF_MATCH = /^"v(\d+)-([0-9a-f]+)"$/;
  * `expectedVersion` (body) and `If-Match` (header) may both be given, but must
  * agree. A stale one is a 409 / 412 respectively; we never auto-merge.
  */
-function checkPreconditions(doc: DocumentRecord, req: Pick<ChangeRequest, "expectedVersion" | "ifMatch">): DomainError | undefined {
+function checkPreconditions(doc: Pick<DocumentRecord,"version"|"contentHash">, req: Pick<ChangeRequest, "expectedVersion" | "ifMatch">): DomainError | undefined {
   let ifMatchVersion: number | undefined;
   if (req.ifMatch !== undefined) {
     const m = IF_MATCH.exec(req.ifMatch.trim());
@@ -55,14 +58,16 @@ const fail = (error: DomainError): Result<never, DomainError> => ({ ok: false, e
 
 /** Refuses text the backend cannot index, rather than storing it half-searchable. */
 const tooLarge = (store: Store, content: string): DomainError | undefined =>
-  content.length > store.maxContentChars ? { type: "TOO_LARGE_FOR_BACKEND", chars: content.length, max: store.maxContentChars } : undefined;
+  Buffer.byteLength(content, "utf8") > MAX_DOCUMENT_BYTES || content.length > store.maxContentChars
+    ? { type: "TOO_LARGE_FOR_BACKEND", chars: Buffer.byteLength(content, "utf8"), max: Math.min(MAX_DOCUMENT_BYTES, store.maxContentChars) }
+    : undefined;
 
 /** Runs a write, turning the database's own "too large to index" refusal into the same domain error as our cap. */
 async function guarded<T>(store: Store, content: string, write: () => Promise<T>): Promise<T | { tooLarge: DomainError }> {
   try {
     return await write();
   } catch (e) {
-    if (e instanceof ContentTooLargeError) return { tooLarge: { type: "TOO_LARGE_FOR_BACKEND", chars: content.length, max: store.maxContentChars } };
+    if (e instanceof ContentTooLargeError) return { tooLarge: { type: "TOO_LARGE_FOR_BACKEND", chars: Buffer.byteLength(content, "utf8"), max: Math.min(MAX_DOCUMENT_BYTES, store.maxContentChars) } };
     throw e;
   }
 }
@@ -70,7 +75,7 @@ const isTooLarge = (x: unknown): x is { tooLarge: DomainError } => typeof x === 
 
 /** The conflict a failed compare-and-swap means: someone committed between our read and our write. */
 async function conflictFor(store: Store, id: string, read: DocumentRecord, ifMatch: string | undefined): Promise<Result<never, DomainError>> {
-  const current = await store.getDocument(id);
+  const current = await store.getDocumentMetadata(id);
   if (!current) return fail({ type: "DOCUMENT_NOT_FOUND", id });
   return fail(
     ifMatch !== undefined
@@ -79,7 +84,7 @@ async function conflictFor(store: Store, id: string, read: DocumentRecord, ifMat
   );
 }
 
-export async function createDocument(store: Store, input: { title: string; content: string; templateProvenance?: import("./store/types.ts").TemplateProvenance }): Promise<Result<DocumentRecord, DomainError>> {
+export async function createDocument(store: Store, input: { title: string; content: string; contentPath?: string; templateProvenance?: import("./store/types.ts").TemplateProvenance }): Promise<Result<DocumentRecord, DomainError>> {
   const big = tooLarge(store, input.content);
   if (big) return fail(big);
   const doc = await guarded(store, input.content, () => store.insertDocument(input));
@@ -88,8 +93,23 @@ export async function createDocument(store: Store, input: { title: string; conte
 
 /** Resolves and validates the request against the current version without writing anything. */
 export async function preview(store: Store, id: string, req: ChangeRequest): Promise<Result<{ doc: DocumentRecord; result: EditResult }, DomainError>> {
-  const doc = await store.getDocument(id);
-  if (!doc) return fail({ type: "DOCUMENT_NOT_FOUND", id });
+  let expectedVersion=req.expectedVersion;
+  let contentHashPrefix:string|undefined;
+  if(req.ifMatch!==undefined) {
+    const match=IF_MATCH.exec(req.ifMatch.trim());
+    if(!match)return fail({type:"INVALID_PRECONDITION",header:"If-Match"});
+    const ifMatchVersion=Number(match[1]);
+    if(req.expectedVersion!==undefined&&req.expectedVersion!==ifMatchVersion)return fail({type:"CONTRADICTORY_PRECONDITIONS",ifMatchVersion,expectedVersion:req.expectedVersion});
+    expectedVersion=Number.isSafeInteger(ifMatchVersion)?ifMatchVersion:-1;
+    contentHashPrefix=match[2];
+  }
+  const stored=await store.getDocumentForEdit(id,{...(expectedVersion!==undefined?{expectedVersion}:{}),...(contentHashPrefix!==undefined?{contentHashPrefix}:{})});
+  if(!stored)return fail({type:"DOCUMENT_NOT_FOUND",id});
+  if(!("content" in stored)) {
+    const pre=checkPreconditions(stored,req);
+    return fail(pre??{type:"VERSION_CONFLICT",expectedVersion:req.expectedVersion??-1,currentVersion:stored.version});
+  }
+  const doc=stored;
   const pre = checkPreconditions(doc, req);
   if (pre) return fail(pre);
   const edit = applyChanges(doc.content, req.changes);
@@ -133,7 +153,13 @@ export async function apply(store: Store, id: string, req: ChangeRequest): Promi
   const big = tooLarge(store, result.content);
   if (big) return fail(big);
 
-  const committed = await guarded(store, result.content, () => store.commitRevision({ id, expectedVersion: doc.version, content: result.content, summary: summarize(result.applied) }));
+  const contentPath = Buffer.byteLength(result.content, "utf8") > INLINE_CONTENT_BYTES ? newContentPath() : undefined;
+  try { if (contentPath) await uploadToStorage(contentPath, result.content); }
+  catch (e) { if (contentPath) await removeStoredContent(contentPath).catch(() => undefined); throw e; }
+  let committed: Awaited<ReturnType<typeof guarded<DocumentRecord | "conflict">>>;
+  try { committed = await guarded(store, result.content, () => store.commitRevision({ id, expectedVersion: doc.version, content: result.content, ...(contentPath && { contentPath }),previousContent:doc.content, summary: summarize(result.applied) })); }
+  catch (e) { if (contentPath) await removeStoredContent(contentPath).catch(() => undefined); throw e; }
+  if (committed === "conflict" || isTooLarge(committed)) if (contentPath) await removeStoredContent(contentPath).catch(() => undefined);
   if (isTooLarge(committed)) return fail(committed.tooLarge);
   if (committed === "conflict") return conflictFor(store, id, doc, req.ifMatch);
   return {
@@ -171,8 +197,28 @@ export async function revert(store: Store, id: string, req: RevertRequest): Prom
   const big = tooLarge(store, target.content);
   if (big) return fail(big);
 
-  const committed = await guarded(store, target.content, () => store.commitRevision({ id, expectedVersion: doc.version, content: target.content, summary: JSON.stringify([{ revertedTo: req.toVersion }]) }));
+  const contentPath = Buffer.byteLength(target.content, "utf8") > INLINE_CONTENT_BYTES ? newContentPath() : undefined;
+  try { if (contentPath) await uploadToStorage(contentPath, target.content); }
+  catch (e) { if (contentPath) await removeStoredContent(contentPath).catch(() => undefined); throw e; }
+  let committed: Awaited<ReturnType<typeof guarded<DocumentRecord | "conflict">>>;
+  try { committed = await guarded(store, target.content, () => store.commitRevision({ id, expectedVersion: doc.version, content: target.content, ...(contentPath && { contentPath }),previousContent:doc.content, summary: JSON.stringify([{ revertedTo: req.toVersion }]) })); }
+  catch (e) { if (contentPath) await removeStoredContent(contentPath).catch(() => undefined); throw e; }
+  if (committed === "conflict" || isTooLarge(committed)) if (contentPath) await removeStoredContent(contentPath).catch(() => undefined);
   if (isTooLarge(committed)) return fail(committed.tooLarge);
   if (committed === "conflict") return conflictFor(store, id, doc, req.ifMatch);
   return { ok: true, value: { id, title: committed.title, content: committed.content, previousVersion: doc.version, version: committed.version, changed: true, beforeHash: doc.contentHash, afterHash: committed.contentHash, applied: [], revertedTo: req.toVersion } };
+}
+
+/** Commits a browser-uploaded full replacement against the immutable version in its intent. */
+export async function replaceUploaded(store:Store,id:string,expectedVersion:number,content:string,contentPath:string):Promise<Result<Receipt,DomainError>> {
+  const doc=await store.getDocument(id);
+  if(!doc)return fail({type:"DOCUMENT_NOT_FOUND",id});
+  if(doc.sample)return fail({type:"SAMPLE_READ_ONLY",id});
+  const pre=checkPreconditions(doc,{expectedVersion});if(pre)return fail(pre);
+  const big=tooLarge(store,content);if(big)return fail(big);
+  if(content===doc.content)return {ok:true,value:{id,title:doc.title,content,previousVersion:doc.version,version:doc.version,changed:false,beforeHash:doc.contentHash,afterHash:doc.contentHash,applied:[]}};
+  const committed=await guarded(store,content,()=>store.commitRevision({id,expectedVersion,content,previousContent:doc.content,...(Buffer.byteLength(content,"utf8")>INLINE_CONTENT_BYTES?{contentPath}:{}),summary:JSON.stringify([{uploadedReplacement:true,beforeHash:doc.contentHash}])}));
+  if(isTooLarge(committed))return fail(committed.tooLarge);
+  if(committed==="conflict")return conflictFor(store,id,doc,undefined);
+  return {ok:true,value:{id,title:committed.title,content:committed.content,previousVersion:doc.version,version:committed.version,changed:true,beforeHash:doc.contentHash,afterHash:committed.contentHash,applied:[]}};
 }

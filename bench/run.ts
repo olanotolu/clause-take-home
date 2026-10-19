@@ -57,6 +57,9 @@ report("engine: ambiguous target rejected (full scan)", { medianMs: ambiguous.me
 
 // --- through the full stack (HTTP serialization + SQLite + FTS triggers)
 const created = await time(async () => app.inject({ method: "POST", url: "/documents", payload: { title: "Big MSA", content } }));
+if (created.value.statusCode !== 201) {
+  throw new Error(`POST /documents benchmark setup failed: ${created.value.statusCode} ${(await created.value.body).slice(0, 300)}`);
+}
 const doc = created.value.json() as { id: string; version: number };
 report("POST /documents (insert + 2 FTS indexes + v1 snapshot)", { ms: created.ms, status: created.value.statusCode, dbMB: +(statSync(dbPath).size / 1048576).toFixed(1) });
 

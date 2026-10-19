@@ -72,8 +72,8 @@ export async function search(store: Store, rawQuery: string, opts: SearchOptions
     const { total, results } = await searchWords(store, query, opts);
     return { query, mode: opts.mode, total, limit: opts.limit, offset: opts.offset, results };
   }
-  const all = await searchExact(store, query, opts);
-  return { query, mode: opts.mode, total: all.length, limit: opts.limit, offset: opts.offset, results: all.slice(opts.offset, opts.offset + opts.limit) };
+  const page = await searchExact(store, query, opts);
+  return { query, mode: opts.mode, total: page.total, limit: opts.limit, offset: opts.offset, results: page.results };
 }
 
 // ---------------------------------------------------------------- words (ranked, backend-specific)
@@ -90,8 +90,16 @@ async function searchWords(store: Store, query: string, opts: SearchOptions): Pr
   const page = await store.wordsPage(query, { limit: opts.limit, offset: opts.offset, ...(opts.ids && { ids: opts.ids }) });
   return { total: page.total, results: page.items.map((r) => ({
     documentId: r.id, title: r.title, version: r.version, relevance: r.score,
-    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : locatedHit(r.content, query)],
+    hits: [r.nativeSnippet !== undefined ? nativeHit(r.content, r.nativeSnippet) : r.contentOffset !== undefined ? boundedChunkHit(r.content,r.contentOffset,query) : locatedHit(r.content, query)],
   })) };
+}
+
+function boundedChunkHit(content:string,offset:number,query:string):Hit {
+  const span=locateTerms(content,query);
+  if(!span) return {snippet:[{text:content.slice(0,SNIPPET_RADIUS*2),match:false}]};
+  const [localStart,localEnd]=span;
+  const start=offset+localStart,end=offset+localEnd;
+  return {snippet:exactSnippet(content,localStart,localEnd),start,end,target:{position:{start,end,expectedText:content.slice(localStart,localEnd)}}};
 }
 
 /** Splits FTS5's marked-up snippet into segments. */
@@ -195,21 +203,15 @@ function exactSnippet(content: string, start: number, end: number): Segment[] {
  * CANDIDATE filter (it is case-insensitive and needs >= 3 characters); every
  * reported offset comes from scanning the real current content.
  */
-async function searchExact(store: Store, query: string, opts: SearchOptions): Promise<DocumentResult[]> {
+async function searchExact(store: Store, query: string, opts: SearchOptions): Promise<{total:number;results:DocumentResult[]}> {
   const perDoc = opts.hitsPerDocument ?? 3;
-  const out: DocumentResult[] = [];
-  for (const row of await store.exactCandidates(query, opts.ids)) {
-    const hits: Hit[] = [];
-    let matchCount = 0;
-    for (let at = row.content.indexOf(query); at !== -1; at = row.content.indexOf(query, at + query.length)) {
-      matchCount++;
-      if (hits.length < perDoc) {
-        const end = at + query.length;
-        hits.push({ snippet: exactSnippet(row.content, at, end), start: at, end, target: selectorFor(row.content, at, end) });
-      }
-    }
-    if (matchCount > 0) out.push({ documentId: row.id, title: row.title, version: row.version, relevance: matchCount, matchCount, hits });
-  }
-  out.sort((a, b) => b.relevance - a.relevance || a.title.localeCompare(b.title));
-  return out;
+  const page=await store.exactPage(query,{limit:opts.limit,offset:opts.offset,hitsPerDocument:perDoc,...(opts.ids&&{ids:opts.ids})});
+  return {total:page.total,results:page.items.map((row)=>({
+    documentId:row.id,title:row.title,version:row.version,relevance:row.matchCount,matchCount:row.matchCount,
+    hits:row.hits.map((h):Hit=>{
+      const before=(h.start>h.before.length?ELLIPSIS:"")+h.before;
+      const after=h.after+(h.after.length===60?ELLIPSIS:"");
+      return {snippet:[...(before?[{text:before,match:false}]:[]),{text:query,match:true},...(after?[{text:after,match:false}]:[])],start:h.start,end:h.end,target:{position:{start:h.start,end:h.end,expectedText:query}}};
+    }),
+  }))};
 }

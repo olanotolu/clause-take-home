@@ -5,3 +5,9 @@ packages:
 # A version published less than 3 days ago cannot be installed: compromised releases (axios in March, TanStack in
 # May 2026) were caught and yanked within that window. Bypass deliberately, per package, with minimumReleaseAgeExclude.
 minimumReleaseAge: 4320
+# This version was already present in the reviewed lockfile before this storage/telemetry dependency update.
+minimumReleaseAgeExclude:
+  - '@tanstack/react-query@5.104.3'
+  - '@tanstack/query-core@5.104.3'
+  - 'vitest@5.0.5'
+  - '@vitest/coverage-v8@5.0.5'

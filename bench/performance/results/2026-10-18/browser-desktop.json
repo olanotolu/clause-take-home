@@ -1,0 +1,8 @@
+{
+  "project": "desktop",
+  "fixtureBytes": 1144035,
+  "largestJsonRequestBytes": 425,
+  "longTasks": 6,
+  "maxLongTaskMs": 266,
+  "maxEventDurationMs": 304
+}

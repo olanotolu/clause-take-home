@@ -1,0 +1,145 @@
+{
+  "generatedAt": "2026-10-19T00:02:14.880Z",
+  "node": "v24.15.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "fixture": {
+    "base": "https://clause-take-home-1q1v9q6hi-subomis-projects-22c86536.vercel.app/api",
+    "bytes": 1048576,
+    "documents": 32
+  },
+  "initialLoad": [
+    11.76953125,
+    10.30615234375,
+    15.1328125
+  ],
+  "finalLoad": [
+    125.3115234375,
+    52.4248046875,
+    30.35546875
+  ],
+  "before": {
+    "queryCount": 0,
+    "queryErrors": 0,
+    "queryDurationMs": 0,
+    "acquireCount": 0,
+    "acquireDurationMs": 0,
+    "memory": {
+      "rss": 200425472,
+      "heapTotal": 88502272,
+      "heapUsed": 65751768,
+      "external": 29523192,
+      "arrayBuffers": 1338936
+    },
+    "eventLoopDelayMs": 0
+  },
+  "after": {
+    "queryCount": 424,
+    "queryErrors": 50,
+    "queryDurationMs": 13452.552236000105,
+    "acquireCount": 324,
+    "acquireDurationMs": 6140.7320760000575,
+    "memory": {
+      "rss": 256450560,
+      "heapTotal": 129572864,
+      "heapUsed": 55786696,
+      "external": 43295203,
+      "arrayBuffers": 8882859
+    },
+    "eventLoopDelayMs": 0
+  },
+  "diagnosticsScope": "Per instance; these counters are not fleet totals",
+  "coldState": "Not asserted: initial requests do not prove a cold function",
+  "runs": [
+    {
+      "clients": 1,
+      "scenario": "metadata",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "search",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "edit",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "contention",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 1,
+      "scenario": "mixed",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 8,
+      "scenario": "metadata",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "search",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "edit",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "contention",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 8,
+      "scenario": "mixed",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 32,
+      "scenario": "metadata",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 32,
+      "scenario": "search",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 32,
+      "scenario": "edit",
+      "phase": "warm",
+      "exitCode": 0
+    },
+    {
+      "clients": 32,
+      "scenario": "contention",
+      "phase": "warm",
+      "exitCode": 99
+    },
+    {
+      "clients": 32,
+      "scenario": "mixed",
+      "phase": "warm",
+      "exitCode": 99
+    }
+  ]
+}

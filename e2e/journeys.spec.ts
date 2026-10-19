@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { createDocument, expectAccessible, openDocument, stageReplacement } from "./helpers.ts";
 
@@ -145,11 +147,11 @@ test("an obsolete load cannot replace the document from a later navigation", asy
   await page.goto("/#/documents");
   await page.getByRole("link", { name: first.title }).click();
   await started;
+  const cancelled = page.waitForEvent("requestfailed", (request) => request.url().endsWith(`/api/documents/${first.id}`));
   await page.evaluate((id) => { window.location.hash = `/doc/${id}/edit`; }, second.id);
   await expect(page.getByRole("heading", { level: 1, name: second.title })).toBeVisible();
-  const returned = page.waitForResponse((response) => response.url().endsWith(`/api/documents/${first.id}`));
   release();
-  await returned;
+  await cancelled;
   await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
   await expect(page.getByRole("heading", { level: 1, name: second.title })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(second.id));
@@ -166,7 +168,7 @@ test("a sample is read-only, and applying an edit to it lands on your own copy",
   await page.getByRole("link", { name: /^Mutual NDA - Acme Corp\s*Sample$/ }).click();
   await expect(page.getByText("Sample · read-only")).toBeVisible();
   await expectAccessible(page);
-  await stageReplacement(page, "five (5) years", "seven (7) years");
+  await stageReplacement(page, '1.1 "Confidential Information"', '1.1 "Protected Information"');
   await expect(page.getByRole("button", { name: "Apply to a copy" })).toBeVisible();
   await page.getByRole("button", { name: "Apply to a copy" }).click();
 
@@ -177,5 +179,45 @@ test("a sample is read-only, and applying an edit to it lands on your own copy",
   expect(list.items.find((d) => d.sample && d.title === "Mutual NDA - Acme Corp")?.version).toBe(1);
   expect(list.items.find((d) => d.title === "Mutual NDA - Acme Corp (copy)")).toMatchObject({ version: 2 });
   const sample = list.items.find((d) => d.sample && d.title === "Mutual NDA - Acme Corp")!;
-  expect((await request.patch(`/api/documents/${sample.id}`, { data: { expectedVersion: 1, changes: [{ operation: "replace", target: { quote: { exact: "five (5) years" } }, replacement: "x" }] } })).status()).toBe(403);
+  expect((await request.patch(`/api/documents/${sample.id}`, { data: { expectedVersion: 1, changes: [{ operation: "replace", target: { quote: { exact: "two (2) years" } }, replacement: "x" }] } })).status()).toBe(403);
+});
+
+test("a large document keeps selection and replacement outside function JSON bodies",async({page,request})=>{
+  test.setTimeout(120000);
+  const token=`largepassage${Date.now().toString(36)}`,title=`E2E Large ${token}`;
+  const content=`${token}\n${"The parties shall protect confidential information.\n".repeat(22000)}\nTAIL_EVIDENCE`;
+  const intent=(await (await request.post("/api/documents/uploads/intents",{data:{size:Buffer.byteLength(content)}})).json());
+  expect((await request.post(`/api${intent.uploadUrl}?intent=${encodeURIComponent(intent.intent)}`,{headers:{"content-type":"text/plain"},data:content})).status()).toBe(204);
+  const hash=createHash("sha256").update(content).digest("hex");
+  const created=await request.post("/api/documents/uploads/complete",{data:{intent:intent.intent,title,sha256:hash}});expect(created.status()).toBe(201);const doc=await created.json();
+  await request.post(`/api/documents/${doc.id}/requirements`,{data:{kind:"present",text:"replacementmarker"}});
+  await page.addInitScript(()=>{
+    const stats={longTasks:0,maxLongTaskMs:0,maxEventDurationMs:0};Reflect.set(window,"__clausePerformance",stats);
+    new PerformanceObserver(list=>{for(const entry of list.getEntries()){stats.longTasks++;stats.maxLongTaskMs=Math.max(stats.maxLongTaskMs,entry.duration);}}).observe({type:"longtask",buffered:true});
+    const eventOptions:PerformanceObserverInit & {durationThreshold:number}={type:"event",buffered:true,durationThreshold:16};
+    new PerformanceObserver(list=>{for(const entry of list.getEntries())stats.maxEventDurationMs=Math.max(stats.maxEventDurationMs,entry.duration);}).observe(eventOptions);
+  });
+  const sizes:number[]=[];
+  page.on("request",event=>{if(event.headers()["content-type"]?.includes("application/json"))sizes.push(event.postDataBuffer()?.byteLength??0);});
+  await openDocument(page,title);
+  await page.keyboard.press("ControlOrMeta+k");
+  const search=page.getByRole("dialog",{name:"Search documents and clauses"});
+  await search.getByRole("combobox").fill("TAIL_EVIDENCE");
+  await search.getByRole("option").first().click();
+  await expect(page.locator('[data-kind="sel"]')).toContainText("TAIL_EVIDENCE");
+  await page.reload();await expect(page.getByRole("heading",{level:1,name:title})).toBeVisible();
+  await stageReplacement(page,token,"replacementmarker ".repeat(70000));
+  await expect(page.getByRole("region",{name:"Proposed changes"})).toBeVisible();
+  await page.getByRole("button",{name:"Run Clause CI"}).first().click();
+  await expect(page.getByRole("region",{name:"Clause CI results summary"})).toBeVisible();
+  await page.getByRole("tab",{name:/Edit/}).click();
+  await page.getByRole("button",{name:/^Apply/}).click();
+  await expect(page.getByRole("region",{name:"Proposed changes"})).toBeHidden();
+  const metadata=await request.get(`/api/documents/${doc.id}`,{headers:{Prefer:"return=minimal"}});
+  expect((await metadata.json()).version).toBe(2);expect(sizes.every(size=>size<=1048576)).toBe(true);
+  const performance=await page.evaluate(()=>Reflect.get(window,"__clausePerformance"));
+  const metricPath=test.info().outputPath("large-document-browser-metrics.json");
+  await writeFile(metricPath,JSON.stringify({project:test.info().project.name,fixtureBytes:Buffer.byteLength(content),largestJsonRequestBytes:Math.max(0,...sizes),...performance},null,2));
+  await test.info().attach("large-document-browser-metrics",{path:metricPath,contentType:"application/json"});
+  await expectAccessible(page);
 });

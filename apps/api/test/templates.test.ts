@@ -51,6 +51,7 @@ describe("source-backed template library", () => {
     expect(missing.json().type).toBe("MISSING_TEMPLATE_FIELDS");
 
     const catalog = await app.inject({ method: "GET", url: "/templates" });
+    expect(catalog.statusCode).toBe(200);
     const template = (await app.inject({ method: "GET", url: "/templates/cloud-service-agreement" })).json();
     const created = await app.inject({ method: "POST", url: "/templates/cloud-service-agreement/create", payload: { values: deal, selectedRequirementIds: [template.suggestedRequirements[0].id] } });
     expect(created.statusCode).toBe(201);

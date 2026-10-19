@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import { buildApp, type AppOptions } from "../src/app.ts";
-import { createPostgresStore } from "../src/store/postgres.ts";
+import { lazyStore } from "../src/store/lazy.ts";
+import { createPostgresStore, POSTGRES_MAX_CONTENT_CHARS } from "../src/store/postgres.ts";
 import { createSqliteStore } from "../src/store/sqlite.ts";
 import type { Store } from "../src/store/types.ts";
 
@@ -22,7 +23,7 @@ export async function testStore(): Promise<Store> {
 }
 
 export async function testApp(opts: Omit<AppOptions, "store" | "dbPath"> = {}): Promise<FastifyInstance> {
-  return buildApp({ store: await testStore(), ...opts });
+  return buildApp({ store: lazyStore({kind:usingPostgres?"postgres":"sqlite",maxContentChars:usingPostgres?POSTGRES_MAX_CONTENT_CHARS:Number.POSITIVE_INFINITY},testStore), ...opts });
 }
 
 /** Two independent connections to ONE database, for race tests (a single connection would serialise everything). */

@@ -86,7 +86,7 @@ export function toHttp(e: DomainError): HttpError {
         details: { index: e.index, matchCount: e.matchCount, candidates: e.candidates },
       };
     case "TEXT_MISMATCH":
-      return { status: 409, type: e.type, error: "Text at the given range differs from expectedText", details: { index: e.index, expected: e.expected, actual: e.actual } };
+      return { status: 409, type: e.type, error: "Text at the given range differs from expectedText", details: { index: e.index, expected: e.expected.slice(0,4096), actual: e.actual.slice(0,4096) } };
     case "TARGET_NOT_FOUND":
       return { status: 422, type: e.type, error: "Target text not found", details: { index: e.index, exactMatchCount: e.exactMatchCount } };
     case "OCCURRENCE_OUT_OF_RANGE":

@@ -1,3 +1,4 @@
+import { shutdownTelemetryBounded } from "./telemetry.ts";
 import { buildApp } from "./app.ts";
 import { lazyStoreFromEnv } from "./config.ts";
 import { evaluatorFromEnv } from "./review/evaluator.ts";
@@ -26,4 +27,14 @@ if (process.env.VERCEL) {
   });
 } else {
   await listening; // locally, fail loudly (e.g. port already in use)
+}
+
+if(!process.env.VERCEL) {
+  let closing=false;
+  for(const signal of ["SIGINT","SIGTERM"] as const) process.once(signal,()=>{
+    if(closing) return;
+    closing=true;
+    const deadline=setTimeout(()=>process.exit(1),5000);deadline.unref();
+    void (async()=>{try {await app.close();} finally {await shutdownTelemetryBounded(1000);clearTimeout(deadline);process.exit(0);}})();
+  });
 }

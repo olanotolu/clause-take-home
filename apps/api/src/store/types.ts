@@ -1,9 +1,12 @@
+import type { ContentSnapshot, JobOutput, JobPayload, SnapshotCursor, SnapshotObject } from "../jobs/types.ts";
 import type { AppliedChange } from "@clause/core";
 
 export interface DocumentRecord {
   id: string;
   title: string;
   content: string;
+  /** Immutable object path for versions above the inline API threshold. */
+  contentPath?: string;
   version: number;
   contentHash: string;
   createdAt: string;
@@ -40,13 +43,43 @@ export interface IntegrationImport {
   importedAt: string;
 }
 
-export type DocumentSummary = Omit<DocumentRecord, "content"> & { size: number };
+export type DocumentSummary = Omit<DocumentRecord, "content" | "contentPath"> & { size: number; byteLength: number; utf16Length: number; wordCount: number };
+
+/** Body-free row used by lists, validators, and content-link requests. Offsets are UTF-16 code units. */
+export type DocumentMetadata = Omit<DocumentRecord, "content"> & { byteLength: number; utf16Length: number; wordCount: number };
+
+export interface DocumentReadPrecondition {
+  expectedVersion?: number;
+  contentHashPrefix?: string;
+}
 
 export interface RevisionInfo {
   version: number;
   contentHash: string;
   createdAt: string;
   summary: unknown;
+  contentPath?: string;
+  byteLength?: number;
+  utf16Length?: number;
+  wordCount?: number;
+}
+
+export type JobStatus="queued"|"running"|"succeeded"|"failed"|"cancelled";
+export type JobKind="export"|"provider_import"|"content_backfill"|"integrity_sweep"|"orphan_cleanup";
+export interface JobRecord {
+  id:string;
+  idempotencyKey:string;
+  kind:JobKind;
+  status:JobStatus;
+  progress:number;
+  resultRef?:string;
+  errorCode?:string;
+  createdAt:string;
+  updatedAt:string;
+  expiresAt?:string;
+  payload?:JobPayload;
+  output?:JobOutput;
+  checkpoint?:string;
 }
 
 export type RequirementKind = "present" | "absent" | "unchanged" | "semantic";
@@ -162,16 +195,14 @@ export interface WordSnapshot {
   size: number;
   /** Backend-specific relevance, higher is better (SQLite: -bm25, Postgres: ts_rank_cd). */
   score: number;
+  /** Bounded matching chunk when provided by Postgres; SQLite returns the full body. */
   content: string;
+  contentOffset?: number;
   nativeSnippet?: string;
 }
 
-export interface ExactCandidate {
-  id: string;
-  title: string;
-  version: number;
-  content: string;
-}
+export interface ExactHitSnapshot { start:number; end:number; before:string; after:string }
+export interface ExactSnapshot { id:string;title:string;version:number;matchCount:number;hits:ExactHitSnapshot[] }
 
 /** The backend refused to index this text (Postgres: the generated tsvector exceeded its ~1 MB limit). Maps to HTTP 413. */
 export class ContentTooLargeError extends Error {}
@@ -190,30 +221,54 @@ export class InvalidQueryError extends Error {}
  */
 export interface Store {
   readonly kind: "sqlite" | "postgres";
-  /** Largest document this backend indexes. Postgres caps a tsvector near 1 MB, so it refuses larger text up front. */
+  /** Backend UTF-16 safety ceiling; all stores also enforce the shared 25 MiB UTF-8 document limit. */
   readonly maxContentChars: number;
 
-  insertDocument(input: { title: string; content: string; templateProvenance?: TemplateProvenance }): Promise<DocumentRecord>;
-  insertImportedDocument(input: { title: string; content: string; provider: IntegrationProvider; fileId: string }): Promise<{ doc: DocumentRecord; imported: boolean }>;
+  insertDocument(input: { title: string; content: string; contentPath?: string; templateProvenance?: TemplateProvenance }): Promise<DocumentRecord>;
+  insertDocumentWithRequirements(input: { title: string; content: string; contentPath?: string; requirements: { kind: RequirementKind; text: string }[] }): Promise<DocumentRecord | undefined>;
+  insertImportedDocument(input: { title: string; content: string; contentPath?: string; provider: IntegrationProvider; fileId: string; jobId?:string }): Promise<{ doc: DocumentRecord; imported: boolean }>;
   listIntegrationConnections(): Promise<Omit<IntegrationConnection, "accessToken" | "refreshToken">[]>;
   getIntegrationConnection(provider: IntegrationProvider): Promise<IntegrationConnection | undefined>;
   saveIntegrationConnection(connection: IntegrationConnection): Promise<void>;
   deleteIntegrationConnection(provider: IntegrationProvider): Promise<void>;
   getIntegrationImport(provider: IntegrationProvider, fileId: string): Promise<IntegrationImport | undefined>;
   getDocument(id: string): Promise<DocumentRecord | undefined>;
+  getDocumentMetadata(id: string): Promise<DocumentMetadata | undefined>;
+  getDocumentForEdit(id:string,precondition:DocumentReadPrecondition):Promise<DocumentRecord|DocumentMetadata|undefined>;
   listDocuments(limit: number, offset: number): Promise<{ items: DocumentSummary[]; total: number }>;
   deleteDocument(id: string): Promise<boolean>;
-  commitRevision(args: { id: string; expectedVersion: number; content: string; summary: string }): Promise<DocumentRecord | "conflict">;
+  commitRevision(args: { id: string; expectedVersion: number; content: string; contentPath?: string; previousContent?:string; summary: string }): Promise<DocumentRecord | "conflict">;
   listRevisions(id: string): Promise<RevisionInfo[]>;
   getRevision(id: string, version: number): Promise<(RevisionInfo & { content: string }) | undefined>;
+  getRevisionMetadata(id: string, version: number): Promise<RevisionInfo | undefined>;
+  createJob(input:{idempotencyKey:string;kind:JobKind;expiresAt?:string;payload?:JobPayload}):Promise<{job:JobRecord;created:boolean}|undefined>;
+  getJob(id:string):Promise<JobRecord|undefined>;
+  claimJob(id:string,maxConcurrent:number):Promise<boolean>;
+  updateJob(id:string,patch:{status?:JobStatus;progress?:number;resultRef?:string|null;errorCode?:string|null;expiresAt?:string|null;checkpoint?:string;output?:JobOutput}):Promise<JobRecord|undefined>;
+  completeJob(id:string,resultRef:string,expiresAt:string):Promise<boolean>;
+  failJob(id:string,errorCode:string):Promise<boolean>;
+  finishJob(id:string,output:JobOutput):Promise<boolean>;
+  leaseJob(id:string,owner:string):Promise<boolean>;
+  releaseJob(id:string,owner:string):Promise<void>;
+  listPendingJobs(limit:number):Promise<JobRecord[]>;
+  listExpiredExports(limit:number):Promise<JobRecord[]>;
+  snapshotPage(after:SnapshotCursor|undefined,limit:number):Promise<ContentSnapshot[]>;
+  setSnapshotMetadata(ref:Omit<SnapshotObject,"contentPath">,jobId?:string):Promise<boolean>;
+  setSnapshotObject(ref:SnapshotObject,jobId?:string):Promise<boolean>;
+  registerRecoveryManifest(path:string,hash:string,proofPath:string,objects:string[]):Promise<void>;
+  pruneSnapshot(ref:SnapshotObject,manifestPath:string):Promise<boolean>;
+  restoreSnapshot(ref:SnapshotObject,content:string):Promise<boolean>;
+  isContentReferenced(path:string):Promise<boolean>;
+  hasOtherActiveJobs(id?:string):Promise<boolean>;
+  cancelJob(id:string):Promise<JobRecord|undefined>;
 
   /** Page metadata, content, and snippets share one database read snapshot. */
   wordsPage(query: string, options: { ids?: string[]; limit: number; offset: number }): Promise<{ total: number; items: WordSnapshot[] }>;
-  /** Documents that MAY contain `query` literally and case-sensitively (callers verify by scanning the text). */
-  exactCandidates(query: string, ids?: string[]): Promise<ExactCandidate[]>;
+  exactPage(query:string,options:{ids?:string[];limit:number;offset:number;hitsPerDocument:number}):Promise<{total:number;items:ExactSnapshot[]}>;
 
   listRequirements(documentId: string): Promise<Requirement[]>;
-  addRequirement(documentId: string, input: { kind: RequirementKind; text: string }): Promise<Requirement>;
+  addRequirement(documentId: string, input: { kind: RequirementKind; text: string }): Promise<Requirement | undefined>;
+  applyPlaybookRequirements(documentId: string, rules: { title: string; kind: RequirementKind; text: string }[]): Promise<{ added: Requirement[]; skipped: { title: string; reason: "duplicate" | "limit" }[] }>;
   deleteRequirement(documentId: string, id: string): Promise<boolean>;
 
   listRecentRevisions(limit: number): Promise<RecentRevision[]>;
@@ -226,7 +281,7 @@ export interface Store {
 
   listPlaybooks(): Promise<PlaybookSummary[]>;
   getPlaybook(id: string): Promise<(Playbook & { rules: PlaybookRule[] }) | undefined>;
-  insertPlaybook(input: { name: string; description: string }): Promise<Playbook>;
+  insertPlaybook(input: { name: string; description: string }): Promise<Playbook | undefined>;
   updatePlaybook(id: string, patch: { name?: string | undefined; description?: string | undefined }): Promise<Playbook | undefined>;
   deletePlaybook(id: string): Promise<boolean>;
   addPlaybookRule(playbookId: string, input: { title: string; kind: RequirementKind; text: string }): Promise<PlaybookRule | undefined>;
@@ -242,6 +297,9 @@ export interface Store {
    * Existing samples are never rewritten. Returns how many were created or adopted.
    */
   ensureSamples(items: { title: string; content: string }[]): Promise<number>;
+
+  /** A cheap database round trip used by /ready; /health remains process liveness only. */
+  checkReady(): Promise<void>;
 
   close(): Promise<void>;
 }

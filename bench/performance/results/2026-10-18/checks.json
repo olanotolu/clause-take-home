@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-10-19T14:41:51.531288+00:00",
+  "primaryNode": "24.15.0",
+  "typecheck": "passed",
+  "lint": "passed",
+  "sqlite": {
+    "passed": 440,
+    "skipped": 7,
+    "coverageFloors": "passed"
+  },
+  "postgres": {
+    "passed": 445,
+    "skipped": 2,
+    "coverageFloors": "passed",
+    "engine": "Disposable local Postgres 16",
+    "finalWorkers": 1,
+    "earlierAttempt": "One test timed out under heavy parallel laptop load; the full sequential rerun passed."
+  },
+  "browser": {
+    "passed": 18,
+    "projects": [
+      "desktop",
+      "mobile"
+    ],
+    "coverage": "Includes large document navigation, direct replacement uploads, preview checks and accessibility"
+  },
+  "apiBuild": "passed",
+  "webBuild": "passed",
+  "localWorkflow": "passed",
+  "collector": "passed",
+  "hostedReadiness": {
+    "health": 200,
+    "ready": 503,
+    "blocker": "Neon account/project quota exceeded, SQLSTATE 53000"
+  },
+  "performanceGate": "not passed",
+  "hostedOtlp": "not configured"
+}

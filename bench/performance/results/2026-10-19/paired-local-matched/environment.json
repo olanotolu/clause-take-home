@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-10-19T15:01:26.973Z",
+  "node": "v24.15.0",
+  "postgresMajor": 16,
+  "platform": "darwin",
+  "arch": "arm64",
+  "clients": 8,
+  "durationSeconds": 15,
+  "fixtures": {
+    "bytes": 400000,
+    "documents": 32,
+    "baseline": "http://127.0.0.1:3101",
+    "updated": "http://127.0.0.1:3102"
+  },
+  "writeAttemptLimit": 100,
+  "scenarios": [
+    "metadata",
+    "search",
+    "edit"
+  ],
+  "coldState": "local processes; warm requests measured; no cold-instance claim",
+  "runs": [
+    {
+      "revision": "before",
+      "scenario": "metadata",
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "search",
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "edit",
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "metadata",
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "search",
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "edit",
+      "exitCode": 0
+    }
+  ]
+}

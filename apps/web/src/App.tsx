@@ -17,7 +17,7 @@ const load = {
   settings: () => import("./components/Settings/SettingsView.tsx"),
 };
 function named<M extends Record<string, unknown>, K extends keyof M & string>(importer: () => Promise<M>, name: K) {
-  return lazy(() => importer().then((m) => ({ default: m[name] as ComponentType<any> })));
+  return lazy(() => importer().then((m) => ({ default: m[name] as ComponentType<Record<string, unknown>> })));
 }
 const WorkspaceView = named(load.workspace, "WorkspaceView");
 const DocumentsView = named(load.documents, "DocumentsView");

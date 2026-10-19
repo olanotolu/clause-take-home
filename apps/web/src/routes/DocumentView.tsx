@@ -9,6 +9,7 @@ import { useWorkspace } from "../lib/workspace.tsx";
 import { Button, buttonClass } from "../ui/Button.tsx";
 import { Skeleton } from "../ui/bits.tsx";
 import { Segmented } from "../ui/Segmented.tsx";
+import { ExportButton } from "../components/ExportButton.tsx";
 import { Tabs, type TabDef } from "../ui/Tabs.tsx";
 import { ActivityTab } from "./ActivityTab.tsx";
 import { CiTab } from "./CiTab.tsx";
@@ -83,9 +84,9 @@ export function DocumentView({ id, tab }: { id: string; tab: DocTab }) {
               />
             )}
             {doc.version > 1 ? (
-              <a href={`/api/documents/${doc.id}/export.docx?from=1&to=${doc.version}`} download className={buttonClass({ variant: "secondary" })} title={`Word file with every change from v1 to v${doc.version} as tracked changes`}>
+              <ExportButton href={`/api/documents/${doc.id}/export.docx?from=1&to=${doc.version}`} className={buttonClass({ variant: "secondary" })} title={`Word file with every change from v1 to v${doc.version} as tracked changes`}>
                 <Download size={15} aria-hidden /><span className="max-[640px]:sr-only">Export .docx</span>
-              </a>
+              </ExportButton>
             ) : (
               <Button icon={<Download size={15} aria-hidden />} disabled title="Make an edit first: the Word redline shows differences between versions"><span className="max-[640px]:sr-only">Export .docx</span></Button>
             )}

@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type { FastifyInstance } from "fastify";
 import { browseFiles, encrypt, extractText } from "../src/integrations/service.ts";
 import type { IntegrationProvider, Store } from "../src/store/types.ts";
+import { executeJobBatch } from "../src/jobs/runner.ts";
 import { testApp } from "./helpers.ts";
 
 /**
@@ -130,11 +131,13 @@ describe("browse, import, disconnect", () => {
 
     const file = { id: "id:nda", name: "Redwood NDA.txt", mimeType: "application/octet-stream" };
     const first = await app.inject({ method: "POST", url: "/integrations/dropbox/import", headers, payload: { file } });
-    expect(first.statusCode).toBe(201);
-    expect(first.json()).toMatchObject({ imported: true, document: { title: "Redwood NDA.txt", version: 1 } });
+    expect(first.statusCode).toBe(202);
+    await executeJobBatch(app.store,first.json().jobId);
+    const completed=(await app.inject({method:"GET",url:first.json().statusUrl})).json();
+    expect(completed).toMatchObject({status:"succeeded",output:{ imported: true, document: { title: "Redwood NDA.txt", version: 1 } }});
     const again = await app.inject({ method: "POST", url: "/integrations/dropbox/import", headers, payload: { file } });
     expect(again.statusCode).toBe(200);
-    expect(again.json()).toMatchObject({ imported: false, document: { id: first.json().document.id } });
+    expect(again.json()).toMatchObject({ imported: false, document: { id: completed.output.document.id } });
 
     expect((await app.inject({ method: "GET", url: "/integrations/dropbox/files", headers })).json().files[0]).toMatchObject({ imported: true });
     const found = await app.inject({ method: "GET", url: "/documents/search?q=Redwood&mode=words" });
@@ -157,8 +160,11 @@ describe("browse, import, disconnect", () => {
     const headers = await bearer();
     const post = (file: object) => app!.inject({ method: "POST", url: "/integrations/dropbox/import", headers, payload: { file } });
     expect((await post({ id: "f", name: "Dir", mimeType: "folder", folder: true })).json()).toMatchObject({ type: "FOLDER_NOT_IMPORTABLE" });
-    expect((await post({ id: "empty", name: "Blank.txt", mimeType: "text/plain" })).json()).toMatchObject({ type: "EMPTY_DOCUMENT" });
-    expect((await post({ id: "bin", name: "Deck.pptx", mimeType: "application/octet-stream" })).json()).toMatchObject({ type: "UNSUPPORTED_FILE" });
+    for(const [file,errorCode] of [[{id:"empty",name:"Blank.txt",mimeType:"text/plain"},"EMPTY_DOCUMENT"],[{id:"bin",name:"Deck.pptx",mimeType:"application/octet-stream"},"UNSUPPORTED_FILE"]] as const) {
+      const queued=await post(file);expect(queued.statusCode).toBe(202);
+      await executeJobBatch(app.store,queued.json().jobId);
+      expect((await app.inject({method:"GET",url:queued.json().statusUrl})).json()).toMatchObject({status:"failed",errorCode});
+    }
   });
 });
 

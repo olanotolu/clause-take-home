@@ -5,6 +5,7 @@ import { navigate } from "../lib/router.ts";
 import { deltaLabel, wordCount } from "../lib/wordDelta.ts";
 import { Button } from "../ui/Button.tsx";
 import { Pill } from "../ui/bits.tsx";
+import { ExportButton } from "./ExportButton.tsx";
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
@@ -49,8 +50,8 @@ export function ActivityEntry({ r, current, docId, currentVersion, docTitle, onR
         </div>
         {edits.length > 0 && (
           <ul className="mt-2 space-y-1">
-            {shown.map((s, i) => (
-              <li key={i} className="text-[13px] leading-snug">
+            {shown.map((s) => (
+              <li key={"index" in s && "start" in s && "end" in s ? `${s.index}-${s.start}-${s.end}` : `${r.version}-${shown.indexOf(s)}`} className="text-[13px] leading-snug">
                 <span className="del px-0.5">{open ? s.before : clip(s.before ?? "", 70)}</span>
                 <ArrowRight size={12} className="mx-1.5 inline text-muted" aria-hidden />
                 {s.after ? <span className="ins px-0.5">{open ? s.after : clip(s.after, 70)}</span> : <em className="text-muted">deleted</em>}
@@ -67,7 +68,7 @@ export function ActivityEntry({ r, current, docId, currentVersion, docTitle, onR
           <p className="font-mono text-xs text-muted" title="SHA-256 of this version's text">sha256 {r.contentHash.slice(0, 12)}</p>
           {!current && onRestore && (
             <span className="flex items-center gap-1.5">
-              <a href={`/api/documents/${docId}/export.docx?from=${r.version}&to=${currentVersion}`} download aria-label={`Download Word redline since v${r.version}`} title={`Word file showing what changed since v${r.version} as tracked changes`} className="inline-flex h-8 items-center gap-1.5 rounded-control border border-line-strong bg-paper px-2.5 text-[13px] font-semibold hover:bg-canvas"><Download size={13} aria-hidden />.docx</a>
+              <ExportButton href={`/api/documents/${docId}/export.docx?from=${r.version}&to=${currentVersion}`} aria-label={`Download Word redline since v${r.version}`} title={`Word file showing what changed since v${r.version} as tracked changes`} className="inline-flex h-8 items-center gap-1.5 rounded-control border border-line-strong bg-paper px-2.5 text-[13px] font-semibold hover:bg-canvas"><Download size={13} aria-hidden />.docx</ExportButton>
               <Button size="sm" icon={<Undo2 size={13} aria-hidden />} aria-label={`Restore v${r.version}`} title={`Make the text of v${r.version} current again, as a new version. History is kept.`} onClick={() => onRestore(r.version)}>Restore</Button>
             </span>
           )}

@@ -132,6 +132,35 @@ const MIGRATIONS: string[] = [
   // The shared sample contracts carry a stable key; ordinary documents leave it NULL.
   `ALTER TABLE documents ADD COLUMN sample_key TEXT;
    CREATE UNIQUE INDEX documents_sample_key_idx ON documents (sample_key) WHERE sample_key IS NOT NULL;`,
+  `ALTER TABLE documents ADD COLUMN content_path TEXT;
+   CREATE UNIQUE INDEX documents_content_path_idx ON documents (content_path) WHERE content_path IS NOT NULL;
+   ALTER TABLE revisions ADD COLUMN content_path TEXT;`,
+  `ALTER TABLE documents ADD COLUMN content_bytes INTEGER;
+   ALTER TABLE documents ADD COLUMN content_utf16 INTEGER;
+   ALTER TABLE documents ADD COLUMN word_count INTEGER;
+   ALTER TABLE revisions ADD COLUMN content_bytes INTEGER;
+   ALTER TABLE revisions ADD COLUMN content_utf16 INTEGER;
+   ALTER TABLE revisions ADD COLUMN word_count INTEGER;`,
+  `CREATE TABLE clause_jobs (
+     id TEXT PRIMARY KEY,
+     idempotency_key TEXT NOT NULL UNIQUE,
+     kind TEXT NOT NULL CHECK(kind IN ('export','provider_import','content_backfill','integrity_sweep','orphan_cleanup')),
+     status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','cancelled')),
+     progress INTEGER NOT NULL DEFAULT 0,
+     result_ref TEXT,
+     error_code TEXT,
+     created_at TEXT NOT NULL,
+     updated_at TEXT NOT NULL,
+     expires_at TEXT
+   );
+   CREATE INDEX clause_jobs_queue_idx ON clause_jobs(status,created_at);`,
+  `ALTER TABLE clause_jobs ADD COLUMN payload TEXT;
+   ALTER TABLE clause_jobs ADD COLUMN output TEXT;
+   ALTER TABLE clause_jobs ADD COLUMN checkpoint TEXT;
+   ALTER TABLE clause_jobs ADD COLUMN lease_owner TEXT;
+   ALTER TABLE clause_jobs ADD COLUMN lease_until TEXT;
+   CREATE TABLE content_recovery_manifests(path TEXT PRIMARY KEY, content_hash TEXT NOT NULL, proof_path TEXT NOT NULL);
+   CREATE TABLE content_recovery_objects(manifest_path TEXT NOT NULL REFERENCES content_recovery_manifests(path),path TEXT NOT NULL,PRIMARY KEY(manifest_path,path));`,
 ];
 
 export function openDb(path: string): Db {

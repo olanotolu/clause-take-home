@@ -4,7 +4,7 @@ import { summarize, type Texts } from "./report.ts";
 import type { RawRecord } from "./run.ts";
 
 /** A fixture small enough to count by hand. */
-const meta: CasesFile["meta"] = { seed: 1, datasetZipSha256: "x", maxDocChars: 1, perLabel: 1, pairs: 4, controlSpans: 3, note: "" };
+const meta: CasesFile["meta"] = { seed: 1, datasetZipSha256: "x", cuadZipSha256: "x", maxDocChars: 1, maxCuadDocChars: 1, perLabel: 1, pairs: 4, controlSpans: 3, note: "" };
 const cases: CasesFile = {
   meta,
   dev: [],
@@ -15,11 +15,18 @@ const cases: CasesFile = {
     { id: "s4", split: "test", docId: 1, hypothesis: "h", label: "NotMentioned" },
   ],
   regression: ["p1", "p2", "p3", "p4"].map((id) => ({ id, docId: 1, hypothesis: "h", evidenceSpans: [], controlSpans: [] })),
+  cuadDev: [],
+  cuadStatic: [
+    { id: "cuad-test-present", documentId: "a", category: "Governing Law", requirement: "law clause", hasClause: true },
+    { id: "cuad-test-absent", documentId: "b", category: "Governing Law", requirement: "law clause", hasClause: false },
+  ],
 };
 const TEXT = "The Receiving Party may disclose Confidential Information to its employees.";
 const QUOTE = "may disclose Confidential Information to its employees";
-const texts: Texts = { static: new Map(), before: new Map(), after_pos: new Map(), after_ctrl: new Map() };
+const texts: Texts = { static: new Map(), cuad: new Map(), before: new Map(), after_pos: new Map(), after_ctrl: new Map() };
 for (const c of cases.static) texts.static.set(c.id, TEXT);
+texts.cuad.set("cuad-test-present", TEXT);
+texts.cuad.set("cuad-test-absent", TEXT);
 for (const p of cases.regression) for (const k of ["before", "after_pos", "after_ctrl"] as const) texts[k].set(p.id, TEXT);
 
 const rec = (caseId: string, kind: RawRecord["kind"], label: string | null, quotes: string[] = [], extra: Partial<RawRecord> = {}): RawRecord => ({
@@ -33,6 +40,8 @@ describe("summarize", () => {
     rec("s2", "static", "entailed", [QUOTE]),
     rec("s3", "static", "not_mentioned"),
     rec("s4", "static", "unclear"),
+    rec("cuad-test-present", "cuad", "entailed", [QUOTE]),
+    rec("cuad-test-absent", "cuad", "entailed", [QUOTE]),
     // p1: sees it before, flags the deletion, leaves the control alone -> separates
     rec("p1", "before", "entailed", [QUOTE]), rec("p1", "after_pos", "not_mentioned"), rec("p1", "after_ctrl", "entailed", [QUOTE]),
     // p2: sees it before, MISSES the deletion (still entailed), no false alarm
@@ -71,12 +80,18 @@ describe("summarize", () => {
     const fabricated = [...raw, rec("s1", "static", "entailed", ["The vendor shall indemnify the customer for everything"])];
     const q = summarize("j", fabricated, cases, texts, new Map()).quotes!;
     expect(q.verified).toBeLessThan(q.total);
-    expect(summarize("j", raw, cases, texts, new Map()).quotes).toMatchObject({ total: 9, verified: 9 });
+    expect(summarize("j", raw, cases, texts, new Map()).quotes).toMatchObject({ total: 11, verified: 11 });
   });
 
   it("outages are counted as errors and excluded from latency", () => {
     expect(s.errors).toBe(1);
-    expect(s.calls).toBe(16);
+    expect(s.calls).toBe(18);
     expect(s.latency.p50).toBe(100);
+  });
+
+  it("reports CUAD clause accuracy and false PASS separately by category", () => {
+    expect(s.cuad.accuracy.p).toBe(0.5);
+    expect(s.cuad.falsePassRate.p).toBe(1);
+    expect(s.cuad.categories["Governing Law"]).toMatchObject({ n: 2 });
   });
 });

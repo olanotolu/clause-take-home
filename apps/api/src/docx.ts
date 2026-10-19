@@ -2,7 +2,7 @@ import { diffArrays, diffWordsWithSpace } from "diff";
 import { DeletedTextRun, Document, InsertedTextRun, Packer, Paragraph, TextRun } from "docx";
 
 /** Diffing is super-linear in the worst case (one huge changed paragraph); refuse rather than hang the server on a huge pair of versions. */
-export const MAX_EXPORT_CHARS = 1_000_000;
+export const MAX_EXPORT_CHARS = 25 * 1024 * 1024;
 
 export interface RedlineInput {
   title: string;

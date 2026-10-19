@@ -1,0 +1,123 @@
+{
+  "generatedAt": "2026-10-19T15:04:33.820Z",
+  "node": "v24.15.0",
+  "postgresVersion": "PostgreSQL 16.14",
+  "platform": "darwin",
+  "arch": "arm64",
+  "initialLoad": [
+    302.21923828125,
+    466.42041015625,
+    381.71240234375
+  ],
+  "finalLoad": [
+    394.921875,
+    456.0693359375,
+    387.228515625
+  ],
+  "clients": 8,
+  "warmupSeconds": 5,
+  "durationSeconds": 15,
+  "fixtures": {
+    "bytes": 400000,
+    "documents": 32,
+    "baseline": "http://127.0.0.1:3101",
+    "updated": "http://127.0.0.1:3102"
+  },
+  "writeAttemptLimit": 100,
+  "scenarios": [
+    "metadata",
+    "search",
+    "edit"
+  ],
+  "coldState": "local processes; per-scenario warmup; no cold-instance claim",
+  "runs": [
+    {
+      "revision": "before",
+      "scenario": "metadata",
+      "phase": "warmup",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "metadata",
+      "phase": "paired-local",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "metadata",
+      "phase": "warmup",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "metadata",
+      "phase": "paired-local",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "search",
+      "phase": "warmup",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "search",
+      "phase": "paired-local",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "search",
+      "phase": "warmup",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "search",
+      "phase": "paired-local",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "edit",
+      "phase": "warmup",
+      "writeAttemptLimit": 10,
+      "exitCode": 0
+    },
+    {
+      "revision": "before",
+      "scenario": "edit",
+      "phase": "paired-local",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "edit",
+      "phase": "warmup",
+      "writeAttemptLimit": 10,
+      "exitCode": 0
+    },
+    {
+      "revision": "after",
+      "scenario": "edit",
+      "phase": "paired-local",
+      "writeAttemptLimit": 100,
+      "exitCode": 0
+    }
+  ],
+  "baselineCommit": "15da2be",
+  "updatedBaseCommit": "15da2be",
+  "updatedCode": "working tree changes atop updatedBaseCommit",
+  "databaseIsolation": "separate databases on the same disposable PostgreSQL 16 instance"
+}

@@ -1,3 +1,4 @@
+import { boundedApplied, boundedDiff } from "../wire-content.ts";
 import { abortable, AI_REQUEST_TIMEOUT_MS } from "../ai-deadline.ts";
 import { createPatch } from "diff";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import { runCi } from "../review/runner.ts";
 import type { SemanticEvaluator } from "../review/types.ts";
 import { IdParams, SuggestOut, errors } from "../schemas.ts";
 import { MAX_DOCUMENT_CHARS_FOR_SUGGESTION, scopeViolation, toChanges, type EditSuggestionProvider } from "../suggest.ts";
+import { recordAi } from "../telemetry.ts";
 import type { App } from "../types.ts";
 
 const Body = z.strictObject({ instruction: z.string().min(1).max(2000) });
@@ -33,14 +35,17 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
     }
 
     let proposal: Awaited<ReturnType<typeof provider.suggest>>;
+    const aiStarted=performance.now();
     try {
       signal.throwIfAborted();
       proposal = await abortable(provider.suggest({ document: doc.content, instruction: req.body.instruction }, { signal }), signal);
     } catch (err) {
+      recordAi(provider.model,undefined,undefined,true,performance.now()-aiStarted);
       if (signal.aborted) return reply.code(504).send({ error: "The AI suggestion took too long. Try again.", code: 504, type: "AI_TIMEOUT" });
       req.log.error({ err }, "suggestion provider failed"); // logged server-side; details never sent to the client
       return reply.code(502).send({ error: "The suggestion provider failed", code: 502, type: "AI_PROVIDER_ERROR" });
     }
+    recordAi(provider.model,undefined,undefined,false,performance.now()-aiStarted);
 
     const base = {
       status: "proposal" as const,
@@ -75,8 +80,8 @@ export function registerSuggestRoutes(app: App, provider: EditSuggestionProvider
       ...base,
       validation: {
         valid: true as const,
-        applied: result.applied,
-        diff: createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 }),
+        applied: boundedApplied(result.applied),
+        diff: boundedDiff(createPatch(doc.title, doc.content, result.content, `v${doc.version}`, "proposed", { context: 3 })),
       },
       ci: !signal.aborted && ci?.ok ? ci.value : null,
     };

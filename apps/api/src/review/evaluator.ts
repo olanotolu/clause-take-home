@@ -4,6 +4,7 @@ import { combineJudges, type JudgeOutcome } from "./ensemble.ts";
 import { createLlmJudge, MAX_JUDGED_CHARS, openRouterGenerate } from "./judges/llm.ts";
 import type { Judge } from "./judges/types.ts";
 import type { Check, SemanticEvaluator } from "./types.ts";
+import { recordAi, recordAiError } from "../telemetry.ts";
 
 export interface EvaluatorOptions {
   judges: Judge[];
@@ -100,7 +101,13 @@ export function evaluatorFromEnv(env: Record<string, string | undefined>): Seman
   const judges: Judge[] = [];
   if (env.OPENROUTER_API_KEY) {
     const model = env.CLAUSE_JUDGE_MODEL ?? "anthropic/claude-sonnet-5.5";
-    judges.push(createLlmJudge({ id: model, generate: openRouterGenerate(env.OPENROUTER_API_KEY, model) }));
+    const rates = (() => { try { return JSON.parse(env.CLAUSE_AI_COST_PER_MILLION_TOKENS ?? "{}") as Record<string, { input: number; output: number }>; } catch { return {}; } })();
+    const rate = rates[model];
+    const generate = openRouterGenerate(env.OPENROUTER_API_KEY, model, (usage) => recordAi(model, usage, rate ? (usage.inputTokens * rate.input + usage.outputTokens * rate.output) / 1_000_000 : undefined));
+    judges.push(createLlmJudge({ id: model, generate: async (input) => {
+      try { return await generate(input); }
+      catch (error) { recordAiError(model); throw error; }
+    } }));
   }
   return judges.length ? createSemanticEvaluator({ judges }) : undefined;
 }

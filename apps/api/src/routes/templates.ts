@@ -117,7 +117,11 @@ export function registerTemplateRoutes(app: App, createLimit: { max: number; tim
     const attachedRequirements = [];
     let attachmentError: string | undefined;
     for (const rule of selectedRequirements) {
-      try { attachedRequirements.push(await app.store.addRequirement(created.value.id, { kind: rule.kind as RequirementKind, text: rule.text })); }
+      try {
+        const attached = await app.store.addRequirement(created.value.id, { kind: rule.kind as RequirementKind, text: rule.text });
+        if (attached) attachedRequirements.push(attached);
+        else { attachmentError = "The document was created, but its requirement limit was reached. You can add requirements from the document after removing one."; break; }
+      }
       catch { attachmentError = "The document was created, but one or more Clause CI suggestions could not be attached. You can add them from the document."; break; }
     }
     const payload = { document: created.value, attachedRequirements, ...(attachmentError ? { attachmentError } : {}) };

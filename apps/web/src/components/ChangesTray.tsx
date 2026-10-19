@@ -1,14 +1,25 @@
+import { documentWorker } from "../lib/api.ts";
 import { AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Trash2, XCircle } from "../ui/icons.tsx";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Num } from "../ui/Num.tsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { deltaLabel, wordDelta } from "../lib/wordDelta.ts";
-import { useWorkspace } from "../lib/workspace.tsx";
+import { useWorkspace, type Staged } from "../lib/workspace.tsx";
 import { Button } from "../ui/Button.tsx";
 import { StatusPill } from "../ui/bits.tsx";
 import { TextShimmer } from "../ui/motion/text-shimmer.tsx";
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
+function ChangeCount({documentId,version,change}:{documentId:string;version:number;change:Staged}) {
+  const [counts,setCounts]=useState<{added:number;removed:number}|null>(null);
+  useEffect(()=>{let live=true;
+    if(change.text.length+change.replacement.length<8192)setCounts(wordDelta(change.text,change.replacement));
+    else {setCounts(null);void documentWorker().wordDelta(documentId,version,change.start,change.end,change.replacement).then(value=>{if(live)setCounts(value);});}
+    return()=>{live=false;};
+  },[documentId,version,change.text,change.replacement,change.start,change.end]);
+  return <>{counts?[deltaLabel(counts.removed,"-"),deltaLabel(counts.added,"+")].filter(Boolean).join(" "):"Counting words…"}</>;
+}
 
 /** The batch you are about to apply: every change, whether the engine accepts it, and the one button that saves. */
 export function ChangesTray() {
@@ -60,7 +71,6 @@ export function ChangesTray() {
       {open && (
         <ul ref={list} className="max-h-[34vh] space-y-1.5 overflow-y-auto px-5 pb-3 max-[640px]:px-3">
           {staged.map((s) => {
-            const d = wordDelta(s.text, s.replacement);
             const quote = "quote" in s.target ? s.target.quote : null;
             return (
               <li key={s.id} className="rise flex items-start gap-3 rounded-control border border-line bg-canvas px-3 py-2">
@@ -69,7 +79,7 @@ export function ChangesTray() {
                   <ArrowRight size={13} className="mx-1.5 inline text-muted" aria-hidden />
                   {s.replacement ? <span className="ins px-0.5">{clip(s.replacement, 90)}</span> : <em className="text-muted">deleted</em>}
                   <span className="mt-1 block text-xs text-muted">
-                    {[deltaLabel(d.removed, "-"), deltaLabel(d.added, "+")].filter(Boolean).join(" ")} · anchored by {quote ? (quote.prefix || quote.suffix ? "quote and context" : "quote") : "position and expected text"}
+                    <ChangeCount documentId={doc.id} version={doc.version} change={s} /> · anchored by {quote ? (quote.prefix || quote.suffix ? "quote and context" : "quote") : "position and expected text"}
                   </span>
                 </p>
                 <button type="button" onClick={() => ws.removeStaged(s.id)} aria-label={`Remove change: ${clip(s.text, 30)}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-line/70 hover:text-fail"><Trash2 size={14} aria-hidden /></button>

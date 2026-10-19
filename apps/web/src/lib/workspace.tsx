@@ -1,9 +1,10 @@
-import { applyOrderedSpans, selectorFor, type Target } from "@clause/engine";
+import { projectText, type TextSource } from "./projected-text.ts";
+import { selectorFor, type Target } from "@clause/engine";
 import { toast as sonner } from "sonner";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, type ApiError, type Change, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type Preview, type RequestCreate, type RequestPatch, type RequestStatus, type SearchPage, type WorkRequest } from "./api.ts";
+import { api, documentWorker, rememberDocument, receiptContent, type ApiError, type Change, type CiReport, type Doc, type DocResult, type DocSummary, type Evidence, type Hit, type Preview, type RequestCreate, type RequestPatch, type RequestStatus, type SearchPage, type WorkRequest } from "./api.ts";
 import { navigate, useRoute } from "./router.ts";
-import type { Range } from "./segments.ts";
+import type { Range } from "./document-range.ts";
 import { useSettings } from "./settings.tsx";
 
 export interface Staged {
@@ -68,7 +69,7 @@ interface Workspace {
   pickHit: (result: DocResult, hit: Hit) => void;
   protect: (text: string) => Promise<void>;
   /** The text a CLAUSE CI report was judged against on the "after" side. */
-  proposedText: string;
+  proposedText: TextSource;
   requests: WorkRequest[];
   requestsStatus: { kind: "loading" | "error" | "ready"; message?: string };
   refreshRequests: () => Promise<void>;
@@ -150,6 +151,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   currentDocRef.current = doc;
   const loadGeneration = useRef(0);
   const pendingLoad = useRef<{ id: string; promise: Promise<Doc | null> } | null>(null);
+  const loadAbort = useRef<AbortController | null>(null);
   const blockDraftNavigation = useCallback(() => {
     if (stagedRef.current.length) {
       toast("Apply or discard your staged changes before opening a document.");
@@ -162,9 +164,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (blockDraftNavigation()) return Promise.resolve(null);
     if (pendingLoad.current?.id === id) return pendingLoad.current.promise;
     const generation = ++loadGeneration.current;
+    loadAbort.current?.abort();
+    const controller = new AbortController();
+    loadAbort.current = controller;
     setOpening(true);
     const promise = (async () => {
-      const r = await api.get(id);
+      const r = await api.get(id, controller.signal);
       if (generation !== loadGeneration.current) return null;
       pendingLoad.current = null;
       setOpening(false);
@@ -245,6 +250,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (pendingLoad.current && pendingLoad.current.id !== routeDocId) {
       loadGeneration.current++;
+      loadAbort.current?.abort();
+      loadAbort.current = null;
       pendingLoad.current = null;
       setOpening(false);
     }
@@ -252,6 +259,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (routeDocId !== doc?.id) void openDoc(routeDocId);
     } else {
       loadGeneration.current++;
+      loadAbort.current?.abort();
+      loadAbort.current = null;
       pendingLoad.current = null;
       setOpening(false);
     }
@@ -262,15 +271,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!doc || staged.length === 0) return setPreview({ status: "idle" });
     const mine = ++previewSeq.current;
+    const controller = new AbortController();
     setPreview({ status: "loading" });
-    void api.preview(doc.id, doc.version, toChanges(staged)).then((r) => {
-      if (mine !== previewSeq.current) return;
+    void api.preview(doc.id, doc.version, toChanges(staged), controller.signal,doc.content).then((r) => {
+      if (mine !== previewSeq.current || controller.signal.aborted) return;
       if (r.ok) setPreview({ status: "valid", data: r.data });
       else {
         setPreview({ status: "invalid", error: r.error });
         if (r.error.type === "VERSION_CONFLICT" || r.error.type === "PRECONDITION_FAILED") setConflict({ currentVersion: r.error.details?.currentVersion });
       }
     });
+    return () => controller.abort();
   }, [doc, staged]);
 
   useEffect(() => {
@@ -362,10 +373,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (doc.sample) return applyToCopy();
     if (settings.confirmApply && !window.confirm(`Apply ${staged.length} change${staged.length === 1 ? "" : "s"} as a new version of “${doc.title}”? Earlier versions are kept.`)) return;
     setApplying(true);
-    const r = await api.apply(doc.id, doc.version, toChanges(staged));
+    const r = await api.apply(doc.id, doc.version, toChanges(staged),doc.content);
     setApplying(false);
     if (r.ok) {
-      setDoc({ ...doc, content: r.data.content, version: r.data.version, contentHash: r.data.afterHash });
+      if(currentDocRef.current?.id!==doc.id||currentDocRef.current.version!==doc.version)return;
+      let content=r.data.content;
+      if(content===undefined){const updated=await documentWorker().apply(doc.id,doc.version,r.data.version,r.data.applied,r.data.afterHash);if(updated.ok)content=updated.content;}
+      if (content === undefined) {
+        const refreshed=await receiptContent(r.data);
+        if (refreshed===undefined) {
+          toast("The edit was saved, but its new text could not be verified. Reload the document to continue.","fail");
+          return;
+        }
+        content=refreshed;
+      }
+      if(currentDocRef.current?.id!==doc.id||currentDocRef.current.version!==doc.version)return;
+      rememberDocument(doc.id,r.data.version,r.data.afterHash,content);
+      setDoc({ ...doc, content, version: r.data.version, contentHash: r.data.afterHash });
       setStaged([]);
       setSelection(null);
       setRedline(false);
@@ -402,8 +426,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (doc.sample) return toast("This sample is read-only. Make a copy to restore versions.");
     const r = await api.revert(doc.id, doc.version, toVersion);
     if (r.ok) {
+      if(currentDocRef.current?.id!==doc.id||currentDocRef.current.version!==doc.version)return;
       if (r.data.changed) {
-        setDoc({ ...doc, content: r.data.content, version: r.data.version, contentHash: r.data.afterHash });
+        let content=r.data.content;
+        if(content===undefined) {
+          const reconstructed=await documentWorker().apply(doc.id,doc.version,r.data.version,r.data.applied,r.data.afterHash);
+          if(reconstructed.ok) content=reconstructed.content;
+        }
+        if(content===undefined) {
+          content=await receiptContent(r.data);
+        }
+        if(content===undefined) return toast("The restored version was saved, but its text could not be verified. Reload the document to continue.","fail");
+        rememberDocument(doc.id,r.data.version,r.data.afterHash,content);
+        setDoc({ ...doc, content, version: r.data.version, contentHash: r.data.afterHash });
         setSelection(null);
         setRedline(false);
         toast(`Restored the text of v${toVersion} as v${r.data.version}. Nothing was deleted.`, "pass");
@@ -446,7 +481,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!doc) return "";
     if (preview.status !== "valid" || !preview.data.wouldChange || preview.data.version !== doc.version) return doc.content;
     try {
-      return applyOrderedSpans(doc.content, preview.data.applied.map((a) => ({ index: a.index, start: a.start, end: a.end, replacement: a.after }))).content;
+      return projectText(doc.content,preview.data.applied);
     } catch {
       return doc.content;
     }
