@@ -44,11 +44,11 @@ describe("words search (FTS5 + BM25)", () => {
     expect(page.items[0]?.content).toContain("termination");
     expect(page.items[0]?.nativeSnippet).toBeUndefined();
 
-    const phraseDoc=await createDoc(app,"Long phrase",`${"boilerplate ".repeat(24_000)}terminate surviving.`);
+    const phraseDoc=await createDoc(app,"Long phrase",`${"boilerplate ".repeat(24_000)}terminate, surviving.`);
     const phraseHit=(await search('"termination survives"',`&ids=${phraseDoc.id}`)).results[0].hits[0];
-    expect(phraseHit.snippet.map((part: {text:string})=>part.text).join("")).toContain("terminate surviving");
+    expect(phraseHit.snippet.map((part: {text:string})=>part.text).join("")).toContain("terminate, surviving");
     const phrasePage=await app.store.wordsPage('"termination survives"',{ids:[phraseDoc.id],limit:10,offset:0});
-    expect(phrasePage.items[0]?.content).toContain("terminate surviving");
+    expect(phrasePage.items[0]?.content).toContain("terminate, surviving");
     expect(phrasePage.items[0]?.nativeSnippet).toBeUndefined();
   });
 

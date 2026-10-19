@@ -279,7 +279,7 @@ export function sqliteStore(db: Db): Store {
         const ranked = db.prepare(`SELECT d.id, d.title, d.version, length(d.content) AS size, bm25(documents_words, 5.0, 1.0) AS score
           FROM documents_words JOIN documents d ON d.seq = documents_words.rowid
           WHERE documents_words MATCH ? ${idFilter} ORDER BY score, d.seq LIMIT ? OFFSET ?`).all(match, ...ids, limit, offset) as unknown as Omit<WordSnapshot, "content">[];
-        const queryNeedle = queryTerms(query)[0]?.split(/\s+/)[0] ?? query;
+        const queryNeedle = queryTerms(query)[0]?.match(/[\p{L}\p{N}]+/u)?.[0] ?? query;
         const snippetNeedle = queryNeedle.length > 4 ? queryNeedle.slice(0,Math.max(4,Math.ceil(queryNeedle.length*0.7))) : queryNeedle;
         const items = ranked.map((r): WordSnapshot => {
           const isWindow = r.size > NATIVE_SNIPPET_MAX_CHARS;
