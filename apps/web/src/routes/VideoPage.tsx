@@ -43,7 +43,7 @@ export default function VideoPage() {
             <h1 className="text-2xl font-semibold sm:text-3xl">CLAUSE walkthrough</h1>
             <p className="mt-1 text-sm text-muted">Ola walks through a contract change, from request to saved revision.</p>
           </div>
-          <span className="tnum text-sm text-muted">8 min 50 sec</span>
+          <span className="tnum text-sm text-muted">9 min 46 sec</span>
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_264px]">
@@ -77,7 +77,7 @@ export default function VideoPage() {
               <a href="/video/transcript.txt" className="inline-flex min-h-11 items-center text-accent hover:underline">Read transcript</a>
               <a href="https://github.com/olanotolu/clause-take-home" className="inline-flex min-h-11 items-center text-accent hover:underline">View the code <ArrowRight size={14} className="ml-1" aria-hidden /></a>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted">The footage is the real app with fictional contract data. The narration is a synthetic voice cloned from the author’s own voice, not a live recording. Recorded against release b7ff832.</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted">The footage is the real app with fictional contract data. The narration is a synthetic voice cloned from the author’s own voice, not a live recording. Recorded against release c04a163 on a local copy of the app, not the hosted site.</p>
           </section>
 
           <nav aria-label="Video chapters" className="rounded-2xl border border-line bg-paper p-3">

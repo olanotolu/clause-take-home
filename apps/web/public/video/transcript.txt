@@ -1,28 +1,27 @@
-# CLAUSE walkthrough narration
-
-Synthetic ElevenLabs narration. Fictional contract data.
+CLAUSE walkthrough: transcript
+Synthetic narration (ElevenLabs, cloned voice of the author). Fictional contract data. Recorded against release c04a163.
 
 Hey guys, I’m Ola. I built Clause for Sandstone. Let’s jump in.
 
-Here’s the workspace. I can see what’s waiting on legal, open a request, and get to the document from one place.
+Here’s the workspace. I can see what’s waiting on legal, open a request, and get to the document from one place. Down in the corner, it tells me what I’m running on: five documents, and SQLite.
 
-This card is our request. Acme wants a one year disclosure term, while keeping the exceptions and five year survival period. We also need to update the governing law. I’ve put the outcome beside the document so I can keep checking what we’re trying to achieve.
+Let me add a request. It’s fictional. Acme wants a one year disclosure term, while keeping the exceptions and five year survival period. We also need to update the governing law. I write the outcome on the card, so I can keep checking what we’re trying to achieve.
 
-I’ll open the agreement from the request. The board gives the work some context, but the heart of the assessment is right here: edit document text and search its content. Let’s start by finding the clause we actually need to change.
+I’ll open the agreement from the request. The five sample contracts are read only, so I make my own copy before I touch anything. Then I can start where the work actually is: finding the clause I need to change.
 
-I’m searching for the two year disclosure term. The result gives me the matching passage and the document version. When I open it, Clause selects that exact text. I don’t have to hunt through the agreement or guess which occurrence the result meant.
+I’m searching for the two year disclosure term, as exact text. The result gives me the matching passage and the document version. When I open it, Clause selects that exact text. I don’t have to hunt through the agreement or guess which occurrence the result meant.
 
 Now I’ll replace two years with one year. I’m staging the edit first, so the saved document hasn’t changed. The engine checks that this target exists and identifies one place. If the wording repeats, I need context or an occurrence number to make it precise.
 
 Here’s the redline. Red is what I’m removing, and green is what I’m adding. We’re still on version one. Every edit in a batch refers to that same original text, so an earlier replacement can’t move a later target. If one edit is invalid, none of the batch saves.
 
-Now, Clause CI is a check against requirements I’ve saved for this document. Here I want to keep the disclosure exception, retain the five year survival language, and avoid a perpetual term. These are exact text checks, so they don’t need a model call.
+Now, Clause CI is a check against requirements I’ve saved for this document. The copy came with a few. I’ll add two exact ones: keep the survival clause word for word, and require the five year period. Exact checks compare literal text, so they don’t need a model call.
 
-Let me deliberately make a bad change. I’m staging removal of the disclosure exception. The sentence is there, so the edit itself is possible. But it’s language we said we wanted to keep. Nothing has been saved yet, and that’s the important part.
+Let me deliberately make a bad change. I’m staging a replacement of the two year term with a perpetual period. The edit itself is possible. But a perpetual term is something we said we wanted to avoid. Nothing has been saved yet, and that’s the important part.
 
-When I run the check, you can see the exception requirement fail against the proposed text. The other rules still hold. This is why I separate finding the right text from checking the result. An edit can be precise and still break the thing I wanted to preserve.
+When I run the check, the no perpetual term rule fails against the proposed text. It’s an exact check, with no model involved. The model-judged requirements get their own label, and I treat those as advice. An edit can be precise and still break the thing I wanted to preserve.
 
-I’ll discard that mistaken removal and check again. Now the one year change is still staged, and the protected language stays intact. Exact checks are repeatable checks on text. When I ask a model to judge meaning, I treat its answer as advice that can be wrong.
+I’ll discard that mistaken change, stage the one year change again, and check again. Now the no perpetual term rule holds. Exact checks are repeatable checks on text. When I ask a model to judge meaning, I treat its answer as advice that can be wrong.
 
 That looks right, so I’ll apply it. We now have version two. The saved text, search index, and history update together. I still decide whether the legal request is complete. Applying an edit doesn’t automatically mean the business outcome has been met.
 
@@ -32,15 +31,15 @@ This part uses a real model request. The model suggests edits; it can’t save t
 
 Here’s the proposal, its explanation, and the version it was checked against. I can review it before I apply anything. Semantic checks also verify quoted evidence, but a real quote can still be used to support a wrong claim. I don’t treat that as legal approval.
 
-There’s also an optional experimental judge called Jev. My existing account returned an access error, so it’s disabled here. I haven’t measured its accuracy. The separate language model citation experiment includes false support cases, which is a useful reminder of the limits.
+Now I’ll stage one more change, from shall give to may give, and run the check. The no perpetual term rule is an exact check, so it holds with no model involved. The notice rule is judged by a model, and it gets flagged. Every result says how it was decided, and the model’s answers are advice. A model pass needs a quote that really is in the document, and a timeout is never a pass. On sixty public NDAs, the model judge scored eighty percent, against forty for a keyword baseline. That’s a small experiment, not proof of legal reliability.
 
-I’m happy with this proposed change, so I’ll apply it and create version three. The server checks the version again at save time. If someone else got there first, my stale edit would be rejected. It won’t silently overwrite their newer work.
+I’ll discard that extra test edit and keep the governing law change. Then I apply it, and that creates version three. The server checks the version again at save time. If someone else got there first, my stale edit would be rejected. It won’t silently overwrite their newer work.
 
-In Activity, I can see the revisions and the changes behind them. Restoring makes another version instead of erasing history. The Word export includes tracked changes. I tested accepting and rejecting those with independent readers; I’m not claiming every Word version was checked.
+In Activity, I can see the revisions and the changes behind them. Restoring makes another version instead of erasing history. The Word export includes tracked changes, and a very large one runs as a background job. I tested accepting and rejecting those with independent readers; I’m not claiming every Word version was checked.
 
 Let’s search for the language I just saved. It’s available straight away. The server returns a consistent search snapshot, and the browser checks the loaded version and passage. If a hit is stale, it asks me to search again. It also protects any edits I already have staged.
 
-I’ve also added source-backed templates. The details show the source, version, license, and attribution. Common Paper provenance follows a document created from a template. The curated form stays read only, while the new copy is editable. It’s a starting point that still needs review.
+I’ve also added source-backed templates. The settings show the source, version, license, and attribution. When I create a copy, I get an editable document, and its details keep that provenance. It’s a starting point that still needs review.
 
 These integrations are a demo with sample files. They show how browsing and importing a document would feel. They aren’t live customer repository connections. Real connections need the provider credentials and workspace admin setup, and I’ve kept that distinction visible.
 
@@ -50,18 +49,18 @@ Let me show you the API behind that edit. I send JSON with the version I expect,
 
 And here’s a real stale version response: a conflict. I asked to edit version one, but the document was already on version three. The current text stays safe. Ambiguous targets and overlapping changes fail too. Offset edits must include the text expected at that position.
 
-The stack is fairly direct. React handles the interface. Fastify validates requests. A pure TypeScript engine resolves the changes. The database commits only if the version still matches. SQLite runs locally, and Neon Postgres runs the hosted app. Their indexes serve search.
+The stack is fairly direct. React handles the interface. Fastify validates requests. A pure TypeScript engine resolves the changes. The database commits only if the version still matches. SQLite runs locally. The hosted app runs on Vercel with Supabase Postgres, and bodies over one mebibyte go to private Blob. Search indexes live in the database.
 
-This release passed three hundred and seventy seven SQLite tests, three hundred and eighty three Postgres tests, and eighteen browser journeys. The database suites overlap. CI also checks types, lint, coverage, and builds.
+This release passes four hundred and fifty eight SQLite tests, four hundred and forty nine Postgres tests, and twenty browser runs: ten journeys each on desktop and on a phone. The database suites overlap. CI also checks types, lint, and coverage floors.
 
-I reran the same large document benchmark around the search change. Local SQLite searched a ten mebibyte file in about twenty one milliseconds for a rare word and twenty five for a common phrase. Hosted Postgres is capped at five hundred thousand characters.
+I measured a ten mebibyte document on local SQLite, on my laptop. One edit in the engine takes about seven milliseconds. Searching for words takes twenty one milliseconds for a rare word and twenty five for a common phrase. It first took eight point three seconds, because I built snippets for every matching document. Now I rank first, and snippet only the page.
 
-The engine is only part of the cost. Indexes, revision snapshots, and returning the full document take more work. Full snapshots simplify restoring, but use more storage. I’d optimize from these measurements rather than assume the engine is the bottleneck.
+Under load, the results are mixed, and I’ve written them down. On one SQLite process, exact search and edits miss their targets with eight clients. On a laptop Postgres, after I rewrote the search chunk query, word search at the ninety fifth percentile fell from about sixteen hundred to about a hundred milliseconds, though the machine was loaded, so that’s diagnostic. The hosted run on October eighteenth, before that rewrite, missed its targets for metadata and word search. No hosted run has used Supabase yet.
 
-Here’s what I’d add for production: authentication, document permissions, and tenant isolation. I’d move larger snapshots into object storage and use paragraph chunks for search. Durable workers would handle large imports and AI jobs. This is a design proposal, not infrastructure I’ve already deployed.
+Here’s what’s built and what’s proposed. Built: Postgres on Supabase, bodies over one mebibyte in private Blob, search over eight thousand character chunks, and slow work as durable background jobs that return a two oh two with a status URL. Documents can go up to twenty five mebibytes. Proposed, not built: authentication, document permissions, and tenant isolation.
 
-I’d monitor latency by document size, conflicts, search delay, queue age, and model spend. I’d test restoring backups and rolling back releases. Workspace budgets need durable enforcement. More services should earn their place through measurements.
+I’d monitor latency by document size, conflicts, search delay, queue age, and model spend. Metrics go out over OpenTelemetry; I verified a local collector, but hosted delivery is untested. I’d test restoring backups and rolling back releases. The AI limits are per address, per hour today; real workspaces need durable budgets.
 
-A few limits to be clear about. The public demo is shared, so it’s for fictional data, not confidential contracts. Editing is plain text, semantic review is advisory, and the real connectors need setup. I also went beyond the suggested time box while expanding the product.
+A few limits to be clear about. The public demo is shared, so it’s for fictional data, and it has no sign-in or tenancy. Everything in this recording runs on a local seeded copy of the app, not the hosted site. Editing is plain text, and semantic review is advisory. An experimental evaluator called Jev is built behind a rollout gate and is off. The integrations page runs on sample files. And I went beyond the suggested time box.
 
-That’s Clause: precise edits, searchable content, and a reviewable history. The repo has setup steps, sample requests, tests, measurements, and the one page infrastructure proposal. You can try the live demo too. Thanks for taking a look. I’m happy to walk through the code and the trade-offs with you.
+That’s Clause: precise edits, searchable content, and a reviewable history. The repo has setup steps, sample requests, tests, measurements, and the one page infrastructure proposal, and it runs locally with a seeded database. Thanks for taking a look. I’m happy to walk through the code and the trade-offs with you.
