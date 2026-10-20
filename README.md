@@ -7,7 +7,7 @@
 | open | what you'll see |
 |---|---|
 | **[live demo](https://clause-take-home.vercel.app/#/documents)** | public Vercel URL; the page is currently not ready because its database readiness check returns 503 (checked October 19, 2026). The local seeded app below is usable while the hosted database is restored |
-| **[walkthrough video (8:50)](https://clause-take-home.vercel.app/video)** | narrated tour with chapters, captions and a transcript; recorded october 16, before the large-document work |
+| **[walkthrough video (9:46)](https://clause-take-home.vercel.app/video)** | narrated tour with chapters, captions and a transcript; recorded october 19 against `c04a163`, on a local copy of the app; the narration is a synthetic voice cloned from the author |
 | **[api reference](https://clause-take-home.vercel.app/api/docs/)** | interactive openapi reference, generated from the same schemas that validate requests |
 | **full assessment submission (pdf)** | detailed take-home response, infrastructure design, implementation evidence, limitations, and live discussion guide; saved on the submitter's Desktop and kept outside this repository |
 | **[editable assessment source](docs/ASSESSMENT_SUBMISSION.md)** | the markdown source used to produce the submission pdf |
@@ -226,8 +226,8 @@ at 32 clients search and mixed load produced errors, so there is no capacity cla
 | layer | what | where |
 |---|---|---|
 | engine | unit tests and property tests (fast-check, fixed seed, 500 runs) | [`packages/core/test`](packages/core/test) |
-| api | the full suite is 441 tests on sqlite and 449 on postgres, including two real connections racing on one version, a writer injected between commit and response, provider timeouts and cancellation, 1/10/25 mib uploads, job leases and recovery rehearsal | [`apps/api/test`](apps/api/test) |
-| browser | 9 playwright journeys on desktop and a 390 px phone (18 runs), including large replacements and direct uploads, with axe accessibility checks after each step | [`e2e/journeys.spec.ts`](e2e/journeys.spec.ts) |
+| api | the full suite is 458 tests on sqlite with the benchmark dataset fetched (452 on a clean checkout, where six benchmark checks need `node bench/ci/fetch-data.ts`), and 449 on postgres (ci), including two real connections racing on one version, a writer injected between commit and response, provider timeouts and cancellation, 1/10/25 mib uploads, job leases and recovery rehearsal | [`apps/api/test`](apps/api/test) |
+| browser | 10 playwright journeys on desktop and a 390 px phone (20 runs), including large replacements and direct uploads, with axe accessibility checks after each step | [`e2e/journeys.spec.ts`](e2e/journeys.spec.ts) |
 | mutation | flip one operator at a time in the engine and see whether a test notices: 65 of 70 killed; the 5 survivors are equivalent | `pnpm mutate`, [`scripts/mutate.ts`](scripts/mutate.ts) |
 | fuzzing | schemathesis against the openapi spec, seeded, weekly in ci; its first run found five bugs the hand-written tests had missed | [`scripts/fuzz`](scripts/fuzz) |
 
