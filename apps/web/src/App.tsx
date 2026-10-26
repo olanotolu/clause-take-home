@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { Shell } from "./components/Shell.tsx";
 import { useRoute } from "./lib/router.ts";
 import { useWorkspace, WorkspaceProvider } from "./lib/workspace.tsx";
+import { InsuranceView } from "./routes/InsuranceView.tsx";
 import { RequestDialog } from "./components/RequestDialog.tsx";
 
 // Each area is its own chunk, so the first screen ships only the shell and the view it opens on. The dynamic imports
@@ -56,6 +57,7 @@ export default function App() {
     const t = setTimeout(() => { for (const importer of Object.values(load)) void importer(); }, 1500);
     return () => clearTimeout(t);
   }, []);
+  if (window.location.hash.startsWith("#/insurance")) return <InsuranceView />;
   return (
     <WorkspaceProvider>
       <Shell>

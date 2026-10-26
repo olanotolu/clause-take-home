@@ -51,6 +51,10 @@ The screenshots are product views, not benchmark evidence. Performance measureme
 
 ---
 
+## synthetic insurance review demo
+
+Open `http://localhost:5173/#/insurance` after `pnpm install --frozen-lockfile` and `pnpm dev:web`. This browser-session fixture needs no database or AI key; **Reset demo** resets only the case. See [the walkthrough and limitations](docs/sequence-demo.md). Use fictional data only.
+
 ## run it
 
 node 24.x and pnpm 10.33.0. there's no database server, no docker and no api key required.

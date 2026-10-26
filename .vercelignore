@@ -17,3 +17,5 @@ test-results
 scripts/fuzz/.venv
 
 .workflow-data
+
+sequence-video
